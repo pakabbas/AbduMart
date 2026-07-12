@@ -1,1 +1,127 @@
-# AbduMart
+# Abdu Mart's Curb Side Pickup
+
+A modern PHP + MySQL web application for **Abdu Mart** in Michigan. Customers browse products, sign in, add items to cart, pay via Stripe, and pick up curbside. Staff manage orders from a mart dashboard and receive real-time alerts when customers tap **I'm Here**.
+
+## Features
+
+- **Product catalog** with categories, search, and price sorting
+- **Customer accounts** — sign up, sign in, order history
+- **Shopping cart** with inventory-aware quantities
+- **Stripe Checkout** for secure online payment
+- **Curbside pickup** with vehicle details and **I'm Here** check-in
+- **Mart admin dashboard** — order management, live arrival notifications
+- **Clover POS sync** — categories, products, prices, and inventory from Clover API
+- **Mobile responsive** — clean white UI with red accents (Bootstrap 5)
+
+## Tech Stack
+
+- PHP 8.1+
+- MySQL 8
+- Bootstrap 5, vanilla JavaScript
+- Stripe PHP SDK
+- Clover REST API
+
+## Quick Start
+
+### 1. Clone and install dependencies
+
+```bash
+composer install
+cp .env.example .env
+```
+
+### 2. Configure environment
+
+Edit `.env` with your database, Stripe, and Clover credentials:
+
+| Variable | Description |
+|----------|-------------|
+| `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL connection |
+| `APP_URL` | Public site URL (e.g. `https://shop.abdumart.com`) |
+| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` | Stripe API keys |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `CLOVER_MERCHANT_ID`, `CLOVER_API_TOKEN` | Clover POS credentials |
+| `CLOVER_ENV` | `sandbox` or `production` |
+
+### 3. Create the database
+
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/seed.sql
+```
+
+Seed data includes sample categories/products and an admin account:
+
+- **Email:** `admin@abdumart.com`
+- **Password:** `Admin@123`
+
+Change this password after first login.
+
+### 4. Run locally
+
+Point your web server document root to this project directory (Apache/Nginx + PHP-FPM), or use PHP's built-in server:
+
+```bash
+php -S localhost:8000
+```
+
+Visit `http://localhost:8000`
+
+### 5. Stripe webhook
+
+In the Stripe Dashboard, add a webhook endpoint:
+
+```
+https://your-domain.com/stripe-webhook.php
+```
+
+Listen for `checkout.session.completed` and copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
+
+### 6. Sync Clover inventory
+
+Sign in as admin → **Mart Dashboard** → **Sync Clover POS**
+
+Or set a cron job to sync periodically:
+
+```bash
+# Example: sync every hour via CLI (optional script)
+php -r "require 'includes/bootstrap.php'; (new App\CloverService())->syncAll();"
+```
+
+## Project Structure
+
+```
+├── admin/              # Mart staff dashboard
+├── api/                # Cart & I'm Here endpoints
+├── assets/             # CSS & JavaScript
+├── config/             # App & database config
+├── database/           # schema.sql, seed.sql
+├── includes/           # Shared PHP (auth, db, layout)
+├── services/           # Clover & Stripe integrations
+├── index.php           # Shop homepage
+├── cart.php            # Shopping cart
+├── checkout.php        # Stripe checkout
+├── orders.php          # Customer orders + I'm Here
+└── stripe-webhook.php  # Payment confirmation webhook
+```
+
+## Customer Flow
+
+1. Browse products and filter by category
+2. Sign up / sign in
+3. Add items to cart → checkout
+4. Pay with Stripe
+5. Drive to Abdu Mart
+6. Open order → tap **I'm Here**
+7. Staff brings order to your vehicle
+
+## Admin Flow
+
+1. Sign in with admin account
+2. View dashboard for waiting customers
+3. Update order status (preparing → ready → picked up)
+4. Sync products from Clover POS as needed
+
+## License
+
+Proprietary — Abdu Mart, Michigan.
