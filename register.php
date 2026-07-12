@@ -9,12 +9,13 @@ if (is_logged_in()) {
 }
 
 $errors = [];
+$redirect = $_GET['redirect'] ?? 'index.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Invalid request. Please try again.';
     } else {
-        $email = trim($_POST['email'] ?? '');
+        $email = strtolower(trim($_POST['email'] ?? ''));
         $password = $_POST['password'] ?? '';
         $confirm = $_POST['password_confirm'] ?? '';
         $firstName = trim($_POST['first_name'] ?? '');
@@ -40,10 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($check->fetch()) {
                 $errors[] = 'An account with this email already exists.';
             } else {
-                $user = register_user($email, $password, $firstName, $lastName, $phone);
-                login_user($user);
-                flash('success', 'Account created! Start shopping.');
-                redirect('index.php');
+                try {
+                    send_signup_otp($email, $firstName, $lastName, $phone, $password);
+                    $_SESSION['otp_email'] = $email;
+                    $_SESSION['otp_purpose'] = 'signup';
+                    flash('success', 'We sent a verification code to your email.');
+                    redirect('verify-otp.php?purpose=signup&email=' . urlencode($email));
+                } catch (Throwable $e) {
+                    $errors[] = $e->getMessage();
+                }
             }
         }
     }
@@ -59,10 +65,13 @@ require __DIR__ . '/includes/header.php';
             <div class="auth-card card border-0 shadow">
                 <div class="card-body p-4 p-md-5">
                     <h1 class="h3 mb-1">Create your account</h1>
-                    <p class="text-muted mb-4">Order online and pick up curbside at Abdu Mart.</p>
+                    <p class="text-muted mb-4">We'll email you a verification code to confirm your account.</p>
                     <?php foreach ($errors as $err): ?>
                     <div class="alert alert-danger"><?= e($err) ?></div>
                     <?php endforeach; ?>
+
+                    <?php require __DIR__ . '/includes/auth_social.php'; ?>
+
                     <form method="post">
                         <?= csrf_field() ?>
                         <div class="row g-3">
@@ -91,7 +100,7 @@ require __DIR__ . '/includes/header.php';
                                 <input type="password" name="password_confirm" class="form-control" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-danger w-100 btn-lg mt-4">Create Account</button>
+                        <button type="submit" class="btn btn-danger w-100 btn-lg mt-4">Send Verification Code</button>
                     </form>
                     <p class="text-center mt-4 mb-0 small">
                         Already have an account? <a href="login.php" class="text-danger">Sign in</a>

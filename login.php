@@ -23,7 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Welcome back, ' . $user['first_name'] . '!');
             redirect($redirect);
         }
-        $error = 'Invalid email or password.';
+        $check = db()->prepare('SELECT password_hash, google_id FROM users WHERE email = ?');
+        $check->execute([$email]);
+        $existing = $check->fetch();
+        if ($existing && empty($existing['password_hash']) && !empty($existing['google_id'])) {
+            $error = 'This account uses Google sign-in. Please continue with Google below.';
+        } else {
+            $error = 'Invalid email or password.';
+        }
     }
 }
 
@@ -41,16 +48,20 @@ require __DIR__ . '/includes/header.php';
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>
+
+                    <?php require __DIR__ . '/includes/auth_social.php'; ?>
+
                     <form method="post">
                         <?= csrf_field() ?>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control" required value="<?= e($_POST['email'] ?? '') ?>">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" required>
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <label class="form-label mb-0">Password</label>
+                            <a href="forgot-password.php" class="small text-danger">Forgot password?</a>
                         </div>
+                        <input type="password" name="password" class="form-control mb-3" required>
                         <button type="submit" class="btn btn-danger w-100 btn-lg">Sign In</button>
                     </form>
                     <p class="text-center mt-4 mb-0 small">

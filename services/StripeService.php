@@ -12,12 +12,12 @@ class StripeService
 {
     public function __construct()
     {
-        Stripe::setApiKey((string) config('stripe.secret_key'));
+        Stripe::setApiKey((string) setting('stripe.secret_key'));
     }
 
     public function isConfigured(): bool
     {
-        return config('stripe.secret_key') !== '' && config('stripe.publishable_key') !== '';
+        return setting('stripe.secret_key') !== '' && setting('stripe.publishable_key') !== '';
     }
 
     public function createCheckoutSession(int $orderId, array $lineItems, float $total, string $customerEmail): Session
@@ -41,7 +41,7 @@ class StripeService
 
     public function handleWebhook(string $payload, string $signature): void
     {
-        $secret = config('stripe.webhook_secret');
+        $secret = setting('stripe.webhook_secret');
         if ($secret === '') {
             throw new \RuntimeException('Stripe webhook secret not configured.');
         }
@@ -57,6 +57,7 @@ class StripeService
                      WHERE id = ? AND status = ?'
                 );
                 $stmt->execute(['paid', $session->payment_intent ?? null, $session->id, $orderId, 'pending']);
+                send_order_confirmation_email($orderId);
             }
         }
     }
@@ -78,6 +79,8 @@ class StripeService
              WHERE id = ? AND status IN (?, ?)'
         );
         $stmt->execute(['paid', $session->payment_intent, $session->id, $orderId, 'pending', 'paid']);
+
+        send_order_confirmation_email($orderId);
 
         return $this->getOrder($orderId);
     }

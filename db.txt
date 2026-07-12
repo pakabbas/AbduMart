@@ -3,11 +3,30 @@ Database: abdu_mart
 TABLE: users
 - id INT PK AUTO_INCREMENT
 - email VARCHAR(255) UNIQUE
-- password_hash VARCHAR(255)
+- google_id VARCHAR(255) UNIQUE NULL
+- password_hash VARCHAR(255) NULL
 - first_name VARCHAR(100)
 - last_name VARCHAR(100)
 - phone VARCHAR(20)
+- email_verified_at TIMESTAMP NULL
 - role ENUM('customer','admin') DEFAULT 'customer'
+- created_at TIMESTAMP
+
+TABLE: settings
+- id INT PK AUTO_INCREMENT
+- setting_key VARCHAR(100) UNIQUE
+- setting_value TEXT NULL (encrypted for secrets)
+- updated_at TIMESTAMP
+
+TABLE: auth_tokens
+- id INT PK AUTO_INCREMENT
+- email VARCHAR(255)
+- token_hash VARCHAR(64) -- SHA256 of 6-digit OTP
+- purpose ENUM('signup','password_reset')
+- payload JSON NULL -- signup stores name/phone/password_hash
+- attempts INT DEFAULT 0
+- expires_at TIMESTAMP
+- used_at TIMESTAMP NULL
 - created_at TIMESTAMP
 
 TABLE: categories
@@ -53,6 +72,7 @@ TABLE: orders
 - vehicle_description VARCHAR(255) NULL
 - created_at TIMESTAMP
 - updated_at TIMESTAMP
+- confirmation_email_sent_at TIMESTAMP NULL
 
 TABLE: order_items
 - id INT PK AUTO_INCREMENT

@@ -15,12 +15,12 @@ class CloverService
 
     public function __construct()
     {
-        $env = config('clover.env', 'sandbox');
+        $env = setting('clover.env', 'sandbox');
         $this->baseUrl = $env === 'production'
             ? 'https://api.clover.com'
             : 'https://apisandbox.dev.clover.com';
-        $this->merchantId = (string) config('clover.merchant_id');
-        $this->apiToken = (string) config('clover.api_token');
+        $this->merchantId = (string) setting('clover.merchant_id');
+        $this->apiToken = (string) setting('clover.api_token');
     }
 
     public function isConfigured(): bool

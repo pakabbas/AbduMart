@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 require_admin();
 
+$adminSection = 'orders';
 $orderId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,7 +45,8 @@ if ($orderId) {
     require dirname(__DIR__) . '/includes/header.php';
     ?>
 
-    <div class="container py-4">
+    <div class="container-fluid py-4">
+        <?php require dirname(__DIR__) . '/includes/admin_nav.php'; ?>
         <a href="orders.php" class="btn btn-link text-danger ps-0 mb-3">&larr; All orders</a>
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
@@ -122,6 +124,7 @@ require dirname(__DIR__) . '/includes/header.php';
 ?>
 
 <div class="container-fluid py-4">
+    <?php require dirname(__DIR__) . '/includes/admin_nav.php'; ?>
     <h1 class="section-title mb-4">All Orders</h1>
     <form method="get" class="row g-2 mb-4">
         <div class="col-auto">

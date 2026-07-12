@@ -1,8 +1,8 @@
 USE abdu_mart;
 
 -- Default admin: admin@abdumart.com / Admin@123 (change after first login)
-INSERT INTO users (email, password_hash, first_name, last_name, phone, role) VALUES
-('admin@abdumart.com', '$2y$10$9UiXp..k59qj2h4wU1YQweYtFmCdRrmQL76HllboxB0VVlcQr4wuq', 'Abdu', 'Mart', '(248) 555-0100', 'admin');
+INSERT INTO users (email, password_hash, first_name, last_name, phone, email_verified_at, role) VALUES
+('admin@abdumart.com', '$2y$10$9UiXp..k59qj2h4wU1YQweYtFmCdRrmQL76HllboxB0VVlcQr4wuq', 'Abdu', 'Mart', '(248) 555-0100', NOW(), 'admin');
 
 INSERT INTO categories (name, sort_order, image_url) VALUES
 ('Fresh Produce', 1, 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400'),

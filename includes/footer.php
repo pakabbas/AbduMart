@@ -9,8 +9,8 @@
             </div>
             <div class="col-md-4">
                 <h6>Pickup Location</h6>
-                <p class="text-muted small mb-0"><?= e(config('mart.address')) ?></p>
-                <p class="text-muted small"><?= e(config('mart.phone')) ?></p>
+                <p class="text-muted small mb-0"><?= e(setting('mart.address', config('mart.address'))) ?></p>
+                <p class="text-muted small"><?= e(setting('mart.phone', config('mart.phone'))) ?></p>
             </div>
             <div class="col-md-4">
                 <h6>Quick Links</h6>

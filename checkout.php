@@ -127,8 +127,8 @@ require __DIR__ . '/includes/header.php';
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h2 class="h5 mb-3"><i class="bi bi-car-front text-danger"></i> Curbside Pickup Details</h2>
-                    <p class="text-muted"><?= e(config('mart.pickup_instructions')) ?></p>
-                    <p class="small"><strong>Pickup at:</strong> <?= e(config('mart.address')) ?></p>
+                    <p class="text-muted"><?= e(setting('mart.pickup_instructions', config('mart.pickup_instructions'))) ?></p>
+                    <p class="small"><strong>Pickup at:</strong> <?= e(setting('mart.address', config('mart.address'))) ?></p>
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>

@@ -342,6 +342,60 @@ body {
     border-left: 4px solid var(--am-red) !important;
 }
 
+/* Auth */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 1.25rem 0;
+    color: var(--am-gray);
+    font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e9ecef;
+}
+
+.btn-google {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #dadce0;
+    color: #3c4043;
+    font-weight: 500;
+}
+
+.btn-google:hover {
+    background: #f8f9fa;
+    border-color: #dadce0;
+    color: #202124;
+}
+
+.otp-input {
+    letter-spacing: 0.5em;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.admin-subnav .btn {
+    border-radius: 999px;
+}
+
+.settings-card {
+    border-radius: var(--radius) !important;
+}
+
+.settings-card .card-header {
+    border-bottom: 1px solid #f0f0f0;
+    font-weight: 600;
+}
+
 /* Footer */
 .site-footer {
     background: #fff;

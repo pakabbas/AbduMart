@@ -88,7 +88,7 @@ $statusLabels = [
                 </div>
                 <?php else: ?>
                 <div class="text-center">
-                    <p class="mb-3"><?= e(config('mart.pickup_instructions')) ?></p>
+                    <p class="mb-3"><?= e(setting('mart.pickup_instructions', config('mart.pickup_instructions'))) ?></p>
                     <button type="button" class="btn btn-danger btn-lg px-5 im-here-btn" data-order-id="<?= (int) $activeOrder['id'] ?>">
                         <i class="bi bi-geo-alt-fill"></i> I'M HERE
                     </button>

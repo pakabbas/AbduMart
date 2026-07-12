@@ -5,7 +5,9 @@ A modern PHP + MySQL web application for **Abdu Mart** in Michigan. Customers br
 ## Features
 
 - **Product catalog** with categories, search, and price sorting
-- **Customer accounts** — sign up, sign in, order history
+- **Customer accounts** — email OTP sign up, sign in, forgot password, Google OAuth
+- **Transactional email** — Gmail SMTP for OTP, password reset, and order confirmations
+- **Admin settings panel** — configure Stripe, Clover, SMTP, and Google keys in the dashboard
 - **Shopping cart** with inventory-aware quantities
 - **Stripe Checkout** for secure online payment
 - **Curbside pickup** with vehicle details and **I'm Here** check-in
@@ -18,7 +20,7 @@ A modern PHP + MySQL web application for **Abdu Mart** in Michigan. Customers br
 - PHP 8.1+
 - MySQL 8
 - Bootstrap 5, vanilla JavaScript
-- Stripe PHP SDK
+- Stripe PHP SDK, PHPMailer, Google OAuth (league/oauth2-google)
 - Clover REST API
 
 ## Quick Start
@@ -32,22 +34,26 @@ cp .env.example .env
 
 ### 2. Configure environment
 
-Edit `.env` with your database, Stripe, and Clover credentials:
+Edit `.env` with database credentials and `APP_URL`. Integration keys (Stripe, Clover, SMTP, Google) can be set in `.env` **or** in **Admin → Settings** after first login.
 
 | Variable | Description |
 |----------|-------------|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL connection |
 | `APP_URL` | Public site URL (e.g. `https://shop.abdumart.com`) |
-| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` | Stripe API keys |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `CLOVER_MERCHANT_ID`, `CLOVER_API_TOKEN` | Clover POS credentials |
-| `CLOVER_ENV` | `sandbox` or `production` |
+| `APP_KEY` | Encryption key for stored settings secrets |
+| `STRIPE_*`, `CLOVER_*`, `SMTP_*`, `GOOGLE_*` | Optional — can be configured in admin panel |
 
 ### 3. Create the database
 
 ```bash
 mysql -u root -p < database/schema.sql
 mysql -u root -p < database/seed.sql
+```
+
+**Upgrading an existing database:**
+
+```bash
+mysql -u root -p < database/migrations/002_settings_auth.sql
 ```
 
 Seed data includes sample categories/products and an admin account:
@@ -77,7 +83,18 @@ https://your-domain.com/stripe-webhook.php
 
 Listen for `checkout.session.completed` and copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
 
-### 6. Sync Clover inventory
+### 6. Configure integrations in Admin
+
+Sign in as admin → **Mart Dashboard** → **Settings**
+
+- **Stripe** — payment keys and webhook secret
+- **Clover POS** — merchant ID, API token, environment
+- **Gmail SMTP** — use a Google App Password for OTP and order emails
+- **Google Sign-In** — OAuth client ID/secret (redirect URI shown on settings page)
+
+Send a test email from the settings page to verify SMTP.
+
+### 7. Sync Clover inventory
 
 Sign in as admin → **Mart Dashboard** → **Sync Clover POS**
 

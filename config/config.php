@@ -23,5 +23,17 @@ return [
         'api_token' => $_ENV['CLOVER_API_TOKEN'] ?? '',
         'env' => $_ENV['CLOVER_ENV'] ?? 'sandbox',
     ],
+    'smtp' => [
+        'host' => $_ENV['SMTP_HOST'] ?? 'smtp.gmail.com',
+        'port' => $_ENV['SMTP_PORT'] ?? '587',
+        'username' => $_ENV['SMTP_USERNAME'] ?? '',
+        'password' => $_ENV['SMTP_PASSWORD'] ?? '',
+        'from_email' => $_ENV['SMTP_FROM_EMAIL'] ?? '',
+        'from_name' => $_ENV['SMTP_FROM_NAME'] ?? "Abdu Mart",
+    ],
+    'google' => [
+        'client_id' => $_ENV['GOOGLE_CLIENT_ID'] ?? '',
+        'client_secret' => $_ENV['GOOGLE_CLIENT_SECRET'] ?? '',
+    ],
     'tax_rate' => 0.06,
 ];

@@ -4,12 +4,35 @@ USE abdu_mart;
 CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    google_id VARCHAR(255) DEFAULT NULL UNIQUE,
+    password_hash VARCHAR(255) DEFAULT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20) DEFAULT NULL,
+    email_verified_at TIMESTAMP NULL DEFAULT NULL,
     role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE settings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE auth_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    token_hash VARCHAR(64) NOT NULL,
+    purpose ENUM('signup', 'password_reset') NOT NULL,
+    payload JSON NULL,
+    attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email_purpose (email, purpose),
+    INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE categories (
@@ -61,6 +84,7 @@ CREATE TABLE orders (
     vehicle_description VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    confirmation_email_sent_at TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
