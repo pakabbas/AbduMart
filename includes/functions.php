@@ -186,6 +186,18 @@ function json_response(array $data, int $code = 200): never
     exit;
 }
 
+function log_order_status_change(int $orderId, ?string $oldStatus, string $newStatus, ?int $actorUserId = null, ?string $note = null): void
+{
+    try {
+        db()->prepare(
+            'INSERT INTO order_status_logs (order_id, old_status, new_status, actor_user_id, note)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([$orderId, $oldStatus, $newStatus, $actorUserId, $note]);
+    } catch (Throwable) {
+        // ignore logging errors so status changes still work
+    }
+}
+
 function cart_api_respond(array $data, int $code = 200): never
 {
     json_response($data, $code);

@@ -78,6 +78,21 @@ $statusLabels = [
             <p class="mb-2"><i class="bi bi-car-front"></i> <strong>Vehicle:</strong> <?= e($activeOrder['vehicle_description']) ?></p>
             <?php endif; ?>
 
+            <?php if (!empty($activeOrder['picked_up_at'])): ?>
+            <?php
+            $puStmt = db()->prepare('SELECT first_name, last_name FROM users WHERE id = ?');
+            $puStmt->execute([(int) $activeOrder['picked_up_by']]);
+            $pu = $puStmt->fetch() ?: null;
+            ?>
+            <p class="mb-2">
+                <i class="bi bi-bag-check"></i>
+                <strong>Picked up:</strong> <?= e(date('g:i A', strtotime($activeOrder['picked_up_at']))) ?>
+                <?php if ($pu): ?>
+                    <span class="text-muted">· by <?= e(trim($pu['first_name'] . ' ' . $pu['last_name'])) ?></span>
+                <?php endif; ?>
+            </p>
+            <?php endif; ?>
+
             <?php $order = $activeOrder; require __DIR__ . '/includes/im_here_panel.php'; ?>
         </div>
     </div>

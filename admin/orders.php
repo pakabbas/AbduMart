@@ -14,8 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $orderId = (int) ($_POST['order_id'] ?? 0);
         $status = $_POST['status'] ?? '';
+        $quick = $_POST['quick'] ?? '';
+
+        $stmt = db()->prepare('SELECT status FROM orders WHERE id = ?');
+        $stmt->execute([$orderId]);
+        $old = $stmt->fetchColumn();
+
+        if ($quick === 'picked_up') {
+            $status = 'picked_up';
+        }
+
         if (in_array($status, ['paid', 'preparing', 'ready', 'picked_up', 'cancelled'], true)) {
-            db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $orderId]);
+            if ($status === 'picked_up') {
+                db()->prepare(
+                    'UPDATE orders SET status = ?, picked_up_at = IFNULL(picked_up_at, NOW()), picked_up_by = ?, updated_at = NOW() WHERE id = ?'
+                )->execute([$status, (int) current_user()['id'], $orderId]);
+            } else {
+                db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $orderId]);
+            }
+            log_order_status_change($orderId, is_string($old) ? $old : null, $status, (int) current_user()['id']);
             flash('success', 'Order status updated.');
         }
         redirect('orders.php?id=' . $orderId);
@@ -23,7 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($orderId) {
-    $stmt = db()->prepare('SELECT o.*, u.first_name, u.last_name, u.email, u.phone FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?');
+    $stmt = db()->prepare(
+        'SELECT o.*, u.first_name, u.last_name, u.email, u.phone,
+            pu.first_name AS picked_up_first_name, pu.last_name AS picked_up_last_name
+         FROM orders o
+         JOIN users u ON u.id = o.user_id
+         LEFT JOIN users pu ON pu.id = o.picked_up_by
+         WHERE o.id = ?'
+    );
     $stmt->execute([$orderId]);
     $order = $stmt->fetch();
     if (!$order) {
@@ -43,6 +67,15 @@ if ($orderId) {
 
     <?php if ($order['customer_here_at']): ?>
     <div class="admin-toast admin-toast-warning"><i class="bi bi-geo-alt-fill"></i> Customer arrived at <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?></div>
+    <?php endif; ?>
+    <?php if (!empty($order['picked_up_at'])): ?>
+    <div class="admin-toast admin-toast-success">
+        <i class="bi bi-bag-check-fill"></i>
+        Picked up at <?= e(date('g:i A', strtotime($order['picked_up_at']))) ?>
+        <?php if (!empty($order['picked_up_first_name'])): ?>
+            by <?= e(trim($order['picked_up_first_name'] . ' ' . $order['picked_up_last_name'])) ?>
+        <?php endif; ?>
+    </div>
     <?php endif; ?>
 
     <div class="row g-4">
@@ -94,6 +127,35 @@ if ($orderId) {
                         </div>
                         <button type="submit" class="admin-btn admin-btn-primary w-100">Save status</button>
                     </form>
+                    <?php
+                    $logsStmt = db()->prepare(
+                        'SELECT l.*, u.first_name, u.last_name
+                         FROM order_status_logs l
+                         LEFT JOIN users u ON u.id = l.actor_user_id
+                         WHERE l.order_id = ?
+                         ORDER BY l.created_at DESC
+                         LIMIT 25'
+                    );
+                    $logsStmt->execute([(int) $order['id']]);
+                    $logs = $logsStmt->fetchAll();
+                    ?>
+                    <?php if (!empty($logs)): ?>
+                    <hr class="my-4">
+                    <h3 class="h6 mb-2">Status change log</h3>
+                    <div class="small text-muted">
+                        <?php foreach ($logs as $log): ?>
+                        <div class="mb-2">
+                            <div><strong><?= e(ucfirst(str_replace('_', ' ', $log['new_status']))) ?></strong> <span class="text-muted">from <?= e($log['old_status'] ?: '—') ?></span></div>
+                            <div>
+                                <?= e(date('M j, g:i A', strtotime($log['created_at']))) ?>
+                                <?php if (!empty($log['first_name'])): ?>
+                                    · <?= e(trim($log['first_name'] . ' ' . $log['last_name'])) ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
