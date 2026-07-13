@@ -2,7 +2,7 @@
 /** @var int $cartCount */
 $cartCount = $cartCount ?? 0;
 ?>
-<div id="floatingCart" class="floating-cart" data-count="<?= (int) $cartCount ?>" data-basket-url="<?= e(asset_url('shop-basket.php')) ?>" data-shop-url="<?= e(asset_url('shop-add.php')) ?>">
+<div id="floatingCart" class="floating-cart" data-count="<?= (int) $cartCount ?>" data-basket-url="<?= e(asset_url('shop-items.php')) ?>" data-shop-url="<?= e(asset_url('shop-item.php')) ?>">
     <button type="button" class="floating-cart-fab" id="floatingCartFab" aria-label="Open cart">
         <i class="bi bi-bag-fill"></i>
         <span class="floating-cart-fab-badge" id="floatingCartFabBadge" <?= $cartCount > 0 ? '' : 'hidden' ?>><?= (int) $cartCount ?></span>

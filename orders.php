@@ -78,25 +78,7 @@ $statusLabels = [
             <p class="mb-2"><i class="bi bi-car-front"></i> <strong>Vehicle:</strong> <?= e($activeOrder['vehicle_description']) ?></p>
             <?php endif; ?>
 
-            <?php if (in_array($activeOrder['status'], ['paid', 'preparing', 'ready'], true)): ?>
-            <div class="im-here-panel p-4 rounded-3" data-order-id="<?= (int) $activeOrder['id'] ?>">
-                <?php if ($activeOrder['customer_here_at']): ?>
-                <div class="text-center">
-                    <i class="bi bi-geo-alt-fill text-danger fs-1"></i>
-                    <h3 class="h5 mt-2">We're on our way!</h3>
-                    <p class="text-muted mb-0">You checked in at <?= e(date('g:i A', strtotime($activeOrder['customer_here_at']))) ?>. Please stay in your vehicle.</p>
-                </div>
-                <?php else: ?>
-                <div class="text-center">
-                    <p class="mb-3"><?= e(setting('mart.pickup_instructions', config('mart.pickup_instructions'))) ?></p>
-                    <button type="button" class="btn btn-danger btn-lg px-5 im-here-btn" data-order-id="<?= (int) $activeOrder['id'] ?>">
-                        <i class="bi bi-geo-alt-fill"></i> I'M HERE
-                    </button>
-                    <p class="small text-muted mt-2 mb-0">Tap when you've arrived at the curb</p>
-                </div>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
+            <?php $order = $activeOrder; require __DIR__ . '/includes/im_here_panel.php'; ?>
         </div>
     </div>
     <?php endif; ?>

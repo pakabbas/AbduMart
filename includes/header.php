@@ -13,6 +13,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
     <title><?= e($pageTitle) ?> | Abdu Market</title>
     <meta name="description" content="<?= e($pageDescription) ?>">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+    <meta name="pickup-here-url" content="<?= e(asset_url('pickup-here.php')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
