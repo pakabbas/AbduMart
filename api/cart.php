@@ -3,7 +3,14 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
-require_login();
+
+if (!is_logged_in()) {
+    if (is_ajax_request()) {
+        json_response(['error' => 'Please sign in to continue.', 'login_required' => true], 401);
+    }
+    flash('warning', 'Please sign in to continue.');
+    redirect('login.php?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php'));
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     if (is_ajax_request()) {
