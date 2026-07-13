@@ -32,11 +32,18 @@
 
                     const raw = await res.text();
                     let data = null;
+                    const trimmed = raw.trim();
 
-                    if (raw.trim().startsWith('{')) {
-                        data = JSON.parse(raw);
+                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                        try {
+                            data = JSON.parse(trimmed);
+                        } catch (parseError) {
+                            console.error('Cart JSON parse error', parseError, raw.slice(0, 300));
+                            throw new Error('Invalid response from server');
+                        }
                     } else {
-                        throw new Error('Unexpected server response');
+                        console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
+                        throw new Error(trimmed === '' ? 'Empty response (blocked by browser extension?)' : 'Unexpected server response');
                     }
 
                     if (data.success) {
@@ -62,7 +69,8 @@
                         btn.disabled = false;
                     }
                 } catch (err) {
-                    alert('Could not add to cart. Please try again.');
+                    console.error('Add to cart failed', err);
+                    alert(err.message || 'Could not add to cart. Try disabling ad blockers for this site, then refresh.');
                     btn.innerHTML = original;
                     btn.disabled = false;
                 }
@@ -97,7 +105,8 @@
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Notifying mart...';
 
                 try {
-                    const res = await fetch('api/im-here.php', {
+                    const pickupUrl = document.querySelector('meta[name="pickup-here-url"]')?.content || 'pickup-here.php';
+                    const res = await fetch(pickupUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
