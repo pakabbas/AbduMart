@@ -110,12 +110,44 @@ function name_initials(string $name): string
     }
 
     $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
-    if (count($words) >= 2) {
-        return mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+
+    $pick = static function (string $s): ?string {
+        if (preg_match('/[\p{L}\p{N}]/u', $s, $m) === 1) {
+            return $m[0];
+        }
+        return null;
+    };
+
+    $first = null;
+    $second = null;
+
+    foreach ($words as $w) {
+        $c = $pick($w);
+        if ($c === null) {
+            continue;
+        }
+        if ($first === null) {
+            $first = $c;
+            continue;
+        }
+        $second = $c;
+        break;
     }
 
-    $word = $words[0];
-    return mb_strtoupper(mb_substr($word, 0, min(2, mb_strlen($word))));
+    if ($first !== null && $second !== null) {
+        return mb_strtoupper($first . $second);
+    }
+
+    if ($first !== null) {
+        if (preg_match_all('/[\p{L}\p{N}]/u', $name, $m) === 1 && !empty($m[0])) {
+            $letters = $m[0];
+            $two = ($letters[0] ?? '?') . ($letters[1] ?? '');
+            return mb_strtoupper($two);
+        }
+        return mb_strtoupper($first);
+    }
+
+    return '?';
 }
 
 function catalog_tile_media(string $name, ?string $imageUrl): string
