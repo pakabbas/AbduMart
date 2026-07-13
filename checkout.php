@@ -11,6 +11,7 @@ $user = current_user();
 $userId = (int) $user['id'];
 $cart = get_cart_totals($userId);
 $error = '';
+$allowPayOnArrival = setting('allow_pay_on_arrival', '') === '1';
 
 if (empty($cart['items'])) {
     flash('warning', 'Your cart is empty.');
@@ -23,6 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicle = trim($_POST['vehicle_description'] ?? '');
+        $paymentChoice = $_POST['payment_method'] ?? 'stripe';
+        if (!$allowPayOnArrival) {
+            $paymentChoice = 'stripe';
+        }
+        if (!in_array($paymentChoice, ['stripe', 'arrival'], true)) {
+            $paymentChoice = 'stripe';
+        }
 
         $pdo = db();
         $pdo->beginTransaction();
@@ -35,18 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $orderNumber = generate_order_number();
             $stmt = $pdo->prepare(
-                'INSERT INTO orders (user_id, order_number, subtotal, tax, total, status, pickup_notes, vehicle_description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO orders (user_id, order_number, subtotal, tax, total, status, pickup_notes, vehicle_description, payment_method)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
+            $status = ($paymentChoice === 'arrival') ? 'preparing' : 'pending';
             $stmt->execute([
                 $userId,
                 $orderNumber,
                 $cart['subtotal'],
                 $cart['tax'],
                 $cart['total'],
-                'pending',
+                $status,
                 $pickupNotes ?: null,
                 $vehicle ?: null,
+                $paymentChoice,
             ]);
             $orderId = (int) $pdo->lastInsertId();
 
@@ -74,9 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->prepare('DELETE FROM cart_items WHERE user_id = ?')->execute([$userId]);
 
+            if ($paymentChoice === 'arrival') {
+                $pdo->commit();
+                flash('success', 'Order placed. You can pay on arrival.');
+                redirect('orders.php?order=' . $orderId);
+            }
+
             $stripe = new StripeService();
             if (!$stripe->isConfigured()) {
-                throw new RuntimeException('Stripe is not configured. Add keys to your .env file.');
+                throw new RuntimeException('Stripe is not configured. Add keys to Admin → Settings.');
             }
 
             $lineItems = [];
@@ -134,6 +150,22 @@ require __DIR__ . '/includes/header.php';
                     <?php endif; ?>
                     <form method="post">
                         <?= csrf_field() ?>
+                        <div class="mb-4">
+                            <label class="form-label">Payment method</label>
+                            <div class="d-grid gap-2">
+                                <label class="form-check border rounded-3 p-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" value="stripe" checked>
+                                    <span class="ms-2"><strong>Pay online</strong> (Stripe)</span>
+                                </label>
+                                <?php if ($allowPayOnArrival): ?>
+                                <label class="form-check border rounded-3 p-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" value="arrival" <?= (($_POST['payment_method'] ?? '') === 'arrival') ? 'checked' : '' ?>>
+                                    <span class="ms-2"><strong>Pay on Arrival</strong></span>
+                                    <div class="small text-muted ms-4">Place the order now and pay when you arrive.</div>
+                                </label>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Vehicle description <span class="text-muted">(color, make, plate)</span></label>
                             <input type="text" name="vehicle_description" class="form-control" placeholder="e.g. Red Toyota Camry — ABC 1234" value="<?= e($_POST['vehicle_description'] ?? '') ?>">
@@ -143,7 +175,7 @@ require __DIR__ . '/includes/header.php';
                             <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Any special instructions..."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
                         </div>
                         <button type="submit" class="btn btn-danger btn-lg w-100">
-                            <i class="bi bi-lock"></i> Pay <?= format_money($cart['total']) ?> with Stripe
+                            <i class="bi bi-lock"></i> Continue
                         </button>
                     </form>
                 </div>

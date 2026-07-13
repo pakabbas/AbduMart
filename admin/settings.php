@@ -18,6 +18,7 @@ $fields = [
     'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
+    'allow_pay_on_arrival',
 ];
 
 $values = SettingsService::getGroup($fields);
@@ -44,7 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
                 if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'google_client_secret'], true)
                     && trim($_POST[$field] ?? '') === '') continue;
-                $updates[$field] = trim($_POST[$field] ?? '');
+                if ($field === 'allow_pay_on_arrival') {
+                    $updates[$field] = !empty($_POST[$field]) ? '1' : '';
+                } else {
+                    $updates[$field] = trim($_POST[$field] ?? '');
+                }
             }
             SettingsService::setMany($updates);
             $values = SettingsService::getGroup($fields);
@@ -105,6 +110,17 @@ if ($error): ?>
                     <p>Accept online card payments at checkout.</p>
                 </div>
                 <div class="settings-section-body">
+                    <div class="admin-callout">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <strong>Allow “Pay on Arrival”</strong>
+                                <div class="hint mb-0">If enabled, customers can place an order without paying online.</div>
+                            </div>
+                            <label class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="allow_pay_on_arrival" value="1" <?= ($values['allow_pay_on_arrival'] ?? '') === '1' ? 'checked' : '' ?>>
+                            </label>
+                        </div>
+                    </div>
                     <div class="admin-callout">
                         Webhook URL: <code><?= e(rtrim(config('app.url'), '/') . '/stripe-webhook.php') ?></code>
                     </div>

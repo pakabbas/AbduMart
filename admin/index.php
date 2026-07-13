@@ -7,6 +7,28 @@ require_admin();
 
 $adminSection = 'dashboard';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        flash('danger', 'Invalid request.');
+    } else {
+        $orderId = (int) ($_POST['order_id'] ?? 0);
+        $action = $_POST['action'] ?? '';
+        if ($action === 'picked_up' && $orderId > 0) {
+            $stmt = db()->prepare('SELECT status FROM orders WHERE id = ?');
+            $stmt->execute([$orderId]);
+            $old = $stmt->fetchColumn();
+
+            db()->prepare(
+                'UPDATE orders SET status = ?, picked_up_at = IFNULL(picked_up_at, NOW()), picked_up_by = ?, updated_at = NOW() WHERE id = ?'
+            )->execute(['picked_up', (int) current_user()['id'], $orderId]);
+            log_order_status_change($orderId, is_string($old) ? $old : null, 'picked_up', (int) current_user()['id'], 'Picked up (quick action)');
+
+            flash('success', 'Order marked as picked up.');
+        }
+    }
+    redirect('index.php');
+}
+
 $stats = [
     'orders_today' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'")->fetchColumn(),
     'waiting' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE customer_here_at IS NOT NULL AND status IN ('paid','preparing','ready')")->fetchColumn(),
@@ -77,7 +99,17 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         Arrived <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?>
                         <?php if ($order['vehicle_description']): ?> · <?= e($order['vehicle_description']) ?><?php endif; ?>
                     </div>
-                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                        <form method="post" class="m-0">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="picked_up">
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <button type="submit" class="admin-btn admin-btn-outline admin-btn-sm">
+                                <i class="bi bi-bag-check"></i> Picked up
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
