@@ -30,8 +30,8 @@ require __DIR__ . '/includes/header.php';
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-7">
-                <span class="hero-badge">Michigan · Curbside Pickup</span>
-                <h1 class="hero-title">Abdu Mart's Curb Side Pickup</h1>
+                <span class="hero-badge">Canton, MI · Curbside Pickup</span>
+                <h1 class="hero-title">Abdu Market Curb Side Pickup</h1>
                 <p class="hero-lead">Browse our aisles online, pay securely with Stripe, and we'll bring your order to your car when you tap <strong>I'm Here</strong>.</p>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="#products" class="btn btn-danger btn-lg">Start Shopping</a>
@@ -47,7 +47,7 @@ require __DIR__ . '/includes/header.php';
                     <ol class="mb-0">
                         <li>Shop categories & add to cart</li>
                         <li>Checkout & pay online</li>
-                        <li>Drive to Abdu Mart</li>
+                        <li>Drive to Abdu Market</li>
                         <li>Tap <em>I'm Here</em> — we come to you</li>
                     </ol>
                 </div>

@@ -65,7 +65,7 @@ require __DIR__ . '/includes/header.php';
                         <button type="submit" class="btn btn-danger w-100 btn-lg">Sign In</button>
                     </form>
                     <p class="text-center mt-4 mb-0 small">
-                        New to Abdu Mart? <a href="register.php" class="text-danger">Create an account</a>
+                        New to Abdu Market? <a href="register.php" class="text-danger">Create an account</a>
                     </p>
                 </div>
             </div>

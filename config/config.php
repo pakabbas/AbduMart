@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 return [
     'app' => [
-        'name' => $_ENV['APP_NAME'] ?? "Abdu Mart's Curb Side Pickup",
+        'name' => $_ENV['APP_NAME'] ?? "Abdu Market Curb Side Pickup",
         'url' => rtrim($_ENV['APP_URL'] ?? 'http://localhost', '/'),
         'env' => $_ENV['APP_ENV'] ?? 'production',
     ],
     'mart' => [
-        'address' => $_ENV['MART_ADDRESS'] ?? 'Michigan',
-        'phone' => $_ENV['MART_PHONE'] ?? '',
+        'address' => $_ENV['MART_ADDRESS'] ?? '46090 Michigan Ave, Canton Township, MI 48188, United States',
+        'phone' => $_ENV['MART_PHONE'] ?? '+1 734-322-9240',
         'pickup_instructions' => $_ENV['MART_PICKUP_INSTRUCTIONS'] ?? 'Pull up to curb-side pickup. Tap I\'m Here when you arrive.',
     ],
     'stripe' => [
@@ -29,7 +29,7 @@ return [
         'username' => $_ENV['SMTP_USERNAME'] ?? '',
         'password' => $_ENV['SMTP_PASSWORD'] ?? '',
         'from_email' => $_ENV['SMTP_FROM_EMAIL'] ?? '',
-        'from_name' => $_ENV['SMTP_FROM_NAME'] ?? "Abdu Mart",
+        'from_name' => $_ENV['SMTP_FROM_NAME'] ?? "Abdu Market",
     ],
     'google' => [
         'client_id' => $_ENV['GOOGLE_CLIENT_ID'] ?? '',

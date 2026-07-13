@@ -41,7 +41,7 @@ require __DIR__ . '/includes/header.php';
                 <div class="card-body p-4">
                     <h2 class="h5">What's next?</h2>
                     <ol class="mb-0">
-                        <li>Head to Abdu Mart at <?= e(setting('mart.address', config('mart.address'))) ?></li>
+                        <li>Head to Abdu Market at <?= e(setting('mart.address', config('mart.address'))) ?></li>
                         <li>When you arrive, open your order and tap <strong>I'm Here</strong></li>
                         <li>We'll bring your groceries to your car</li>
                     </ol>

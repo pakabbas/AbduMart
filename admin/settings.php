@@ -170,7 +170,7 @@ require dirname(__DIR__) . '/includes/header.php';
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">From name</label>
-                                <input type="text" name="smtp_from_name" class="form-control" value="<?= e($values['smtp_from_name'] ?: "Abdu Mart") ?>">
+                                <input type="text" name="smtp_from_name" class="form-control" value="<?= e($values['smtp_from_name'] ?: "Abdu Market") ?>">
                             </div>
                         </div>
                     </div>

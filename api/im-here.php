@@ -47,6 +47,6 @@ $update->execute(['paid', 'ready', $orderId]);
 
 json_response([
     'success' => true,
-    'message' => 'Thanks! Abdu Mart has been notified. Please stay in your vehicle.',
+    'message' => 'Thanks! Abdu Market has been notified. Please stay in your vehicle.',
     'checked_in_at' => date('c'),
 ]);

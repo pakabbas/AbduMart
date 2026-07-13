@@ -48,7 +48,7 @@ class MailService
     public function sendOtp(string $toEmail, string $toName, string $otp, string $purposeLabel): void
     {
         $appName = config('app.name');
-        $subject = "$otp is your Abdu Mart verification code";
+        $subject = "$otp is your Abdu Market verification code";
         $html = $this->wrapTemplate(
             'Verification Code',
             "<p>Hi " . htmlspecialchars($toName) . ",</p>
@@ -70,7 +70,7 @@ class MailService
         $html = $this->wrapTemplate(
             'Order Confirmed',
             "<p>Hi " . htmlspecialchars($user['first_name']) . ",</p>
-            <p>Thank you for your order at Abdu Mart! We've received your payment and are preparing your groceries.</p>
+            <p>Thank you for your order at Abdu Market! We've received your payment and are preparing your groceries.</p>
             <p><strong>Order #:</strong> " . htmlspecialchars($order['order_number']) . "<br>
             <strong>Total:</strong> $" . number_format((float) $order['total'], 2) . "</p>
             <table width='100%' cellpadding='8' cellspacing='0' style='border-collapse:collapse;'>
@@ -84,7 +84,7 @@ class MailService
         $this->send(
             $user['email'],
             $user['first_name'] . ' ' . $user['last_name'],
-            'Order ' . $order['order_number'] . ' confirmed — Abdu Mart',
+            'Order ' . $order['order_number'] . ' confirmed — Abdu Market',
             $html
         );
     }
@@ -93,9 +93,9 @@ class MailService
     {
         $html = $this->wrapTemplate(
             'SMTP Test',
-            '<p>Your Abdu Mart SMTP settings are working correctly.</p>'
+            '<p>Your Abdu Market SMTP settings are working correctly.</p>'
         );
-        $this->send($toEmail, 'Admin', 'Abdu Mart SMTP test email', $html);
+        $this->send($toEmail, 'Admin', 'Abdu Market SMTP test email', $html);
     }
 
     private function wrapTemplate(string $title, string $content): string
@@ -103,7 +103,7 @@ class MailService
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
         <body style="font-family:DM Sans,Arial,sans-serif;background:#fafafa;margin:0;padding:24px;">
         <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:14px;padding:32px;border:1px solid #eee;">
-            <div style="color:#c8102e;font-weight:700;font-size:18px;margin-bottom:8px;">Abdu Mart</div>
+            <div style="color:#c8102e;font-weight:700;font-size:18px;margin-bottom:8px;">Abdu Market</div>
             <h1 style="font-size:22px;margin:0 0 16px;color:#1a1a1a;">' . htmlspecialchars($title) . '</h1>
             <div style="color:#444;line-height:1.6;">' . $content . '</div>
         </div></body></html>

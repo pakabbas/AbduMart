@@ -58,7 +58,7 @@ require dirname(__DIR__) . '/includes/header.php';
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="section-title mb-1">Mart Dashboard</h1>
-            <p class="text-muted mb-0">Abdu Mart · Curbside operations</p>
+            <p class="text-muted mb-0">Abdu Market · Curbside operations</p>
         </div>
         <form method="post" class="d-inline">
             <?= csrf_field() ?>

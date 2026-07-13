@@ -3,8 +3,8 @@
     <div class="container py-5">
         <div class="row g-4">
             <div class="col-md-4">
-                <h5 class="text-danger">Abdu Mart</h5>
-                <p class="text-muted mb-1">Your neighborhood mart in Michigan.</p>
+                <h5 class="text-danger">Abdu Market</h5>
+                <p class="text-muted mb-1">Your neighborhood market in Canton, Michigan.</p>
                 <p class="text-muted small mb-0">Order online, pay securely, and pick up curbside.</p>
             </div>
             <div class="col-md-4">
@@ -22,7 +22,7 @@
             </div>
         </div>
         <hr class="my-4">
-        <p class="text-center text-muted small mb-0">&copy; <?= date('Y') ?> Abdu Mart. All rights reserved.</p>
+        <p class="text-center text-muted small mb-0">&copy; <?= date('Y') ?> Abdu Market. All rights reserved.</p>
     </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

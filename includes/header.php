@@ -2,7 +2,7 @@
 /** @var string $pageTitle */
 /** @var string|null $pageDescription */
 $pageTitle = $pageTitle ?? config('app.name');
-$pageDescription = $pageDescription ?? 'Shop Abdu Mart online for curbside pickup in Michigan.';
+$pageDescription = $pageDescription ?? 'Shop Abdu Market online for curbside pickup in Canton, Michigan.';
 $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
 ?>
 <!DOCTYPE html>
@@ -10,7 +10,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle) ?> | Abdu Mart</title>
+    <title><?= e($pageTitle) ?> | Abdu Market</title>
     <meta name="description" content="<?= e($pageDescription) ?>">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,8 +26,8 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
         <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
             <span class="brand-mark">AM</span>
             <span class="brand-text">
-                <strong>Abdu Mart</strong>
-                <small>Curbside Pickup · Michigan</small>
+                <strong>Abdu Market</strong>
+                <small>Curbside Pickup · Canton, MI</small>
             </span>
         </a>
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
