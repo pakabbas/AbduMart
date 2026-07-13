@@ -8,138 +8,214 @@ $categoryId = isset($_GET['category']) ? (int) $_GET['category'] : null;
 $search = trim($_GET['q'] ?? '');
 $sort = $_GET['sort'] ?? 'name';
 $page = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = 24;
-
-$filters = [
-    'category_id' => $categoryId ?: null,
-    'search' => $search ?: null,
-    'sort' => $sort,
-    'page' => $page,
-    'per_page' => $perPage,
-];
+$isSearch = $search !== '';
 
 $categories = get_categories();
-$totalProducts = count_products($filters);
-$products = get_products($filters);
-$totalPages = max(1, (int) ceil($totalProducts / $perPage));
-if ($page > $totalPages) {
+$menuCategories = array_values(array_filter(
+    $categories,
+    static fn (array $cat): bool => (int) ($cat['product_count'] ?? 0) > 0
+));
+
+if ($isSearch) {
+    $filters = [
+        'search' => $search,
+        'sort' => $sort,
+        'page' => $page,
+        'per_page' => 30,
+    ];
+    $totalProducts = count_products($filters);
+    $products = get_products($filters);
+    $menuGroups = [];
+} else {
+    $filters = ['sort' => $sort];
+    $products = get_products($filters);
+    $totalProducts = count($products);
+    $menuGroups = group_products_for_menu($products, $menuCategories);
+}
+
+$totalPages = $isSearch ? max(1, (int) ceil($totalProducts / 30)) : 1;
+if ($isSearch && $page > $totalPages) {
     $page = $totalPages;
     $filters['page'] = $page;
     $products = get_products($filters);
 }
 
 $queryParams = array_filter([
-    'category' => $categoryId ?: null,
     'q' => $search !== '' ? $search : null,
     'sort' => $sort !== 'name' ? $sort : null,
 ], fn ($value) => $value !== null && $value !== '');
 
-$categoryName = 'All Products';
+$activeCategoryAnchor = null;
 if ($categoryId) {
-    foreach ($categories as $cat) {
+    foreach ($menuCategories as $cat) {
         if ((int) $cat['id'] === $categoryId) {
-            $categoryName = $cat['name'];
+            $activeCategoryAnchor = category_menu_anchor($cat);
             break;
         }
     }
 }
 
-$pageTitle = $categoryName;
+$pageTitle = $isSearch ? ('Search: ' . $search) : 'Menu';
+$bodyClass = 'shop-app-page';
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="container py-4 shop-page">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div>
-            <a href="index.php" class="small text-danger text-decoration-none d-inline-flex align-items-center gap-1 mb-2">
-                <i class="bi bi-arrow-left"></i> Back to home
-            </a>
-            <h1 class="section-title mb-0"><?= e($categoryName) ?></h1>
-        </div>
-        <span class="text-muted">
-            <?= $totalProducts ?> items
-            <?php if ($totalPages > 1): ?>
-            · Page <?= $page ?> of <?= $totalPages ?>
-            <?php endif; ?>
-        </span>
-    </div>
+<div class="shop-app" id="shopApp" data-active-category="<?= e($activeCategoryAnchor ?? '') ?>">
+    <div class="shop-app-hero">
+        <div class="container">
+            <div class="shop-app-hero-card">
+                <div class="shop-app-hero-copy">
+                    <a href="index.php" class="shop-app-back"><i class="bi bi-arrow-left"></i> Home</a>
+                    <h1 class="shop-app-title">Abdu Market Menu</h1>
+                    <p class="shop-app-subtitle">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        Curbside pickup · <?= e(setting('mart.address', config('mart.address'))) ?>
+                    </p>
+                    <div class="shop-app-meta">
+                        <span><i class="bi bi-bag-check"></i> <?= (int) $totalProducts ?> items</span>
+                        <span><i class="bi bi-clock"></i> Order for pickup</span>
+                    </div>
+                </div>
+            </div>
 
-    <div class="filter-bar card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Search</label>
-                    <input type="search" name="q" class="form-control" placeholder="Search products..." value="<?= e($search) ?>">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Category</label>
-                    <select name="category" class="form-select">
-                        <option value="">All Categories</option>
-                        <?php foreach ($categories as $cat): ?>
-                        <option value="<?= (int) $cat['id'] ?>" <?= $categoryId === (int) $cat['id'] ? 'selected' : '' ?>>
-                            <?= e($cat['name']) ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Sort by</label>
-                    <select name="sort" class="form-select">
-                        <option value="name" <?= $sort === 'name' ? 'selected' : '' ?>>Name A–Z</option>
-                        <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price: Low to High</option>
-                        <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price: High to Low</option>
-                        <?php if (products_have_featured_column()): ?>
-                        <option value="featured" <?= $sort === 'featured' ? 'selected' : '' ?>>Featured first</option>
-                        <?php endif; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-danger w-100">Filter</button>
-                </div>
-                <?php if ($categoryId || $search !== '' || $sort !== 'name'): ?>
-                <div class="col-12">
-                    <a href="shop.php" class="small text-danger text-decoration-none">Clear all filters</a>
-                </div>
+            <form method="get" class="shop-app-search" role="search">
+                <?php if ($sort !== 'name'): ?>
+                <input type="hidden" name="sort" value="<?= e($sort) ?>">
+                <?php endif; ?>
+                <i class="bi bi-search shop-app-search-icon" aria-hidden="true"></i>
+                <input
+                    type="search"
+                    name="q"
+                    class="shop-app-search-input"
+                    placeholder="Search dishes, drinks, snacks..."
+                    value="<?= e($search) ?>"
+                    autocomplete="off"
+                >
+                <?php if ($search !== ''): ?>
+                <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-app-search-clear" aria-label="Clear search">
+                    <i class="bi bi-x-lg"></i>
+                </a>
                 <?php endif; ?>
             </form>
+
+            <div class="shop-app-toolbar">
+                <div class="shop-app-sort" role="group" aria-label="Sort products">
+                    <?php
+                    $sortOptions = [
+                        'name' => 'A–Z',
+                        'featured' => 'Popular',
+                        'price_asc' => 'Price ↑',
+                        'price_desc' => 'Price ↓',
+                    ];
+                    if (!products_have_featured_column()) {
+                        unset($sortOptions['featured']);
+                    }
+                    foreach ($sortOptions as $value => $label):
+                        $sortParams = array_filter([
+                            'q' => $search !== '' ? $search : null,
+                            'sort' => $value !== 'name' ? $value : null,
+                        ]);
+                        $sortUrl = 'shop.php' . ($sortParams ? '?' . http_build_query($sortParams) : '');
+                    ?>
+                    <a href="<?= e($sortUrl) ?>" class="shop-app-sort-chip<?= $sort === $value ? ' is-active' : '' ?>"><?= e($label) ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
     </div>
 
-    <?php if (empty($products)): ?>
-    <div class="empty-state text-center py-5">
-        <i class="bi bi-basket display-4 text-danger"></i>
-        <p class="mt-3 text-muted">No products match your filters.</p>
-        <a href="shop.php" class="btn btn-outline-danger">Clear filters</a>
-    </div>
-    <?php else: ?>
-    <div class="row g-4">
-        <?php foreach ($products as $product): ?>
-        <?php require __DIR__ . '/includes/product_card.php'; ?>
-        <?php endforeach; ?>
-    </div>
-
-    <?php if ($totalPages > 1): ?>
-    <nav class="shop-pagination mt-4" aria-label="Product pages">
-        <ul class="pagination justify-content-center mb-0">
-            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($page - 1, $queryParams)) ?>">Previous</a>
-            </li>
-            <?php
-            $start = max(1, $page - 2);
-            $end = min($totalPages, $page + 2);
-            for ($i = $start; $i <= $end; $i++):
-            ?>
-            <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($i, $queryParams)) ?>"><?= $i ?></a>
-            </li>
-            <?php endfor; ?>
-            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($page + 1, $queryParams)) ?>">Next</a>
-            </li>
-        </ul>
+    <?php if (!$isSearch && !empty($menuGroups)): ?>
+    <nav class="shop-category-nav" id="shopCategoryNav" aria-label="Menu categories">
+        <div class="shop-category-nav-track" id="shopCategoryTrack">
+            <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-cat-chip<?= !$categoryId ? ' is-active' : '' ?>" data-target="shopMenuTop">
+                <span class="shop-cat-chip-icon all"><i class="bi bi-grid-fill"></i></span>
+                <span class="shop-cat-chip-label">All</span>
+            </a>
+            <?php foreach ($menuGroups as $group): ?>
+            <?php $anchor = category_menu_anchor($group['category']); ?>
+            <a
+                href="#<?= e($anchor) ?>"
+                class="shop-cat-chip<?= $activeCategoryAnchor === $anchor ? ' is-active' : '' ?>"
+                data-target="<?= e($anchor) ?>"
+            >
+                <span class="shop-cat-chip-icon catalog-tile-media<?= catalog_has_image($group['category']['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                    <?= catalog_tile_media((string) $group['category']['name'], $group['category']['image_url'] ?? null) ?>
+                </span>
+                <span class="shop-cat-chip-label"><?= e($group['category']['name']) ?></span>
+            </a>
+            <?php endforeach; ?>
+        </div>
     </nav>
     <?php endif; ?>
-    <?php endif; ?>
-</section>
+
+    <div class="container shop-app-content" id="shopMenuTop">
+        <?php if ($isSearch): ?>
+        <div class="shop-search-header">
+            <h2 class="shop-section-title">Results for “<?= e($search) ?>”</h2>
+            <p class="shop-section-count"><?= (int) $totalProducts ?> items found</p>
+        </div>
+        <?php if (empty($products)): ?>
+        <div class="shop-empty">
+            <i class="bi bi-search"></i>
+            <h3>No matches found</h3>
+            <p>Try another search or browse the full menu.</p>
+            <a href="shop.php" class="btn btn-danger btn-sm">Browse menu</a>
+        </div>
+        <?php else: ?>
+        <div class="shop-menu-list shop-menu-list-flat">
+            <?php foreach ($products as $product): ?>
+            <?php require __DIR__ . '/includes/shop_menu_item.php'; ?>
+            <?php endforeach; ?>
+        </div>
+        <?php if ($totalPages > 1): ?>
+        <nav class="shop-pagination mt-4" aria-label="Search result pages">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                    <a class="page-link" href="<?= e(shop_page_url($page - 1, $queryParams)) ?>">Previous</a>
+                </li>
+                <?php
+                $start = max(1, $page - 2);
+                $end = min($totalPages, $page + 2);
+                for ($i = $start; $i <= $end; $i++):
+                ?>
+                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                    <a class="page-link" href="<?= e(shop_page_url($i, $queryParams)) ?>"><?= $i ?></a>
+                </li>
+                <?php endfor; ?>
+                <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                    <a class="page-link" href="<?= e(shop_page_url($page + 1, $queryParams)) ?>">Next</a>
+                </li>
+            </ul>
+        </nav>
+        <?php endif; ?>
+        <?php endif; ?>
+
+        <?php elseif (empty($menuGroups)): ?>
+        <div class="shop-empty">
+            <i class="bi bi-basket"></i>
+            <h3>Menu is empty</h3>
+            <p>Check back soon for new items.</p>
+            <a href="index.php" class="btn btn-danger btn-sm">Back to home</a>
+        </div>
+        <?php else: ?>
+        <?php foreach ($menuGroups as $group): ?>
+        <?php $anchor = category_menu_anchor($group['category']); ?>
+        <section class="shop-menu-section" id="<?= e($anchor) ?>" data-category-section="<?= e($anchor) ?>">
+            <div class="shop-menu-section-head">
+                <h2 class="shop-section-title"><?= e($group['category']['name']) ?></h2>
+                <span class="shop-section-count"><?= count($group['products']) ?> items</span>
+            </div>
+            <div class="shop-menu-list">
+                <?php foreach ($group['products'] as $product): ?>
+                <?php require __DIR__ . '/includes/shop_menu_item.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script src="<?= e(asset_url('assets/js/shop.js')) ?>?v=<?= (int) @filemtime(__DIR__ . '/assets/js/shop.js') ?>"></script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
