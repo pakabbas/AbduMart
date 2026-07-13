@@ -7,6 +7,8 @@ require_login();
 
 $userId = (int) current_user()['id'];
 $cart = get_cart_totals($userId);
+$storeStatus = store_status();
+$storeClosed = !$storeStatus['open'];
 
 $pageTitle = 'Your Cart';
 require __DIR__ . '/includes/header.php';
@@ -82,7 +84,14 @@ require __DIR__ . '/includes/header.php';
                         <span>Total</span>
                         <span class="text-danger"><?= format_money($cart['total']) ?></span>
                     </div>
+                    <?php if ($storeClosed): ?>
+                    <div class="alert alert-warning small py-2 mb-3">
+                        <i class="bi bi-clock-history me-1"></i><?= e($storeStatus['banner_message']) ?>
+                    </div>
+                    <button type="button" class="btn btn-secondary w-100 btn-lg" disabled>Checkout unavailable</button>
+                    <?php else: ?>
                     <a href="checkout.php" class="btn btn-danger w-100 btn-lg">Proceed to Checkout</a>
+                    <?php endif; ?>
                     <p class="small text-muted mt-3 mb-0 text-center">Curbside pickup only · Pay with Stripe</p>
                 </div>
             </div>

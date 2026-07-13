@@ -1729,6 +1729,56 @@ body.has-active-order-banner .floating-cart-fab {
     bottom: 84px;
 }
 
+/* Store closed banner */
+.store-closed-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    background: linear-gradient(135deg, #fff8e6 0%, #fff3cd 100%);
+    border-top: 2px solid #f0c040;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.store-closed-banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    min-height: 52px;
+    color: #7a5b00;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.store-closed-banner-inner i {
+    color: #c99700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+body.has-store-closed-banner {
+    padding-bottom: 58px;
+}
+
+body.has-store-closed-banner .floating-cart-fab {
+    bottom: calc(1.25rem + 58px);
+}
+
+body.has-store-closed-banner.has-active-order-banner {
+    padding-bottom: calc(72px + 58px);
+}
+
+body.has-store-closed-banner.has-active-order-banner .floating-cart-fab {
+    bottom: calc(84px + 58px);
+}
+
+body.has-store-closed-banner.has-active-order-banner .store-closed-banner {
+    bottom: 72px;
+}
+
 .btn-google {
     display: inline-flex;
     align-items: center;

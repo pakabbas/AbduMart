@@ -1,8 +1,10 @@
 <?php
 /** @var int $cartCount */
 $cartCount = $cartCount ?? 0;
+$storeStatus = store_status();
+$storeClosed = !$storeStatus['open'];
 ?>
-<div id="floatingCart" class="floating-cart" data-count="<?= (int) $cartCount ?>" data-basket-url="<?= e(asset_url('shop-items.php')) ?>" data-shop-url="<?= e(asset_url('mart-line.php')) ?>">
+<div id="floatingCart" class="floating-cart" data-count="<?= (int) $cartCount ?>" data-store-closed="<?= $storeClosed ? '1' : '0' ?>" data-basket-url="<?= e(asset_url('shop-items.php')) ?>" data-shop-url="<?= e(asset_url('mart-line.php')) ?>">
     <button type="button" class="floating-cart-fab" id="floatingCartFab" aria-label="Open cart">
         <i class="bi bi-bag-fill"></i>
         <span class="floating-cart-fab-badge" id="floatingCartFabBadge" <?= $cartCount > 0 ? '' : 'hidden' ?>><?= (int) $cartCount ?></span>
@@ -37,7 +39,26 @@ $cartCount = $cartCount ?? 0;
                     <span class="text-danger" id="floatingCartTotal">$0.00</span>
                 </div>
             </div>
-            <a href="<?= e(asset_url('checkout.php')) ?>" class="btn btn-danger w-100 btn-lg">Checkout</a>
+            <a href="<?= e(asset_url('checkout.php')) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn">Checkout</a>
+            <a href="<?= e(asset_url('cart.php')) ?>" class="btn btn-link w-100 mt-2 small">View full cart</a>
+        </div>
+        <div class="floating-cart-panel-footer" id="floatingCartFooterClosed" hidden>
+            <div class="floating-cart-totals">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Subtotal</span>
+                    <span id="floatingCartSubtotalClosed">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-2">
+                    <span>Tax</span>
+                    <span id="floatingCartTaxClosed">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                    <span>Total</span>
+                    <span class="text-danger" id="floatingCartTotalClosed">$0.00</span>
+                </div>
+            </div>
+            <div class="alert alert-warning small py-2 mb-2"><?= e($storeStatus['banner_message']) ?></div>
+            <button type="button" class="btn btn-secondary w-100 btn-lg" disabled>Checkout unavailable</button>
             <a href="<?= e(asset_url('cart.php')) ?>" class="btn btn-link w-100 mt-2 small">View full cart</a>
         </div>
     </aside>

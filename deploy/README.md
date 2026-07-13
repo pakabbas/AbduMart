@@ -82,3 +82,17 @@ tail -f /var/log/nginx/error.log
 | 502 Bad Gateway | `sudo systemctl status php8.3-fpm nginx` |
 | `.env` missing | Copy from `.env.example` and configure |
 | Workflow not running | Workflow only runs on pushes to **`main`** |
+
+## Hourly Clover sync (while store is open)
+
+On the server, add a cron job so Clover syncs every hour during store hours (the script skips when closed):
+
+```bash
+sudo crontab -e
+```
+
+```cron
+0 * * * * cd /var/www/abdumart && /usr/bin/php scripts/clover-sync.php >> /var/log/abdumart-clover-sync.log 2>&1
+```
+
+Configure weekly hours and holidays in **Admin → Settings → Hours & holidays**.

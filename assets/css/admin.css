@@ -739,3 +739,84 @@ body.admin-app {
     .admin-header-actions { width: 100%; }
     .admin-header-actions .admin-btn { flex: 1; }
 }
+
+.store-hours-panel,
+.store-holidays-panel {
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    background: #fff;
+}
+
+.store-hours-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.store-hours-row {
+    display: grid;
+    grid-template-columns: 110px 90px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: #f8f9fb;
+}
+
+.store-hours-row.is-closed {
+    opacity: 0.72;
+}
+
+.store-hours-day {
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.store-hours-closed-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.store-hours-times {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.store-hours-times .admin-input {
+    min-width: 0;
+}
+
+.store-hours-sep {
+    font-size: 0.82rem;
+    color: #6b7280;
+}
+
+.store-holidays-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.store-holiday-row {
+    display: grid;
+    grid-template-columns: 170px 1fr auto;
+    gap: 0.65rem;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .store-hours-row {
+        grid-template-columns: 1fr;
+    }
+
+    .store-holiday-row {
+        grid-template-columns: 1fr;
+    }
+}

@@ -12,6 +12,8 @@ $userId = (int) $user['id'];
 $cart = get_cart_totals($userId);
 $error = '';
 $allowPayOnArrival = pay_on_arrival_enabled();
+$storeStatus = store_status();
+$storeClosed = !$storeStatus['open'];
 
 if (empty($cart['items'])) {
     flash('warning', 'Your cart is empty.');
@@ -21,6 +23,8 @@ if (empty($cart['items'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $error = 'Invalid request.';
+    } elseif ($storeClosed) {
+        $error = $storeStatus['banner_message'];
     } else {
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicle = trim($_POST['vehicle_description'] ?? '');
@@ -144,11 +148,18 @@ require __DIR__ . '/includes/header.php';
                     <h2 class="h5 mb-3"><i class="bi bi-car-front text-danger"></i> Curbside Pickup Details</h2>
                     <p class="text-muted"><?= e(setting('mart.pickup_instructions', config('mart.pickup_instructions'))) ?></p>
                     <p class="small"><strong>Pickup at:</strong> <?= e(setting('mart.address', config('mart.address'))) ?></p>
+                    <?php if ($storeClosed): ?>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clock-history me-1"></i>
+                        <?= e($storeStatus['banner_message']) ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>
-                    <form method="post">
+                    <form method="post"<?= $storeClosed ? ' class="pe-none opacity-75"' : '' ?>>
                         <?= csrf_field() ?>
+                        <fieldset<?= $storeClosed ? ' disabled' : '' ?>>
                         <div class="mb-4">
                             <label class="form-label">Payment method</label>
                             <div class="d-grid gap-2">
@@ -173,9 +184,10 @@ require __DIR__ . '/includes/header.php';
                             <label class="form-label">Pickup notes <span class="text-muted">(optional)</span></label>
                             <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Any special instructions..."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
                         </div>
-                        <button type="submit" class="btn btn-danger btn-lg w-100">
+                        <button type="submit" class="btn btn-danger btn-lg w-100"<?= $storeClosed ? ' disabled' : '' ?>>
                             <i class="bi bi-lock"></i> Continue
                         </button>
+                        </fieldset>
                     </form>
                 </div>
             </div>
