@@ -2,6 +2,18 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
+        const categoryGrid = document.getElementById('categoryGrid');
+        const categorySeeMoreBtn = document.getElementById('categorySeeMoreBtn');
+
+        if (categoryGrid && categorySeeMoreBtn) {
+            categorySeeMoreBtn.addEventListener('click', function () {
+                const expanded = categoryGrid.classList.toggle('is-expanded');
+                categoryGrid.classList.toggle('is-collapsed', !expanded);
+                categorySeeMoreBtn.textContent = expanded ? 'See Less' : 'See More';
+                categorySeeMoreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            });
+        }
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
             || document.querySelector('input[name="csrf_token"]')?.value;
 
