@@ -20,6 +20,13 @@ composer install --no-dev --optimize-autoloader --no-interaction
 echo "==> Running database migrations..."
 php scripts/migrate.php
 
+echo "==> Ensuring uploads directory is writable..."
+mkdir -p "$DEPLOY_PATH/assets/uploads"
+chmod 775 "$DEPLOY_PATH/assets/uploads"
+if id "$APP_USER" >/dev/null 2>&1; then
+    sudo chown "$APP_USER:$APP_USER" "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
+fi
+
 echo "==> Fixing permissions..."
 # Keep .env owned by deploy user; web server needs read access
 if [ -f .env ]; then
