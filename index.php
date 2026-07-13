@@ -185,7 +185,7 @@ require __DIR__ . '/includes/header.php';
                         <strong class="product-price"><?= format_money($product['price']) ?></strong>
                         <?php if (is_logged_in()): ?>
                         <?php if (product_is_purchasable($product)): ?>
-                        <form method="post" action="api/cart.php" class="add-to-cart-form">
+                        <form method="post" action="<?= e(asset_url('api/cart.php')) ?>" class="add-to-cart-form">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="add">
                             <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">

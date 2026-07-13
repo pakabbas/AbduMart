@@ -36,6 +36,9 @@ function is_admin(): bool
 function require_login(): void
 {
     if (!is_logged_in()) {
+        if (is_ajax_request()) {
+            json_response(['error' => 'Please sign in to continue.', 'login_required' => true], 401);
+        }
         flash('warning', 'Please sign in to continue.');
         redirect('login.php?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php'));
     }

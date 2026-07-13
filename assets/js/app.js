@@ -23,11 +23,17 @@
                     const res = await fetch(form.action, {
                         method: 'POST',
                         body: new FormData(form),
+                        credentials: 'same-origin',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'application/json',
                         },
                     });
+
+                    const contentType = res.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('Unexpected server response');
+                    }
 
                     let data;
                     try {
@@ -47,6 +53,8 @@
                             btn.classList.add('btn-danger');
                             btn.disabled = false;
                         }, 1500);
+                    } else if (data.login_required) {
+                        window.location.href = 'login.php?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
                     } else {
                         alert(data.error || 'Could not add to cart');
                         btn.innerHTML = original;

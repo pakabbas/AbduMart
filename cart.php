@@ -42,7 +42,7 @@ require __DIR__ . '/includes/header.php';
                                 <span class="text-muted"><?= format_money($item['price']) ?> each</span>
                             </div>
                             <div class="col-auto">
-                                <form method="post" action="api/cart.php" class="d-flex align-items-center gap-2 qty-form">
+                                <form method="post" action="<?= e(asset_url('api/cart.php')) ?>" class="d-flex align-items-center gap-2 qty-form">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="update">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['product_id'] ?>">
@@ -55,7 +55,7 @@ require __DIR__ . '/includes/header.php';
                                 <?= format_money((float) $item['price'] * (int) $item['quantity']) ?>
                             </div>
                             <div class="col-auto">
-                                <form method="post" action="api/cart.php">
+                                <form method="post" action="<?= e(asset_url('api/cart.php')) ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="product_id" value="<?= (int) $item['product_id'] ?>">
