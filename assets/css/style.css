@@ -588,22 +588,33 @@ body.shop-app-page {
     color: #fff;
 }
 
-.shop-category-nav {
+.shop-category-carousel-wrap {
     position: sticky;
     top: 72px;
     z-index: 1020;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid #eceff3;
     box-shadow: 0 6px 18px rgba(17, 24, 39, 0.04);
+    padding: 0 0.35rem;
+}
+
+.shop-category-nav {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .shop-category-nav-track {
     display: flex;
     gap: 0.55rem;
     overflow-x: auto;
-    padding: 0.7rem 1rem;
-    scroll-snap-type: x proximity;
+    padding: 0.7rem 0.35rem;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -672,9 +683,52 @@ body.shop-app-page {
     color: var(--am-red);
 }
 
+.shop-category-carousel-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e8eaed;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--am-red);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+}
+
+.shop-category-carousel-btn:hover {
+    background: var(--am-red-light);
+}
+
+.shop-category-carousel-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
 .shop-app-content {
     padding-top: 1rem;
     padding-bottom: 2rem;
+}
+
+.shop-product-grid {
+    --bs-gutter-x: 0.85rem;
+    --bs-gutter-y: 0.85rem;
+}
+
+.shop-product-grid .product-card {
+    height: 100%;
+}
+
+.shop-product-grid .product-img {
+    height: 140px;
+}
+
+@media (min-width: 992px) {
+    .shop-product-grid .product-img {
+        height: 155px;
+    }
 }
 
 .shop-menu-section + .shop-menu-section {
@@ -844,19 +898,15 @@ body.shop-app-page {
 }
 
 @media (max-width: 576px) {
-    .shop-category-nav {
+    .shop-category-carousel-wrap {
         top: 64px;
+        padding: 0 0.15rem;
     }
 
-    .shop-menu-item {
-        grid-template-columns: 76px minmax(0, 1fr) auto;
-        gap: 0.7rem;
-        padding: 0.65rem;
-    }
-
-    .shop-menu-item-thumb {
-        width: 76px;
-        height: 76px;
+    .shop-category-carousel-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
     }
 
     .shop-cat-chip {

@@ -5,6 +5,31 @@
         const shopApp = document.getElementById('shopApp');
         const categoryNav = document.getElementById('shopCategoryNav');
         const categoryTrack = document.getElementById('shopCategoryTrack');
+        const categoryPrev = document.getElementById('shopCategoryPrev');
+        const categoryNext = document.getElementById('shopCategoryNext');
+
+        if (categoryTrack && categoryPrev && categoryNext) {
+            const scrollStep = 220;
+
+            function updateCarouselButtons() {
+                const maxScroll = categoryTrack.scrollWidth - categoryTrack.clientWidth;
+                categoryPrev.disabled = categoryTrack.scrollLeft <= 4;
+                categoryNext.disabled = categoryTrack.scrollLeft >= maxScroll - 4;
+            }
+
+            categoryPrev.addEventListener('click', function () {
+                categoryTrack.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+            });
+
+            categoryNext.addEventListener('click', function () {
+                categoryTrack.scrollBy({ left: scrollStep, behavior: 'smooth' });
+            });
+
+            categoryTrack.addEventListener('scroll', updateCarouselButtons, { passive: true });
+            window.addEventListener('resize', updateCarouselButtons);
+            updateCarouselButtons();
+        }
+
         if (!shopApp || !categoryNav || !categoryTrack) {
             return;
         }
