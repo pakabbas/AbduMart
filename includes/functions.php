@@ -96,6 +96,74 @@ function asset_url(string $path): string
     return '/' . ltrim($path, '/');
 }
 
+function db_has_table(string $table): bool
+{
+    try {
+        $stmt = db()->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$table]);
+        return (bool) $stmt->fetchColumn();
+    } catch (Throwable) {
+        return false;
+    }
+}
+
+function db_has_column(string $table, string $column): bool
+{
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+        $stmt->execute([$column]);
+        return (bool) $stmt->fetchColumn();
+    } catch (Throwable) {
+        return false;
+    }
+}
+
+function store_uploaded_image(string $field, string $prefix): ?string
+{
+    if (empty($_FILES[$field]) || !is_array($_FILES[$field])) {
+        return null;
+    }
+
+    $f = $_FILES[$field];
+    if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $tmp = (string) ($f['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        return null;
+    }
+
+    $size = (int) ($f['size'] ?? 0);
+    if ($size <= 0 || $size > 5 * 1024 * 1024) {
+        throw new RuntimeException('Image upload must be under 5MB.');
+    }
+
+    $mime = mime_content_type($tmp) ?: '';
+    $ext = match ($mime) {
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        default => null,
+    };
+    if ($ext === null) {
+        throw new RuntimeException('Unsupported image type. Use JPG, PNG, or WebP.');
+    }
+
+    $dir = dirname(__DIR__) . '/assets/uploads';
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException('Could not create uploads directory.');
+    }
+
+    $name = $prefix . '-' . date('Ymd-His') . '-' . bin2hex(random_bytes(5)) . '.' . $ext;
+    $dest = $dir . '/' . $name;
+    if (!move_uploaded_file($tmp, $dest)) {
+        throw new RuntimeException('Image upload failed.');
+    }
+
+    return asset_url('assets/uploads/' . $name);
+}
+
 function catalog_has_image(?string $url): bool
 {
     $url = trim((string) $url);

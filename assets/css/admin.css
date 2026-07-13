@@ -94,25 +94,25 @@ body.admin-app {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--admin-muted);
-    padding: 12px 12px 6px;
+    padding: 10px 12px 5px;
 }
 
 .admin-sidebar-link {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 9px;
+    padding: 8px 10px;
     margin-bottom: 2px;
     border-radius: var(--admin-radius-sm);
     color: var(--admin-text);
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.92rem;
+    font-size: 0.84rem;
     transition: background 0.15s, color 0.15s;
 }
 
 .admin-sidebar-link i {
-    font-size: 1.1rem;
+    font-size: 1.0rem;
     width: 20px;
     text-align: center;
     color: var(--admin-muted);

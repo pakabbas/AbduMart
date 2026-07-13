@@ -7,6 +7,8 @@ require_admin();
 
 $adminSection = 'orders';
 $orderId = isset($_GET['id']) ? (int) $_GET['id'] : null;
+$hasPickedUpColumns = db_has_column('orders', 'picked_up_at') && db_has_column('orders', 'picked_up_by');
+$hasOrderLogsTable = db_has_table('order_status_logs');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -26,13 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (in_array($status, ['paid', 'preparing', 'ready', 'picked_up', 'cancelled'], true)) {
             if ($status === 'picked_up') {
-                db()->prepare(
-                    'UPDATE orders SET status = ?, picked_up_at = IFNULL(picked_up_at, NOW()), picked_up_by = ?, updated_at = NOW() WHERE id = ?'
-                )->execute([$status, (int) current_user()['id'], $orderId]);
+                if ($hasPickedUpColumns) {
+                    db()->prepare(
+                        'UPDATE orders SET status = ?, picked_up_at = IFNULL(picked_up_at, NOW()), picked_up_by = ?, updated_at = NOW() WHERE id = ?'
+                    )->execute([$status, (int) current_user()['id'], $orderId]);
+                } else {
+                    db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $orderId]);
+                }
             } else {
                 db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $orderId]);
             }
-            log_order_status_change($orderId, is_string($old) ? $old : null, $status, (int) current_user()['id']);
+            if ($hasOrderLogsTable) {
+                log_order_status_change($orderId, is_string($old) ? $old : null, $status, (int) current_user()['id']);
+            }
             flash('success', 'Order status updated.');
         }
         redirect('orders.php?id=' . $orderId);
@@ -40,14 +48,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($orderId) {
-    $stmt = db()->prepare(
-        'SELECT o.*, u.first_name, u.last_name, u.email, u.phone,
-            pu.first_name AS picked_up_first_name, pu.last_name AS picked_up_last_name
-         FROM orders o
-         JOIN users u ON u.id = o.user_id
-         LEFT JOIN users pu ON pu.id = o.picked_up_by
-         WHERE o.id = ?'
-    );
+    $sql = 'SELECT o.*, u.first_name, u.last_name, u.email, u.phone';
+    if ($hasPickedUpColumns) {
+        $sql .= ', pu.first_name AS picked_up_first_name, pu.last_name AS picked_up_last_name';
+    }
+    $sql .= ' FROM orders o JOIN users u ON u.id = o.user_id';
+    if ($hasPickedUpColumns) {
+        $sql .= ' LEFT JOIN users pu ON pu.id = o.picked_up_by';
+    }
+    $sql .= ' WHERE o.id = ?';
+    $stmt = db()->prepare($sql);
     $stmt->execute([$orderId]);
     $order = $stmt->fetch();
     if (!$order) {
@@ -68,7 +78,7 @@ if ($orderId) {
     <?php if ($order['customer_here_at']): ?>
     <div class="admin-toast admin-toast-warning"><i class="bi bi-geo-alt-fill"></i> Customer arrived at <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?></div>
     <?php endif; ?>
-    <?php if (!empty($order['picked_up_at'])): ?>
+    <?php if ($hasPickedUpColumns && !empty($order['picked_up_at'])): ?>
     <div class="admin-toast admin-toast-success">
         <i class="bi bi-bag-check-fill"></i>
         Picked up at <?= e(date('g:i A', strtotime($order['picked_up_at']))) ?>
@@ -127,6 +137,7 @@ if ($orderId) {
                         </div>
                         <button type="submit" class="admin-btn admin-btn-primary w-100">Save status</button>
                     </form>
+                    <?php if ($hasOrderLogsTable): ?>
                     <?php
                     $logsStmt = db()->prepare(
                         'SELECT l.*, u.first_name, u.last_name
@@ -154,6 +165,12 @@ if ($orderId) {
                             </div>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php else: ?>
+                    <div class="admin-callout mt-3">
+                        <strong>Database update pending</strong>
+                        <div class="hint mb-0">Run migration <code>005_pay_on_arrival_and_order_logs.sql</code> to enable status change logs.</div>
                     </div>
                     <?php endif; ?>
                 </div>
