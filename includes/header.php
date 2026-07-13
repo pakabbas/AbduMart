@@ -37,7 +37,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="index.php">Shop</a></li>
+                <li class="nav-item"><a class="nav-link" href="shop.php">Shop</a></li>
                 <?php if (is_logged_in()): ?>
                 <li class="nav-item"><a class="nav-link" href="orders.php">My Orders</a></li>
                 <?php endif; ?>

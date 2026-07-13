@@ -14,6 +14,22 @@
             });
         }
 
+        const featuredCarousel = document.getElementById('featuredCarousel');
+        const featuredPrev = document.getElementById('featuredCarouselPrev');
+        const featuredNext = document.getElementById('featuredCarouselNext');
+
+        if (featuredCarousel && featuredPrev && featuredNext) {
+            const scrollStep = 236;
+
+            featuredPrev.addEventListener('click', function () {
+                featuredCarousel.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+            });
+
+            featuredNext.addEventListener('click', function () {
+                featuredCarousel.scrollBy({ left: scrollStep, behavior: 'smooth' });
+            });
+        }
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
             || document.querySelector('input[name="csrf_token"]')?.value;
 

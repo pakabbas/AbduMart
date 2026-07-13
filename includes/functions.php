@@ -228,6 +228,131 @@ function category_image_needs_assign(?string $url): bool
     return false;
 }
 
+function product_food_image_sources(): array
+{
+    return [
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1511920170033-f8396924c10b?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1482049010928-7a0e5d61c5f5?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1464300568806-2f0a293cbeca?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1525385133512-2f3bdd039059?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1553909489-cd47e0d71592?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1486427944299-d1955d23e34d?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1555507036-abbf19da2a2d?auto=format&fit=crop&w=800&q=80',
+    ];
+}
+
+function product_image_needs_assign(?string $url): bool
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return true;
+    }
+    if (str_starts_with($url, '/assets/')) {
+        return false;
+    }
+
+    $lower = strtolower($url);
+    foreach (['picsum.photos', 'fastly.picsum', 'unsplash.com', 'placehold.co', 'placeholder.com', 'dummyimage.com'] as $host) {
+        if (str_contains($lower, $host)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function import_remote_image(string $url, string $prefix, int $id): ?string
+{
+    $dir = dirname(__DIR__) . '/assets/uploads';
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        return null;
+    }
+
+    $ctx = stream_context_create([
+        'http' => [
+            'timeout' => 20,
+            'user_agent' => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
+            'follow_location' => 1,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $data = @file_get_contents($url, false, $ctx);
+    if ($data === false || strlen($data) < 1000) {
+        return null;
+    }
+
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($data) ?: '';
+    $ext = match ($mime) {
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        default => null,
+    };
+    if ($ext === null) {
+        return null;
+    }
+
+    $name = $prefix . '-' . $id . '-' . substr(md5($url), 0, 10) . '.' . $ext;
+    $dest = $dir . '/' . $name;
+    if (file_put_contents($dest, $data) === false) {
+        return null;
+    }
+
+    return asset_url('assets/uploads/' . $name);
+}
+
+function assign_product_food_image(int $productId, string $name): string
+{
+    $sources = product_food_image_sources();
+    $idx = abs(crc32(strtolower(trim($name)) . ':' . $productId)) % count($sources);
+    $remote = $sources[$idx];
+    $local = import_remote_image($remote, 'product', $productId);
+
+    return $local ?? $remote;
+}
+
+function products_have_featured_column(): bool
+{
+    return db_has_column('products', 'is_featured');
+}
+
+function get_featured_products(int $limit = 12): array
+{
+    if (!products_have_featured_column()) {
+        return [];
+    }
+
+    return get_products([
+        'featured_only' => true,
+        'per_page' => max(1, min(24, $limit)),
+        'sort' => 'name',
+    ]);
+}
+
+function shop_page_url(int $pageNum, array $queryParams): string
+{
+    $params = $queryParams;
+    if ($pageNum > 1) {
+        $params['page'] = $pageNum;
+    }
+    $query = http_build_query($params);
+
+    return 'shop.php' . ($query !== '' ? '?' . $query : '');
+}
+
 function name_initials(string $name): string
 {
     $name = trim(preg_replace('/\s+/u', ' ', $name));
@@ -373,6 +498,9 @@ function get_products(array $filters = []): array
     $order = match ($sort) {
         'price_asc' => ' ORDER BY p.price ASC',
         'price_desc' => ' ORDER BY p.price DESC',
+        'featured' => products_have_featured_column()
+            ? ' ORDER BY p.is_featured DESC, p.name ASC'
+            : ' ORDER BY p.name ASC',
         'name' => ' ORDER BY p.name ASC',
         default => ' ORDER BY p.name ASC',
     };
@@ -416,6 +544,9 @@ function product_filter_sql(array $filters, array &$params): string
     }
     if (!isset($filters['include_inactive']) || !$filters['include_inactive']) {
         $sql .= ' AND p.is_active = 1';
+    }
+    if (!empty($filters['featured_only']) && products_have_featured_column()) {
+        $sql .= ' AND p.is_featured = 1';
     }
 
     return $sql;
