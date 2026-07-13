@@ -138,12 +138,6 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         <div class="admin-card h-100">
             <div class="admin-card-header"><h2><i class="bi bi-wallet2 me-2"></i>Pay on Arrival</h2></div>
             <div class="admin-card-body padded">
-                <?php if (!$hasPaymentMethod): ?>
-                <div class="admin-callout">
-                    <strong>Database update pending</strong>
-                    <div class="hint mb-0">Run migration <code>005_pay_on_arrival_and_order_logs.sql</code> to enable pay-on-arrival reporting.</div>
-                </div>
-                <?php endif; ?>
                 <p class="text-muted mb-2">Revenue from pay-on-arrival orders (<?= e($range) ?>):</p>
                 <div class="fs-3 fw-bold" style="color:var(--admin-red)"><?= e(format_money($arrivalRevenue)) ?></div>
                 <hr class="my-4">

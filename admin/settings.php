@@ -121,9 +121,6 @@ if ($error): ?>
                             </label>
                         </div>
                     </div>
-                    <div class="admin-callout">
-                        Webhook URL: <code><?= e(rtrim(config('app.url'), '/') . '/stripe-webhook.php') ?></code>
-                    </div>
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="admin-field">
