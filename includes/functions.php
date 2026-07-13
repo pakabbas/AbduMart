@@ -277,20 +277,8 @@ function import_remote_image(string $url, string $prefix, int $id): ?string
         return null;
     }
 
-    $ctx = stream_context_create([
-        'http' => [
-            'timeout' => 20,
-            'user_agent' => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
-            'follow_location' => 1,
-        ],
-        'ssl' => [
-            'verify_peer' => true,
-            'verify_peer_name' => true,
-        ],
-    ]);
-
-    $data = @file_get_contents($url, false, $ctx);
-    if ($data === false || strlen($data) < 1000) {
+    $data = fetch_remote_bytes($url);
+    if ($data === null || strlen($data) < 1000) {
         return null;
     }
 
@@ -311,17 +299,84 @@ function import_remote_image(string $url, string $prefix, int $id): ?string
         return null;
     }
 
+    @chmod($dest, 0664);
+
     return asset_url('assets/uploads/' . $name);
+}
+
+function fetch_remote_bytes(string $url): ?string
+{
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        if ($ch !== false) {
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_CONNECTTIMEOUT => 15,
+                CURLOPT_TIMEOUT => 25,
+                CURLOPT_USERAGENT => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+            ]);
+            $data = curl_exec($ch);
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($data !== false && $code >= 200 && $code < 300) {
+                return $data;
+            }
+        }
+    }
+
+    $ctx = stream_context_create([
+        'http' => [
+            'timeout' => 20,
+            'user_agent' => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
+            'follow_location' => 1,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $data = @file_get_contents($url, false, $ctx);
+
+    return $data === false ? null : $data;
 }
 
 function assign_product_food_image(int $productId, string $name): string
 {
     $sources = product_food_image_sources();
-    $idx = abs(crc32(strtolower(trim($name)) . ':' . $productId)) % count($sources);
-    $remote = $sources[$idx];
-    $local = import_remote_image($remote, 'product', $productId);
+    $start = abs(crc32(strtolower(trim($name)) . ':' . $productId)) % count($sources);
 
-    return $local ?? $remote;
+    for ($i = 0; $i < count($sources); $i++) {
+        $remote = $sources[($start + $i) % count($sources)];
+        $local = import_remote_image($remote, 'product', $productId);
+        if ($local !== null) {
+            return $local;
+        }
+    }
+
+    return asset_url('assets/images/placeholder-product.svg');
+}
+
+function repair_product_images(bool $onlyMissing = false): int
+{
+    $products = get_products(['include_inactive' => true, 'sort' => 'name']);
+    $updated = 0;
+    $stmt = db()->prepare('UPDATE products SET image_url = ? WHERE id = ?');
+
+    foreach ($products as $product) {
+        if ($onlyMissing && !product_image_needs_assign($product['image_url'] ?? null)) {
+            continue;
+        }
+
+        $url = assign_product_food_image((int) $product['id'], (string) $product['name']);
+        $stmt->execute([$url, (int) $product['id']]);
+        $updated++;
+    }
+
+    return $updated;
 }
 
 function products_have_featured_column(): bool

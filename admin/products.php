@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$url, (int) $p['id']]);
             $updated++;
         }
-        flash('success', $updated > 0 ? ("Assigned food images for {$updated} products.") : 'All products already have images.');
+        flash('success', $updated > 0 ? ("Saved local food images for {$updated} products.") : 'All products already have local images.');
         redirect('products.php');
     }
 
