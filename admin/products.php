@@ -26,6 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
     $imageUrl = trim($_POST['image_url'] ?? '') ?: null;
     $isActive = isset($_POST['is_active']) ? 1 : 0;
+    $redirectBack = $productId > 0 ? 'products.php?id=' . $productId : 'products.php?new=1';
+
+    try {
+        $uploaded = store_uploaded_image('image_file', 'product');
+        if ($uploaded) {
+            $imageUrl = $uploaded;
+        }
+    } catch (Throwable $e) {
+        flash('danger', $e->getMessage());
+        redirect($redirectBack);
+    }
 
     if ($action === 'delete' && $productId > 0) {
         db()->prepare('DELETE FROM products WHERE id = ?')->execute([$productId]);
@@ -124,7 +135,7 @@ if ($editing):
         <div class="admin-card">
             <div class="admin-card-header"><h2><?= $editing['id'] ? 'Edit product' : 'New product' ?></h2></div>
             <div class="admin-card-body padded">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="product_id" value="<?= (int) $editing['id'] ?>">
                     <input type="hidden" name="action" value="<?= $editing['id'] ? 'update' : 'create' ?>">
@@ -173,6 +184,11 @@ if ($editing):
                     <div class="admin-field">
                         <label for="image_url">Image URL</label>
                         <input type="url" id="image_url" name="image_url" class="admin-input" value="<?= e($editing['image_url'] ?? '') ?>" placeholder="https://...">
+                        <div class="hint">Optional: paste a URL or upload an image below.</div>
+                    </div>
+                    <div class="admin-field">
+                        <label for="image_file">Upload image</label>
+                        <input type="file" id="image_file" name="image_file" class="admin-input" accept="image/*">
                     </div>
                     <button type="submit" class="admin-btn admin-btn-primary"><?= $editing['id'] ? 'Save changes' : 'Create product' ?></button>
                 </form>

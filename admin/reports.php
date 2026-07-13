@@ -18,6 +18,8 @@ $days = match ($range) {
 $start = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
 $end = date('Y-m-d');
 
+$hasPaymentMethod = db_has_column('orders', 'payment_method');
+
 // Cards
 $stmt = db()->prepare('SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ?');
 $stmt->execute([$start, $end]);
@@ -35,9 +37,12 @@ $stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(crea
 $stmt->execute([$start, $end]);
 $revenue = (float) $stmt->fetchColumn();
 
-$stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND payment_method = 'arrival' AND status != 'cancelled'");
-$stmt->execute([$start, $end]);
-$arrivalRevenue = (float) $stmt->fetchColumn();
+$arrivalRevenue = 0.0;
+if ($hasPaymentMethod) {
+    $stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND payment_method = 'arrival' AND status != 'cancelled'");
+    $stmt->execute([$start, $end]);
+    $arrivalRevenue = (float) $stmt->fetchColumn();
+}
 
 $avgOrder = $ordersNonCancelled > 0 ? $revenue / $ordersNonCancelled : 0.0;
 
@@ -116,6 +121,12 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         <div class="admin-card h-100">
             <div class="admin-card-header"><h2><i class="bi bi-wallet2 me-2"></i>Pay on Arrival</h2></div>
             <div class="admin-card-body padded">
+                <?php if (!$hasPaymentMethod): ?>
+                <div class="admin-callout">
+                    <strong>Database update pending</strong>
+                    <div class="hint mb-0">Run migration <code>005_pay_on_arrival_and_order_logs.sql</code> to enable pay-on-arrival reporting.</div>
+                </div>
+                <?php endif; ?>
                 <p class="text-muted mb-2">Revenue from pay-on-arrival orders (<?= e($range) ?>):</p>
                 <div class="fs-3 fw-bold" style="color:var(--admin-red)"><?= e(format_money($arrivalRevenue)) ?></div>
                 <hr class="my-4">
