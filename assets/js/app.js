@@ -14,8 +14,15 @@
                 }
 
                 const original = btn.innerHTML;
+                const formCsrf = form.querySelector('input[name="csrf_token"]')?.value || csrfToken || '';
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+                function fallbackSubmit() {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                    form.submit();
+                }
 
                 try {
                     const res = await fetch(form.action, {
@@ -25,22 +32,23 @@
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'application/json',
-                            'X-CSRF-Token': csrfToken || '',
+                            'X-CSRF-Token': formCsrf,
                         },
                     });
 
-                    const contentType = (res.headers.get('content-type') || '').toLowerCase();
                     const raw = await res.text();
-                    let data;
+                    let data = null;
 
-                    if (contentType.includes('json')) {
+                    if (raw.trim().startsWith('{')) {
                         try {
                             data = JSON.parse(raw);
                         } catch (parseError) {
-                            throw new Error('Invalid JSON response');
+                            fallbackSubmit();
+                            return;
                         }
                     } else {
-                        throw new Error('Unexpected server response');
+                        fallbackSubmit();
+                        return;
                     }
 
                     if (data.success) {
@@ -62,9 +70,7 @@
                         btn.disabled = false;
                     }
                 } catch (err) {
-                    alert('Could not add to cart. Please try again.');
-                    btn.innerHTML = original;
-                    btn.disabled = false;
+                    fallbackSubmit();
                 }
             });
         });
