@@ -358,6 +358,36 @@ function pay_on_arrival_enabled(): bool
     return setting('allow_pay_on_arrival', '') === '1' && db_has_column('orders', 'payment_method');
 }
 
+function order_status_display(string $status): array
+{
+    return match ($status) {
+        'pending' => ['label' => 'Pending Payment', 'class' => 'secondary'],
+        'paid' => ['label' => 'Paid — Preparing', 'class' => 'warning'],
+        'preparing' => ['label' => 'Preparing', 'class' => 'warning'],
+        'ready' => ['label' => 'Ready for Pickup', 'class' => 'success'],
+        'picked_up' => ['label' => 'Picked Up', 'class' => 'dark'],
+        'cancelled' => ['label' => 'Cancelled', 'class' => 'danger'],
+        default => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'secondary'],
+    };
+}
+
+function get_active_pickup_order(int $userId): ?array
+{
+    $stmt = db()->prepare(
+        "SELECT o.*,
+            (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
+         FROM orders o
+         WHERE o.user_id = ?
+           AND o.status IN ('paid', 'preparing', 'ready')
+         ORDER BY o.created_at DESC
+         LIMIT 1"
+    );
+    $stmt->execute([$userId]);
+    $order = $stmt->fetch();
+
+    return $order ?: null;
+}
+
 /**
  * @param array{user_id:int,order_number:string,subtotal:float|int|string,tax:float|int|string,total:float|int|string,status:string,pickup_notes:?string,vehicle_description:?string,payment_method?:string} $data
  * @return array{0:string,1:array<int,mixed>}

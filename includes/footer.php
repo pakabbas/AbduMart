@@ -25,6 +25,15 @@
         <p class="text-center text-muted small mb-0">&copy; <?= date('Y') ?> Abdu Market. All rights reserved.</p>
     </div>
 </footer>
+<?php
+$activePickupOrder = null;
+if (is_logged_in()) {
+    $activePickupOrder = get_active_pickup_order((int) current_user()['id']);
+}
+if ($activePickupOrder) {
+    require __DIR__ . '/active_order_banner.php';
+}
+?>
 <?php if (is_logged_in()): ?>
 <?php require __DIR__ . '/floating_cart.php'; ?>
 <?php endif; ?>

@@ -36,12 +36,12 @@ $pageTitle = 'My Orders';
 require __DIR__ . '/includes/header.php';
 
 $statusLabels = [
-    'pending' => ['label' => 'Pending Payment', 'class' => 'secondary'],
-    'paid' => ['label' => 'Paid — Preparing', 'class' => 'warning'],
-    'preparing' => ['label' => 'Preparing', 'class' => 'warning'],
-    'ready' => ['label' => 'Ready for Pickup', 'class' => 'success'],
-    'picked_up' => ['label' => 'Picked Up', 'class' => 'dark'],
-    'cancelled' => ['label' => 'Cancelled', 'class' => 'danger'],
+    'pending' => order_status_display('pending'),
+    'paid' => order_status_display('paid'),
+    'preparing' => order_status_display('preparing'),
+    'ready' => order_status_display('ready'),
+    'picked_up' => order_status_display('picked_up'),
+    'cancelled' => order_status_display('cancelled'),
 ];
 ?>
 
