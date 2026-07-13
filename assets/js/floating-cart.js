@@ -13,6 +13,7 @@
     const closeBtn = document.getElementById('floatingCartClose');
     const body = document.getElementById('floatingCartBody');
     const footer = document.getElementById('floatingCartFooter');
+    const footerClosed = document.getElementById('floatingCartFooterClosed');
     const basketUrl = root.dataset.basketUrl;
     const shopUrl = root.dataset.shopUrl;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -67,6 +68,9 @@
 
     function renderEmpty() {
         footer.hidden = true;
+        if (footerClosed) {
+            footerClosed.hidden = true;
+        }
         body.innerHTML =
             '<div class="floating-cart-empty text-center py-5">' +
             '<i class="bi bi-bag display-6 text-danger"></i>' +
@@ -77,15 +81,28 @@
     function renderBasket(data) {
         updateBadges(data.count);
 
+        footer.hidden = true;
+        if (footerClosed) {
+            footerClosed.hidden = true;
+        }
+
         if (!data.items || data.items.length === 0) {
             renderEmpty();
             return;
         }
 
-        footer.hidden = false;
-        document.getElementById('floatingCartSubtotal').textContent = data.subtotal_label;
-        document.getElementById('floatingCartTax').textContent = data.tax_label;
-        document.getElementById('floatingCartTotal').textContent = data.total_label;
+        const useClosedFooter = root.dataset.storeClosed === '1' && footerClosed;
+        if (useClosedFooter) {
+            footerClosed.hidden = false;
+            document.getElementById('floatingCartSubtotalClosed').textContent = data.subtotal_label;
+            document.getElementById('floatingCartTaxClosed').textContent = data.tax_label;
+            document.getElementById('floatingCartTotalClosed').textContent = data.total_label;
+        } else {
+            footer.hidden = false;
+            document.getElementById('floatingCartSubtotal').textContent = data.subtotal_label;
+            document.getElementById('floatingCartTax').textContent = data.tax_label;
+            document.getElementById('floatingCartTotal').textContent = data.total_label;
+        }
 
         body.innerHTML = data.items.map(function (item) {
             const thumb = item.image_url

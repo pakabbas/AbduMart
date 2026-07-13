@@ -26,6 +26,10 @@
     </div>
 </footer>
 <?php
+$storeStatus = store_status();
+if (!$storeStatus['open']) {
+    require __DIR__ . '/store_closed_banner.php';
+}
 $activePickupOrder = null;
 if (is_logged_in()) {
     $activePickupOrder = get_active_pickup_order((int) current_user()['id']);

@@ -76,6 +76,7 @@ if ($syncError): ?>
                 <a href="settings.php#clover" class="admin-btn admin-btn-primary admin-btn-sm">Open Clover settings</a>
                 <?php else: ?>
                 <p class="small mb-0 text-muted">Sync pulls categories and inventory items from Clover into your storefront catalog.</p>
+                <p class="small mb-0 text-muted mt-2"><i class="bi bi-clock"></i> While the store is open, Clover syncs automatically every hour.</p>
                 <?php endif; ?>
             </div>
         </div>

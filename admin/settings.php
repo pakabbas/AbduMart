@@ -7,6 +7,7 @@ require_admin();
 
 use App\MailService;
 use App\SettingsService;
+use App\StoreHoursService;
 
 $adminSection = 'settings';
 $message = null;
@@ -19,6 +20,7 @@ $fields = [
     'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
+    'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
 ];
 
@@ -52,6 +54,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$error) {
+            $timezone = trim($_POST['store_timezone'] ?? '');
+            if ($timezone !== '') {
+                try {
+                    new DateTimeZone($timezone);
+                } catch (Throwable) {
+                    $error = 'Choose a valid store timezone.';
+                }
+            }
+
+            if (!$error) {
+                try {
+                    $encoded = StoreHoursService::encodeSettings(
+                        is_array($_POST['store_hours'] ?? null) ? $_POST['store_hours'] : [],
+                        is_array($_POST['store_holidays'] ?? null) ? $_POST['store_holidays'] : []
+                    );
+                    $_POST['store_hours_json'] = $encoded['hours_json'];
+                    $_POST['store_holidays_json'] = $encoded['holidays_json'];
+                } catch (Throwable) {
+                    $error = 'Could not save store hours or holidays.';
+                }
+            }
+
+            if (!$error) {
             foreach ($fields as $field) {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
                 if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'google_client_secret'], true)
@@ -68,9 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $values = SettingsService::getGroup($fields);
             $message = 'Settings saved successfully.';
             }
+            }
         }
     }
 }
+
+$values = SettingsService::getGroup($fields);
+$storeHours = StoreHoursService::weeklyHours();
+$storeHolidays = StoreHoursService::holidays();
+$storeTimezone = StoreHoursService::timezone();
+$timezoneOptions = StoreHoursService::usTimezoneOptions();
+$storeOpenNow = StoreHoursService::isOpen();
 
 $status = [
     ['key' => 'stripe', 'label' => 'Stripe', 'icon' => 'bi-credit-card', 'ok' => SettingsService::isGroupConfigured('stripe')],
@@ -115,6 +148,7 @@ if ($error): ?>
             <a href="#smtp"><i class="bi bi-envelope"></i> Email SMTP</a>
             <a href="#google"><i class="bi bi-google"></i> Google Auth</a>
             <a href="#store"><i class="bi bi-geo-alt"></i> Store info</a>
+            <a href="#store-hours"><i class="bi bi-clock"></i> Hours & holidays</a>
         </nav>
 
         <div class="settings-content">
@@ -323,6 +357,95 @@ if ($error): ?>
                 </div>
             </section>
 
+            <section class="settings-section" id="store-hours">
+                <div class="settings-section-head">
+                    <h2><i class="bi bi-clock"></i> Store Timings & Holidays</h2>
+                    <p>Control when customers can place orders and when Clover auto-sync runs (hourly while open).</p>
+                </div>
+                <div class="settings-section-body">
+                    <div class="admin-callout d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                        <div>
+                            <strong>Store status right now</strong>
+                            <div class="hint mb-0">Based on timezone, weekly hours, and holidays below.</div>
+                        </div>
+                        <span class="admin-badge <?= $storeOpenNow ? 'admin-badge-green' : 'admin-badge-red' ?>">
+                            <?= $storeOpenNow ? 'Open' : 'Closed' ?>
+                        </span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label for="store_timezone">Store timezone</label>
+                                <select id="store_timezone" name="store_timezone" class="admin-input">
+                                    <?php foreach ($timezoneOptions as $tzValue => $tzLabel): ?>
+                                    <option value="<?= e($tzValue) ?>" <?= $storeTimezone === $tzValue ? 'selected' : '' ?>><?= e($tzLabel) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="hint">All opening hours use this timezone.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label for="store_location">Store location label</label>
+                                <input type="text" id="store_location" name="store_location" class="admin-input" value="<?= e($values['store_location'] ?? '') ?>" placeholder="e.g. Abdu Market — Canton, MI">
+                                <div class="hint">Optional short label for internal reference.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="store-hours-panel mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <h3 class="h6 mb-0">Weekly store hours</h3>
+                            <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="copyMondayHoursBtn">
+                                <i class="bi bi-copy"></i> Copy Monday to all days
+                            </button>
+                        </div>
+                        <div class="store-hours-grid">
+                            <?php foreach (StoreHoursService::DAY_KEYS as $dayKey): ?>
+                            <?php $day = $storeHours[$dayKey] ?? ['closed' => false, 'open' => '09:00', 'close' => '21:00']; ?>
+                            <div class="store-hours-row" data-day="<?= e($dayKey) ?>">
+                                <div class="store-hours-day"><?= e(StoreHoursService::DAY_LABELS[$dayKey]) ?></div>
+                                <label class="store-hours-closed-toggle">
+                                    <input type="checkbox" name="store_hours[<?= e($dayKey) ?>][closed]" value="1" class="store-day-closed" <?= !empty($day['closed']) ? 'checked' : '' ?>>
+                                    <span>Closed</span>
+                                </label>
+                                <div class="store-hours-times">
+                                    <input type="time" name="store_hours[<?= e($dayKey) ?>][open]" class="admin-input store-day-open" value="<?= e($day['open']) ?>" <?= !empty($day['closed']) ? 'disabled' : '' ?>>
+                                    <span class="store-hours-sep">to</span>
+                                    <input type="time" name="store_hours[<?= e($dayKey) ?>][close]" class="admin-input store-day-close" value="<?= e($day['close']) ?>" <?= !empty($day['closed']) ? 'disabled' : '' ?>>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="store-holidays-panel">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h3 class="h6 mb-1">Holidays & closed dates</h3>
+                                <p class="hint mb-0">The store is closed all day on these dates (in store timezone).</p>
+                            </div>
+                            <button type="button" class="admin-btn admin-btn-outline admin-btn-sm" id="addHolidayBtn">
+                                <i class="bi bi-plus-lg"></i> Add holiday
+                            </button>
+                        </div>
+                        <div id="holidayRows" class="store-holidays-list">
+                            <?php if (empty($storeHolidays)): ?>
+                            <p class="hint mb-0" id="holidayEmptyHint">No holidays added yet.</p>
+                            <?php endif; ?>
+                            <?php foreach ($storeHolidays as $index => $holiday): ?>
+                            <div class="store-holiday-row">
+                                <input type="date" name="store_holidays[<?= (int) $index ?>][date]" class="admin-input" value="<?= e($holiday['date']) ?>" required>
+                                <input type="text" name="store_holidays[<?= (int) $index ?>][name]" class="admin-input" value="<?= e($holiday['name']) ?>" placeholder="Holiday name (optional)">
+                                <button type="button" class="admin-btn admin-btn-outline admin-btn-sm text-danger holiday-remove-btn" aria-label="Remove holiday"><i class="bi bi-trash"></i></button>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div class="settings-footer-bar">
                 <span><i class="bi bi-shield-lock"></i> Secrets are encrypted in the database</span>
                 <button type="submit" class="admin-btn admin-btn-primary">
@@ -337,5 +460,79 @@ if ($error): ?>
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="test_email">
 </form>
+
+<script>
+(function () {
+    const holidayRows = document.getElementById('holidayRows');
+    const addHolidayBtn = document.getElementById('addHolidayBtn');
+    const copyMondayBtn = document.getElementById('copyMondayHoursBtn');
+    let holidayIndex = holidayRows ? holidayRows.querySelectorAll('.store-holiday-row').length : 0;
+
+    function toggleDayRow(row) {
+        const closed = row.querySelector('.store-day-closed');
+        const openInput = row.querySelector('.store-day-open');
+        const closeInput = row.querySelector('.store-day-close');
+        const isClosed = closed && closed.checked;
+        if (openInput) openInput.disabled = isClosed;
+        if (closeInput) closeInput.disabled = isClosed;
+        row.classList.toggle('is-closed', !!isClosed);
+    }
+
+    document.querySelectorAll('.store-hours-row').forEach(function (row) {
+        const closed = row.querySelector('.store-day-closed');
+        toggleDayRow(row);
+        closed?.addEventListener('change', function () {
+            toggleDayRow(row);
+        });
+    });
+
+    copyMondayBtn?.addEventListener('click', function () {
+        const monday = document.querySelector('.store-hours-row[data-day="monday"]');
+        if (!monday) return;
+        const closed = monday.querySelector('.store-day-closed')?.checked || false;
+        const openVal = monday.querySelector('.store-day-open')?.value || '09:00';
+        const closeVal = monday.querySelector('.store-day-close')?.value || '21:00';
+        document.querySelectorAll('.store-hours-row').forEach(function (row) {
+            if (row.dataset.day === 'monday') return;
+            const closedInput = row.querySelector('.store-day-closed');
+            const openInput = row.querySelector('.store-day-open');
+            const closeInput = row.querySelector('.store-day-close');
+            if (closedInput) closedInput.checked = closed;
+            if (openInput) openInput.value = openVal;
+            if (closeInput) closeInput.value = closeVal;
+            toggleDayRow(row);
+        });
+    });
+
+    function bindHolidayRemove(row) {
+        row.querySelector('.holiday-remove-btn')?.addEventListener('click', function () {
+            row.remove();
+            if (holidayRows && holidayRows.querySelectorAll('.store-holiday-row').length === 0) {
+                const hint = document.createElement('p');
+                hint.className = 'hint mb-0';
+                hint.id = 'holidayEmptyHint';
+                hint.textContent = 'No holidays added yet.';
+                holidayRows.appendChild(hint);
+            }
+        });
+    }
+
+    holidayRows?.querySelectorAll('.store-holiday-row').forEach(bindHolidayRemove);
+
+    addHolidayBtn?.addEventListener('click', function () {
+        document.getElementById('holidayEmptyHint')?.remove();
+        const row = document.createElement('div');
+        row.className = 'store-holiday-row';
+        row.innerHTML =
+            '<input type="date" name="store_holidays[' + holidayIndex + '][date]" class="admin-input" required>' +
+            '<input type="text" name="store_holidays[' + holidayIndex + '][name]" class="admin-input" placeholder="Holiday name (optional)">' +
+            '<button type="button" class="admin-btn admin-btn-outline admin-btn-sm text-danger holiday-remove-btn" aria-label="Remove holiday"><i class="bi bi-trash"></i></button>';
+        holidayRows.appendChild(row);
+        bindHolidayRemove(row);
+        holidayIndex++;
+        row.querySelector('input[type="date"]')?.focus();
+    });
+})();
+</script>
 
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>
