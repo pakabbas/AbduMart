@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 /** @var array $product */
+$productColClass = $productColClass ?? 'col-6 col-md-4 col-lg-3';
 ?>
-<div class="col-6 col-md-4 col-lg-3">
+<div class="<?= e($productColClass) ?>">
     <article class="product-card card h-100 border-0 shadow-sm">
         <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
             <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>

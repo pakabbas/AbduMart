@@ -125,30 +125,39 @@ require __DIR__ . '/includes/header.php';
     </div>
 
     <?php if (!$isSearch && !empty($menuGroups)): ?>
-    <nav class="shop-category-nav" id="shopCategoryNav" aria-label="Menu categories">
-        <div class="shop-category-nav-track" id="shopCategoryTrack">
-            <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-cat-chip<?= !$categoryId ? ' is-active' : '' ?>" data-target="shopMenuTop">
-                <span class="shop-cat-chip-icon all"><i class="bi bi-grid-fill"></i></span>
-                <span class="shop-cat-chip-label">All</span>
-            </a>
-            <?php foreach ($menuGroups as $group): ?>
-            <?php $anchor = category_menu_anchor($group['category']); ?>
-            <a
-                href="#<?= e($anchor) ?>"
-                class="shop-cat-chip<?= $activeCategoryAnchor === $anchor ? ' is-active' : '' ?>"
-                data-target="<?= e($anchor) ?>"
-            >
-                <span class="shop-cat-chip-icon catalog-tile-media<?= catalog_has_image($group['category']['image_url'] ?? null) ? '' : ' show-initials' ?>">
-                    <?= catalog_tile_media((string) $group['category']['name'], $group['category']['image_url'] ?? null) ?>
-                </span>
-                <span class="shop-cat-chip-label"><?= e($group['category']['name']) ?></span>
-            </a>
-            <?php endforeach; ?>
-        </div>
-    </nav>
+    <div class="shop-category-carousel-wrap" id="shopCategoryCarouselWrap">
+        <button type="button" class="shop-category-carousel-btn shop-category-carousel-prev" id="shopCategoryPrev" aria-label="Previous categories">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <nav class="shop-category-nav" id="shopCategoryNav" aria-label="Menu categories">
+            <div class="shop-category-nav-track" id="shopCategoryTrack">
+                <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-cat-chip<?= !$categoryId ? ' is-active' : '' ?>" data-target="shopMenuTop">
+                    <span class="shop-cat-chip-icon all"><i class="bi bi-grid-fill"></i></span>
+                    <span class="shop-cat-chip-label">All</span>
+                </a>
+                <?php foreach ($menuGroups as $group): ?>
+                <?php $anchor = category_menu_anchor($group['category']); ?>
+                <a
+                    href="#<?= e($anchor) ?>"
+                    class="shop-cat-chip<?= $activeCategoryAnchor === $anchor ? ' is-active' : '' ?>"
+                    data-target="<?= e($anchor) ?>"
+                >
+                    <span class="shop-cat-chip-icon catalog-tile-media<?= catalog_has_image($group['category']['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                        <?= catalog_tile_media((string) $group['category']['name'], $group['category']['image_url'] ?? null) ?>
+                    </span>
+                    <span class="shop-cat-chip-label"><?= e($group['category']['name']) ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </nav>
+        <button type="button" class="shop-category-carousel-btn shop-category-carousel-next" id="shopCategoryNext" aria-label="Next categories">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
     <?php endif; ?>
 
     <div class="container shop-app-content" id="shopMenuTop">
+        <?php $productColClass = 'col-6 col-lg-3'; ?>
         <?php if ($isSearch): ?>
         <div class="shop-search-header">
             <h2 class="shop-section-title">Results for “<?= e($search) ?>”</h2>
@@ -162,9 +171,9 @@ require __DIR__ . '/includes/header.php';
             <a href="shop.php" class="btn btn-danger btn-sm">Browse menu</a>
         </div>
         <?php else: ?>
-        <div class="shop-menu-list shop-menu-list-flat">
+        <div class="row g-3 shop-product-grid">
             <?php foreach ($products as $product): ?>
-            <?php require __DIR__ . '/includes/shop_menu_item.php'; ?>
+            <?php require __DIR__ . '/includes/product_card.php'; ?>
             <?php endforeach; ?>
         </div>
         <?php if ($totalPages > 1): ?>
@@ -205,9 +214,9 @@ require __DIR__ . '/includes/header.php';
                 <h2 class="shop-section-title"><?= e($group['category']['name']) ?></h2>
                 <span class="shop-section-count"><?= count($group['products']) ?> items</span>
             </div>
-            <div class="shop-menu-list">
+            <div class="row g-3 shop-product-grid">
                 <?php foreach ($group['products'] as $product): ?>
-                <?php require __DIR__ . '/includes/shop_menu_item.php'; ?>
+                <?php require __DIR__ . '/includes/product_card.php'; ?>
                 <?php endforeach; ?>
             </div>
         </section>
