@@ -75,17 +75,35 @@ CREATE TABLE orders (
     order_number VARCHAR(20) NOT NULL UNIQUE,
     stripe_session_id VARCHAR(255) DEFAULT NULL,
     stripe_payment_intent VARCHAR(255) DEFAULT NULL,
+    payment_method ENUM('stripe','arrival') NOT NULL DEFAULT 'stripe',
     subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     tax DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     total DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     status ENUM('pending', 'paid', 'preparing', 'ready', 'picked_up', 'cancelled') NOT NULL DEFAULT 'pending',
     pickup_notes TEXT DEFAULT NULL,
     customer_here_at TIMESTAMP NULL DEFAULT NULL,
+    picked_up_at TIMESTAMP NULL DEFAULT NULL,
+    picked_up_by INT UNSIGNED NULL DEFAULT NULL,
     vehicle_description VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     confirmation_email_sent_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (picked_up_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE order_status_logs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    old_status VARCHAR(32) NULL,
+    new_status VARCHAR(32) NOT NULL,
+    actor_user_id INT UNSIGNED NULL,
+    note VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_order_logs_order (order_id),
+    INDEX idx_order_logs_created (created_at),
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE order_items (
