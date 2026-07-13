@@ -19,15 +19,159 @@
         const featuredNext = document.getElementById('featuredCarouselNext');
 
         if (featuredCarousel && featuredPrev && featuredNext) {
-            const scrollStep = 236;
+            const slides = Array.from(featuredCarousel.querySelectorAll('.featured-carousel-slide'));
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            let originalWidth = 0;
+            let autoTimer = null;
+            let autoPaused = false;
+            let normalizeTimer = null;
 
-            featuredPrev.addEventListener('click', function () {
-                featuredCarousel.scrollBy({ left: -scrollStep, behavior: 'smooth' });
-            });
+            function getScrollStep() {
+                const slide = slides[0];
+                if (!slide) {
+                    return 236;
+                }
+                const gap = parseFloat(getComputedStyle(featuredCarousel).gap) || 16;
+                return slide.offsetWidth + gap;
+            }
 
-            featuredNext.addEventListener('click', function () {
-                featuredCarousel.scrollBy({ left: scrollStep, behavior: 'smooth' });
-            });
+            function measureOriginalWidth() {
+                if (slides.length === 0) {
+                    return 0;
+                }
+                const last = slides[slides.length - 1];
+                return last.offsetLeft + last.offsetWidth;
+            }
+
+            function withoutSmoothScroll(run) {
+                const previous = featuredCarousel.style.scrollBehavior;
+                featuredCarousel.style.scrollBehavior = 'auto';
+                run();
+                featuredCarousel.style.scrollBehavior = previous;
+            }
+
+            function normalizeScrollPosition() {
+                if (originalWidth <= 0) {
+                    return;
+                }
+                withoutSmoothScroll(function () {
+                    if (featuredCarousel.scrollLeft >= originalWidth) {
+                        featuredCarousel.scrollLeft -= originalWidth;
+                    } else if (featuredCarousel.scrollLeft < 0) {
+                        featuredCarousel.scrollLeft += originalWidth;
+                    }
+                });
+            }
+
+            function scheduleNormalizeScrollPosition() {
+                if (normalizeTimer) {
+                    window.clearTimeout(normalizeTimer);
+                }
+                normalizeTimer = window.setTimeout(function () {
+                    normalizeTimer = null;
+                    normalizeScrollPosition();
+                }, 450);
+            }
+
+            function scrollFeaturedBy(direction) {
+                const step = getScrollStep() * direction;
+
+                if (direction < 0 && featuredCarousel.scrollLeft <= 1) {
+                    withoutSmoothScroll(function () {
+                        featuredCarousel.scrollLeft = originalWidth;
+                    });
+                }
+
+                featuredCarousel.scrollBy({ left: step, behavior: 'smooth' });
+                scheduleNormalizeScrollPosition();
+            }
+
+            function pauseFeaturedAuto() {
+                autoPaused = true;
+                if (autoTimer) {
+                    window.clearInterval(autoTimer);
+                    autoTimer = null;
+                }
+            }
+
+            function startFeaturedAuto() {
+                if (autoPaused || prefersReducedMotion || slides.length <= 1) {
+                    return;
+                }
+                if (autoTimer) {
+                    window.clearInterval(autoTimer);
+                }
+                autoTimer = window.setInterval(function () {
+                    scrollFeaturedBy(1);
+                }, 3000);
+            }
+
+            function resumeFeaturedAutoAfter(delayMs) {
+                pauseFeaturedAuto();
+                window.setTimeout(function () {
+                    autoPaused = false;
+                    if (!document.hidden) {
+                        startFeaturedAuto();
+                    }
+                }, delayMs);
+            }
+
+            if (slides.length > 1) {
+                const fragment = document.createDocumentFragment();
+                slides.forEach(function (slide) {
+                    const clone = slide.cloneNode(true);
+                    clone.classList.add('featured-carousel-slide-clone');
+                    clone.setAttribute('aria-hidden', 'true');
+                    fragment.appendChild(clone);
+                });
+                featuredCarousel.appendChild(fragment);
+                originalWidth = measureOriginalWidth();
+
+                window.addEventListener('resize', function () {
+                    originalWidth = measureOriginalWidth();
+                    normalizeScrollPosition();
+                });
+
+                featuredPrev.addEventListener('click', function () {
+                    scrollFeaturedBy(-1);
+                    resumeFeaturedAutoAfter(5000);
+                });
+
+                featuredNext.addEventListener('click', function () {
+                    scrollFeaturedBy(1);
+                    resumeFeaturedAutoAfter(5000);
+                });
+
+                featuredCarousel.addEventListener('mouseenter', pauseFeaturedAuto);
+                featuredCarousel.addEventListener('mouseleave', function () {
+                    autoPaused = false;
+                    startFeaturedAuto();
+                });
+                featuredCarousel.addEventListener('focusin', pauseFeaturedAuto);
+                featuredCarousel.addEventListener('focusout', function () {
+                    autoPaused = false;
+                    startFeaturedAuto();
+                });
+
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) {
+                        pauseFeaturedAuto();
+                    } else {
+                        autoPaused = false;
+                        startFeaturedAuto();
+                    }
+                });
+
+                startFeaturedAuto();
+            } else {
+                featuredPrev.addEventListener('click', function () {
+                    featuredCarousel.scrollBy({ left: -getScrollStep(), behavior: 'smooth' });
+                });
+
+                featuredNext.addEventListener('click', function () {
+                    featuredCarousel.scrollBy({ left: getScrollStep(), behavior: 'smooth' });
+                });
+            }
         }
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
