@@ -148,9 +148,37 @@ body.admin-app {
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    margin: 8px 0;
+    margin: 0;
     background: var(--admin-bg);
     border-radius: var(--admin-radius-sm);
+}
+
+.admin-user-signout {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-left: auto;
+    border-radius: 8px;
+    color: var(--admin-muted);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.admin-user-signout:hover {
+    background: var(--admin-red-soft);
+    color: var(--admin-red);
+}
+
+.admin-user-signout i {
+    font-size: 1rem;
+}
+
+.admin-user-meta {
+    flex: 1;
+    min-width: 0;
 }
 
 .admin-user-avatar {
@@ -164,10 +192,7 @@ body.admin-app {
     justify-content: center;
     font-weight: 700;
     font-size: 0.8rem;
-}
-
-.admin-user-meta {
-    min-width: 0;
+    flex-shrink: 0;
 }
 
 .admin-user-meta strong {

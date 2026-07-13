@@ -63,19 +63,16 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
         </nav>
 
         <div class="admin-sidebar-footer">
-            <a href="../index.php" class="admin-sidebar-link muted" target="_blank">
-                <i class="bi bi-shop"></i> View storefront
-            </a>
             <div class="admin-user-pill">
                 <span class="admin-user-avatar"><?= e($adminInitials) ?></span>
                 <div class="admin-user-meta">
                     <strong><?= e($adminUser['first_name'] ?? 'Admin') ?></strong>
                     <span><?= e($adminUser['email'] ?? '') ?></span>
                 </div>
+                <a href="../logout.php" class="admin-user-signout" aria-label="Sign out" title="Sign out">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
             </div>
-            <a href="../logout.php" class="admin-sidebar-link muted">
-                <i class="bi bi-box-arrow-right"></i> Sign out
-            </a>
         </div>
     </aside>
 
