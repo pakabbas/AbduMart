@@ -379,6 +379,45 @@ function repair_product_images(bool $onlyMissing = false): int
     return $updated;
 }
 
+/**
+ * Clear image_url on every category (does not delete local SVG files).
+ */
+function clear_all_category_images(): int
+{
+    $stmt = db()->query('SELECT COUNT(*) FROM categories WHERE image_url IS NOT NULL AND image_url != ""');
+    $count = (int) $stmt->fetchColumn();
+    if ($count > 0) {
+        db()->exec('UPDATE categories SET image_url = NULL');
+    }
+
+    return $count;
+}
+
+/**
+ * Clear image_url on every product and remove local upload files.
+ */
+function clear_all_product_images(): int
+{
+    $stmt = db()->query('SELECT id, image_url FROM products WHERE image_url IS NOT NULL AND image_url != ""');
+    $rows = $stmt->fetchAll();
+    $cleared = 0;
+    foreach ($rows as $row) {
+        $url = trim((string) ($row['image_url'] ?? ''));
+        if ($url !== '' && str_starts_with($url, '/assets/uploads/')) {
+            $path = dirname(__DIR__) . $url;
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        $cleared++;
+    }
+    if ($cleared > 0) {
+        db()->exec('UPDATE products SET image_url = NULL');
+    }
+
+    return $cleared;
+}
+
 function products_have_featured_column(): bool
 {
     return db_has_column('products', 'is_featured');

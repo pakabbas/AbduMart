@@ -39,6 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('categories.php');
     }
 
+    if ($action === 'clear_images') {
+        $cleared = clear_all_category_images();
+        flash('success', $cleared > 0 ? ("Removed images from {$cleared} categories.") : 'No category images to remove.');
+        redirect('categories.php');
+    }
+
     try {
         $uploaded = store_uploaded_image('image_file', 'category');
         if ($uploaded) {
@@ -215,13 +221,22 @@ if ($editing):
     </div>
 </div>
 
-<form method="post" class="mb-3">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="auto_images">
-    <button type="submit" class="admin-btn admin-btn-outline">
-        <i class="bi bi-image"></i> Auto-assign missing category images
-    </button>
-</form>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <form method="post" class="d-inline">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="auto_images">
+        <button type="submit" class="admin-btn admin-btn-outline">
+            <i class="bi bi-image"></i> Auto-assign missing category images
+        </button>
+    </form>
+    <form method="post" class="d-inline" onsubmit="return confirm('Remove image URLs from ALL categories? Local SVG files are kept.');">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="clear_images">
+        <button type="submit" class="admin-btn admin-btn-outline text-danger">
+            <i class="bi bi-trash"></i> Remove existing images from all
+        </button>
+    </form>
+</div>
 
 <div class="admin-card">
     <div class="table-responsive">
