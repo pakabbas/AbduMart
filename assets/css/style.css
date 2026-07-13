@@ -266,6 +266,7 @@ body {
 
 .category-img {
     height: 90px;
+    position: relative;
     overflow: hidden;
 }
 
@@ -281,6 +282,7 @@ body {
     justify-content: center;
     background: linear-gradient(145deg, #fff5f6 0%, #f3f4f6 100%);
     overflow: hidden;
+    position: relative;
 }
 
 .catalog-tile-img {
