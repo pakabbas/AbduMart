@@ -25,18 +25,21 @@
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'application/json',
+                            'X-CSRF-Token': csrfToken || '',
                         },
                     });
 
-                    const contentType = res.headers.get('content-type') || '';
-                    if (!contentType.includes('application/json')) {
-                        throw new Error('Unexpected server response');
-                    }
-
+                    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+                    const raw = await res.text();
                     let data;
-                    try {
-                        data = await res.json();
-                    } catch (parseError) {
+
+                    if (contentType.includes('json')) {
+                        try {
+                            data = JSON.parse(raw);
+                        } catch (parseError) {
+                            throw new Error('Invalid JSON response');
+                        }
+                    } else {
                         throw new Error('Unexpected server response');
                     }
 

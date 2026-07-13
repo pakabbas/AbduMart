@@ -83,8 +83,12 @@ function is_ajax_request(): bool
         return true;
     }
 
-    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
-    return str_contains($accept, 'application/json') && !str_contains($accept, 'text/html');
+    if (!empty($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+        return true;
+    }
+
+    $accept = strtolower($_SERVER['HTTP_ACCEPT'] ?? '');
+    return str_contains($accept, 'json');
 }
 
 function asset_url(string $path): string
