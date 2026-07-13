@@ -43,6 +43,9 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
             <a href="orders.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'orders' ? 'active' : '' ?>">
                 <i class="bi bi-bag-check"></i> Orders
             </a>
+            <a href="reports.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'reports' ? 'active' : '' ?>">
+                <i class="bi bi-graph-up"></i> Reports
+            </a>
             <span class="admin-nav-group">Catalog</span>
             <a href="categories.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'categories' ? 'active' : '' ?>">
                 <i class="bi bi-folder2"></i> Categories
