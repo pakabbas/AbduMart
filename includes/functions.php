@@ -181,19 +181,52 @@ function catalog_has_image(?string $url): bool
     return str_starts_with($url, '/assets/');
 }
 
+function category_stock_image_options(): array
+{
+    static $options = null;
+    if ($options !== null) {
+        return $options;
+    }
+
+    $dir = dirname(__DIR__) . '/assets/images/categories';
+    $options = [];
+    foreach (glob($dir . '/*.svg') ?: [] as $file) {
+        $slug = basename($file, '.svg');
+        if ($slug !== 'default') {
+            $options[] = $slug;
+        }
+    }
+    sort($options);
+
+    return $options;
+}
+
 function category_stock_image_slug(string $name, int $id): string
 {
     $n = strtolower(trim($name));
 
-    return match (true) {
+    $matched = match (true) {
         str_contains($n, 'produce') => 'produce',
         str_contains($n, 'dairy') || str_contains($n, 'egg') => 'dairy-eggs',
         str_contains($n, 'bakery') || str_contains($n, 'bread') => 'bakery',
         str_contains($n, 'beverage') || str_contains($n, 'drink') => 'beverages',
         str_contains($n, 'snack') || str_contains($n, 'chips') => 'snacks',
         str_contains($n, 'household') || str_contains($n, 'clean') => 'household',
-        default => 'default',
+        default => null,
     };
+
+    if ($matched !== null) {
+        return $matched;
+    }
+
+    $options = category_stock_image_options();
+    if ($options === []) {
+        return 'default';
+    }
+
+    $index = abs(crc32($n . ':' . $id)) % count($options);
+
+    return $options[$index];
 }
 
 function category_stock_image_url(string $name, int $id): string
@@ -202,7 +235,12 @@ function category_stock_image_url(string $name, int $id): string
     $file = dirname(__DIR__) . '/assets/images/categories/' . $slug . '.svg';
 
     if (!is_file($file)) {
-        $slug = 'default';
+        $options = category_stock_image_options();
+        if ($options === []) {
+            $slug = 'default';
+        } else {
+            $slug = $options[abs(crc32((string) $id)) % count($options)];
+        }
     }
 
     return asset_url('assets/images/categories/' . $slug . '.svg');
@@ -214,6 +252,12 @@ function category_image_needs_assign(?string $url): bool
     if ($url === '') {
         return true;
     }
+
+    $lower = strtolower($url);
+    if (str_contains($lower, '/assets/images/categories/default.svg')) {
+        return true;
+    }
+
     if (str_starts_with($url, '/assets/')) {
         return false;
     }
