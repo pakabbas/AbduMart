@@ -186,6 +186,11 @@ function json_response(array $data, int $code = 200): never
     exit;
 }
 
+function cart_api_respond(array $data, int $code = 200): never
+{
+    json_response($data, $code);
+}
+
 function cart_respond(array $data, int $code = 200, ?string $redirectTo = null): never
 {
     if (is_ajax_request()) {
