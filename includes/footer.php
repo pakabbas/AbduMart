@@ -25,7 +25,11 @@
         <p class="text-center text-muted small mb-0">&copy; <?= date('Y') ?> Abdu Market. All rights reserved.</p>
     </div>
 </footer>
+<?php if (is_logged_in()): ?>
+<?php require __DIR__ . '/floating_cart.php'; ?>
+<?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= e(asset_url('assets/js/floating-cart.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/floating-cart.js') ?>"></script>
 <script src="<?= e(asset_url('assets/js/app.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/app.js') ?>"></script>
 </body>
 </html>

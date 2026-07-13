@@ -44,7 +44,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
                 <?php endif; ?>
             </ul>
             <div class="d-flex align-items-center gap-2">
-                <a href="cart.php" class="btn btn-outline-danger position-relative">
+                <a href="#" class="btn btn-outline-danger position-relative js-floating-cart-open" role="button">
                     <i class="bi bi-bag"></i>
                     <span class="d-none d-sm-inline ms-1">Cart</span>
                     <?php if ($cartCount > 0): ?>
