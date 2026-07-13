@@ -150,9 +150,43 @@ function get_category(int $id): ?array
 
 function get_products(array $filters = []): array
 {
-    $sql = 'SELECT p.*, c.name AS category_name FROM products p
-            LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1';
     $params = [];
+    $where = product_filter_sql($filters, $params);
+
+    $sort = $filters['sort'] ?? 'name';
+    $order = match ($sort) {
+        'price_asc' => ' ORDER BY p.price ASC',
+        'price_desc' => ' ORDER BY p.price DESC',
+        'name' => ' ORDER BY p.name ASC',
+        default => ' ORDER BY p.name ASC',
+    };
+
+    $sql = 'SELECT p.*, c.name AS category_name FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1' . $where . $order;
+
+    if (!empty($filters['per_page'])) {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = max(1, min(100, (int) $filters['per_page']));
+        $sql .= ' LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage);
+    }
+
+    $stmt = db()->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+function count_products(array $filters = []): int
+{
+    $params = [];
+    $where = product_filter_sql($filters, $params);
+    $stmt = db()->prepare('SELECT COUNT(*) FROM products p WHERE 1=1' . $where);
+    $stmt->execute($params);
+    return (int) $stmt->fetchColumn();
+}
+
+function product_filter_sql(array $filters, array &$params): string
+{
+    $sql = '';
 
     if (!empty($filters['category_id'])) {
         $sql .= ' AND p.category_id = ?';
@@ -165,20 +199,15 @@ function get_products(array $filters = []): array
         $params[] = $term;
     }
     if (!isset($filters['include_inactive']) || !$filters['include_inactive']) {
-        $sql .= ' AND p.is_active = 1 AND p.inventory > 0';
+        $sql .= ' AND p.is_active = 1';
     }
 
-    $sort = $filters['sort'] ?? 'name';
-    $sql .= match ($sort) {
-        'price_asc' => ' ORDER BY p.price ASC',
-        'price_desc' => ' ORDER BY p.price DESC',
-        'name' => ' ORDER BY p.name ASC',
-        default => ' ORDER BY p.name ASC',
-    };
+    return $sql;
+}
 
-    $stmt = db()->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll();
+function product_is_purchasable(array $product): bool
+{
+    return (int) ($product['is_active'] ?? 0) === 1 && (int) ($product['inventory'] ?? 0) > 0;
 }
 
 function get_product(int $id): ?array

@@ -12,15 +12,42 @@ if (isset($_GET['signed_out'])) {
 $categoryId = isset($_GET['category']) ? (int) $_GET['category'] : null;
 $search = trim($_GET['q'] ?? '');
 $sort = $_GET['sort'] ?? 'name';
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 24;
 
 $filters = [
     'category_id' => $categoryId ?: null,
     'search' => $search ?: null,
     'sort' => $sort,
+    'page' => $page,
+    'per_page' => $perPage,
 ];
 
 $categories = get_categories();
+$totalProducts = count_products($filters);
 $products = get_products($filters);
+$totalPages = max(1, (int) ceil($totalProducts / $perPage));
+if ($page > $totalPages) {
+    $page = $totalPages;
+    $filters['page'] = $page;
+    $products = get_products($filters);
+}
+
+$queryParams = array_filter([
+    'category' => $categoryId ?: null,
+    'q' => $search !== '' ? $search : null,
+    'sort' => $sort !== 'name' ? $sort : null,
+], fn ($value) => $value !== null && $value !== '');
+
+function shop_page_url(int $pageNum, array $queryParams): string
+{
+    $params = $queryParams;
+    if ($pageNum > 1) {
+        $params['page'] = $pageNum;
+    }
+    $query = http_build_query($params);
+    return 'index.php' . ($query !== '' ? '?' . $query : '');
+}
 
 $pageTitle = 'Shop Fresh Groceries';
 require __DIR__ . '/includes/header.php';
@@ -86,6 +113,11 @@ require __DIR__ . '/includes/header.php';
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-danger w-100">Filter</button>
                 </div>
+                <?php if ($categoryId || $search !== '' || $sort !== 'name'): ?>
+                <div class="col-12">
+                    <a href="index.php" class="small text-danger text-decoration-none">Clear all filters</a>
+                </div>
+                <?php endif; ?>
             </form>
         </div>
     </div>
@@ -115,7 +147,12 @@ require __DIR__ . '/includes/header.php';
         <h2 class="section-title mb-0">
             <?= $categoryId ? e(array_values(array_filter($categories, fn($c) => (int)$c['id'] === $categoryId))[0]['name'] ?? 'Products') : 'All Products' ?>
         </h2>
-        <span class="text-muted"><?= count($products) ?> items</span>
+        <span class="text-muted">
+            <?= $totalProducts ?> items
+            <?php if ($totalPages > 1): ?>
+            · Page <?= $page ?> of <?= $totalPages ?>
+            <?php endif; ?>
+        </span>
     </div>
 
     <?php if (empty($products)): ?>
@@ -134,8 +171,10 @@ require __DIR__ . '/includes/header.php';
                          alt="<?= e($product['name']) ?>"
                          loading="lazy"
                          onerror="this.onerror=null;this.src='<?= e(asset_url('assets/images/placeholder-product.svg')) ?>';">
-                    <?php if ((int) $product['inventory'] <= 5): ?>
+                    <?php if ((int) $product['inventory'] > 0 && (int) $product['inventory'] <= 5): ?>
                     <span class="stock-badge">Only <?= (int) $product['inventory'] ?> left</span>
+                    <?php elseif ((int) $product['inventory'] < 1): ?>
+                    <span class="stock-badge stock-out">Out of stock</span>
                     <?php endif; ?>
                 </div>
                 <div class="card-body d-flex flex-column">
@@ -145,6 +184,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="mt-auto d-flex justify-content-between align-items-center">
                         <strong class="product-price"><?= format_money($product['price']) ?></strong>
                         <?php if (is_logged_in()): ?>
+                        <?php if (product_is_purchasable($product)): ?>
                         <form method="post" action="api/cart.php" class="add-to-cart-form">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="add">
@@ -154,6 +194,9 @@ require __DIR__ . '/includes/header.php';
                             </button>
                         </form>
                         <?php else: ?>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
+                        <?php endif; ?>
+                        <?php else: ?>
                         <a href="login.php" class="btn btn-sm btn-outline-danger">Sign in to buy</a>
                         <?php endif; ?>
                     </div>
@@ -162,6 +205,28 @@ require __DIR__ . '/includes/header.php';
         </div>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+    <nav class="shop-pagination mt-4" aria-label="Product pages">
+        <ul class="pagination justify-content-center mb-0">
+            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                <a class="page-link" href="<?= e(shop_page_url($page - 1, $queryParams)) ?>">Previous</a>
+            </li>
+            <?php
+            $start = max(1, $page - 2);
+            $end = min($totalPages, $page + 2);
+            for ($i = $start; $i <= $end; $i++):
+            ?>
+            <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                <a class="page-link" href="<?= e(shop_page_url($i, $queryParams)) ?>"><?= $i ?></a>
+            </li>
+            <?php endfor; ?>
+            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                <a class="page-link" href="<?= e(shop_page_url($page + 1, $queryParams)) ?>">Next</a>
+            </li>
+        </ul>
+    </nav>
+    <?php endif; ?>
     <?php endif; ?>
 </section>
 
