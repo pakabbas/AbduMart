@@ -820,3 +820,21 @@ body.admin-app {
         grid-template-columns: 1fr;
     }
 }
+
+.report-rank-table .report-rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    background: var(--admin-red-soft);
+    color: var(--admin-red);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.report-rank-table tbody tr:first-child .report-rank {
+    background: var(--admin-red);
+    color: #fff;
+}
