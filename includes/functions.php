@@ -92,6 +92,40 @@ function asset_url(string $path): string
     return '/' . ltrim($path, '/');
 }
 
+function catalog_has_image(?string $url): bool
+{
+    $url = trim((string) $url);
+    return $url !== '' && preg_match('#^https?://#i', $url);
+}
+
+function name_initials(string $name): string
+{
+    $name = trim(preg_replace('/\s+/u', ' ', $name));
+    if ($name === '') {
+        return '?';
+    }
+
+    $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
+    if (count($words) >= 2) {
+        return mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+    }
+
+    $word = $words[0];
+    return mb_strtoupper(mb_substr($word, 0, min(2, mb_strlen($word))));
+}
+
+function catalog_tile_media(string $name, ?string $imageUrl): string
+{
+    $initials = e(name_initials($name));
+    $html = '<span class="catalog-tile-initials" aria-hidden="true">' . $initials . '</span>';
+
+    if (catalog_has_image($imageUrl)) {
+        $html = '<img src="' . e(trim((string) $imageUrl)) . '" alt="' . e($name) . '" loading="lazy" class="catalog-tile-img">' . $html;
+    }
+
+    return $html;
+}
+
 function catalog_image_url(?string $url, string $kind = 'product'): string
 {
     $url = trim((string) $url);

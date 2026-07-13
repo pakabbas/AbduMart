@@ -30,11 +30,8 @@ require __DIR__ . '/includes/header.php';
                     <div class="list-group-item py-3 cart-item">
                         <div class="row align-items-center g-3">
                             <div class="col-auto">
-                                <div class="cart-thumb">
-                                    <img src="<?= e(catalog_image_url($item['image_url'] ?? null)) ?>"
-                                         alt="<?= e($item['name']) ?>"
-                                         loading="lazy"
-                                         onerror="this.onerror=null;this.src='<?= e(asset_url('assets/images/placeholder-product.svg')) ?>';">
+                                <div class="cart-thumb catalog-tile-media<?= catalog_has_image($item['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                                    <?= catalog_tile_media($item['name'], $item['image_url'] ?? null) ?>
                                 </div>
                             </div>
                             <div class="col">
