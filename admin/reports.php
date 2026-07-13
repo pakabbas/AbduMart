@@ -19,45 +19,58 @@ $start = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
 $end = date('Y-m-d');
 
 $hasPaymentMethod = db_has_column('orders', 'payment_method');
+$dbError = null;
 
-// Cards
-$stmt = db()->prepare('SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ?');
-$stmt->execute([$start, $end]);
-$ordersTotal = (int) $stmt->fetchColumn();
-
-$stmt = db()->prepare("SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status != 'cancelled'");
-$stmt->execute([$start, $end]);
-$ordersNonCancelled = (int) $stmt->fetchColumn();
-
-$stmt = db()->prepare("SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status = 'picked_up'");
-$stmt->execute([$start, $end]);
-$pickedUpCount = (int) $stmt->fetchColumn();
-
-$stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status != 'cancelled'");
-$stmt->execute([$start, $end]);
-$revenue = (float) $stmt->fetchColumn();
-
+// Defaults (avoid 500s if DB isn't migrated)
+$ordersTotal = 0;
+$ordersNonCancelled = 0;
+$pickedUpCount = 0;
+$revenue = 0.0;
 $arrivalRevenue = 0.0;
-if ($hasPaymentMethod) {
-    $stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND payment_method = 'arrival' AND status != 'cancelled'");
+$avgOrder = 0.0;
+$rows = [];
+
+try {
+    // Cards
+    $stmt = db()->prepare('SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ?');
     $stmt->execute([$start, $end]);
-    $arrivalRevenue = (float) $stmt->fetchColumn();
+    $ordersTotal = (int) $stmt->fetchColumn();
+
+    $stmt = db()->prepare("SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status != 'cancelled'");
+    $stmt->execute([$start, $end]);
+    $ordersNonCancelled = (int) $stmt->fetchColumn();
+
+    $stmt = db()->prepare("SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status = 'picked_up'");
+    $stmt->execute([$start, $end]);
+    $pickedUpCount = (int) $stmt->fetchColumn();
+
+    $stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND status != 'cancelled'");
+    $stmt->execute([$start, $end]);
+    $revenue = (float) $stmt->fetchColumn();
+
+    if ($hasPaymentMethod) {
+        $stmt = db()->prepare("SELECT COALESCE(SUM(total),0) FROM orders WHERE DATE(created_at) BETWEEN ? AND ? AND payment_method = 'arrival' AND status != 'cancelled'");
+        $stmt->execute([$start, $end]);
+        $arrivalRevenue = (float) $stmt->fetchColumn();
+    }
+
+    $avgOrder = $ordersNonCancelled > 0 ? $revenue / $ordersNonCancelled : 0.0;
+
+    // Graph data: orders per day + revenue per day
+    $stmt = db()->prepare(
+        "SELECT DATE(created_at) AS day,
+                COUNT(*) AS orders,
+                COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END),0) AS revenue
+         FROM orders
+         WHERE DATE(created_at) BETWEEN ? AND ?
+         GROUP BY DATE(created_at)
+         ORDER BY day ASC"
+    );
+    $stmt->execute([$start, $end]);
+    $rows = $stmt->fetchAll();
+} catch (Throwable $e) {
+    $dbError = $e->getMessage();
 }
-
-$avgOrder = $ordersNonCancelled > 0 ? $revenue / $ordersNonCancelled : 0.0;
-
-// Graph data: orders per day + revenue per day
-$stmt = db()->prepare(
-    "SELECT DATE(created_at) AS day,
-            COUNT(*) AS orders,
-            COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END),0) AS revenue
-     FROM orders
-     WHERE DATE(created_at) BETWEEN ? AND ?
-     GROUP BY DATE(created_at)
-     ORDER BY day ASC"
-);
-$stmt->execute([$start, $end]);
-$rows = $stmt->fetchAll();
 
 $byDay = [];
 for ($i = 0; $i < $days; $i++) {
@@ -88,6 +101,10 @@ $headerActions = '<form method="get" class="d-flex gap-2 align-items-center">'
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
+
+<?php if ($dbError): ?>
+<div class="admin-toast admin-toast-danger"><i class="bi bi-exclamation-triangle"></i> Reports temporarily unavailable: <?= e($dbError) ?></div>
+<?php endif; ?>
 
 <div class="admin-stats">
     <div class="admin-stat">
