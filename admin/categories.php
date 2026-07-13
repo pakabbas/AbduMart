@@ -22,6 +22,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $categoryId = (int) ($_POST['category_id'] ?? 0);
 
+    if ($action === 'auto_images') {
+        $cats = get_categories(false);
+        $updated = 0;
+        $stmt = db()->prepare('UPDATE categories SET image_url = ? WHERE id = ?');
+        foreach ($cats as $c) {
+            $current = trim((string) ($c['image_url'] ?? ''));
+            if ($current !== '') {
+                continue;
+            }
+            $n = strtolower(trim((string) $c['name']));
+            $seed = match (true) {
+                str_contains($n, 'produce') => 'abdu-produce',
+                str_contains($n, 'dairy') || str_contains($n, 'egg') => 'abdu-dairy-eggs',
+                str_contains($n, 'bakery') || str_contains($n, 'bread') => 'abdu-bakery',
+                str_contains($n, 'beverage') || str_contains($n, 'drink') => 'abdu-beverages',
+                str_contains($n, 'snack') || str_contains($n, 'chips') => 'abdu-snacks',
+                str_contains($n, 'household') || str_contains($n, 'clean') => 'abdu-household',
+                default => 'abdu-cat-' . (int) $c['id'],
+            };
+            $url = 'https://picsum.photos/seed/' . rawurlencode($seed) . '/900/600';
+            $stmt->execute([$url, (int) $c['id']]);
+            $updated++;
+        }
+        flash('success', $updated > 0 ? ("Assigned images for {$updated} categories.") : 'All categories already have images.');
+        redirect('categories.php');
+    }
+
     try {
         $uploaded = store_uploaded_image('image_file', 'category');
         if ($uploaded) {
@@ -197,6 +224,14 @@ if ($editing):
         <div class="admin-stat-value"><?= (int) $counts['hidden'] ?></div>
     </div>
 </div>
+
+<form method="post" class="mb-3">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="auto_images">
+    <button type="submit" class="admin-btn admin-btn-outline">
+        <i class="bi bi-image"></i> Auto-assign missing category images
+    </button>
+</form>
 
 <div class="admin-card">
     <div class="table-responsive">
