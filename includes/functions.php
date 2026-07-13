@@ -77,12 +77,57 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
+function is_ajax_request(): bool
+{
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+        return true;
+    }
+
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return str_contains($accept, 'application/json') && !str_contains($accept, 'text/html');
+}
+
+function asset_url(string $path): string
+{
+    return '/' . ltrim($path, '/');
+}
+
+function catalog_image_url(?string $url, string $kind = 'product'): string
+{
+    $url = trim((string) $url);
+    if ($url !== '' && preg_match('#^https?://#i', $url)) {
+        return $url;
+    }
+
+    return asset_url(match ($kind) {
+        'category' => 'assets/images/placeholder-category.svg',
+        default => 'assets/images/placeholder-product.svg',
+    });
+}
+
 function json_response(array $data, int $code = 200): never
 {
     http_response_code($code);
     header('Content-Type: application/json');
     echo json_encode($data);
     exit;
+}
+
+function cart_respond(array $data, int $code = 200, ?string $redirectTo = null): never
+{
+    if (is_ajax_request()) {
+        json_response($data, $code);
+    }
+
+    if (!empty($data['error'])) {
+        flash('danger', (string) $data['error']);
+    } elseif (!empty($data['message'])) {
+        flash('success', (string) $data['message']);
+    } elseif (!empty($data['success'])) {
+        flash('success', 'Cart updated.');
+    }
+
+    redirect($redirectTo ?? 'index.php');
 }
 
 function get_categories(bool $activeOnly = true): array
