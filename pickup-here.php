@@ -45,6 +45,13 @@ $update = db()->prepare(
 );
 $update->execute(['paid', 'ready', $orderId]);
 
+$orderStmt = db()->prepare('SELECT * FROM orders WHERE id = ?');
+$orderStmt->execute([$orderId]);
+$order = $orderStmt->fetch();
+if ($order) {
+    notify_admins_customer_here($orderId);
+}
+
 json_response([
     'success' => true,
     'message' => 'Thanks! Abdu Market has been notified. Please stay in your vehicle.',

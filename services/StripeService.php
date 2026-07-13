@@ -58,6 +58,7 @@ class StripeService
                 );
                 $stmt->execute(['paid', $session->payment_intent ?? null, $session->id, $orderId, 'pending']);
                 send_order_confirmation_email($orderId);
+                notify_admins_new_order($orderId);
             }
         }
     }
@@ -81,6 +82,7 @@ class StripeService
         $stmt->execute(['paid', $session->payment_intent, $session->id, $orderId, 'pending', 'paid']);
 
         send_order_confirmation_email($orderId);
+        notify_admins_new_order($orderId);
 
         return $this->getOrder($orderId);
     }
