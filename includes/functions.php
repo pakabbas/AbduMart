@@ -110,12 +110,44 @@ function name_initials(string $name): string
     }
 
     $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
-    if (count($words) >= 2) {
-        return mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+
+    $pick = static function (string $s): ?string {
+        if (preg_match('/[\p{L}\p{N}]/u', $s, $m) === 1) {
+            return $m[0];
+        }
+        return null;
+    };
+
+    $first = null;
+    $second = null;
+
+    foreach ($words as $w) {
+        $c = $pick($w);
+        if ($c === null) {
+            continue;
+        }
+        if ($first === null) {
+            $first = $c;
+            continue;
+        }
+        $second = $c;
+        break;
     }
 
-    $word = $words[0];
-    return mb_strtoupper(mb_substr($word, 0, min(2, mb_strlen($word))));
+    if ($first !== null && $second !== null) {
+        return mb_strtoupper($first . $second);
+    }
+
+    if ($first !== null) {
+        if (preg_match_all('/[\p{L}\p{N}]/u', $name, $m) === 1 && !empty($m[0])) {
+            $letters = $m[0];
+            $two = ($letters[0] ?? '?') . ($letters[1] ?? '');
+            return mb_strtoupper($two);
+        }
+        return mb_strtoupper($first);
+    }
+
+    return '?';
 }
 
 function catalog_tile_media(string $name, ?string $imageUrl): string
@@ -145,10 +177,18 @@ function catalog_image_url(?string $url, string $kind = 'product'): string
 
 function json_response(array $data, int $code = 200): never
 {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     http_response_code($code);
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($data);
     exit;
+}
+
+function cart_api_respond(array $data, int $code = 200): never
+{
+    json_response($data, $code);
 }
 
 function cart_respond(array $data, int $code = 200, ?string $redirectTo = null): never

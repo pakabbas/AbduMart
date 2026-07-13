@@ -5,7 +5,7 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
             || document.querySelector('input[name="csrf_token"]')?.value;
 
-        document.querySelectorAll('.add-to-cart-form').forEach(function (form) {
+        document.querySelectorAll('.mart-buy-form').forEach(function (form) {
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();
                 const btn = form.querySelector('button[type="submit"]');
@@ -15,11 +15,14 @@
 
                 const original = btn.innerHTML;
                 const formCsrf = form.querySelector('input[name="csrf_token"]')?.value || csrfToken || '';
+                const postUrl = form.getAttribute('action')
+                    || document.querySelector('meta[name="mart-line-url"]')?.content
+                    || '/mart-line.php';
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
                 try {
-                    const res = await fetch(form.action, {
+                    const res = await fetch(postUrl, {
                         method: 'POST',
                         body: new FormData(form),
                         credentials: 'same-origin',
@@ -42,8 +45,21 @@
                             throw new Error('Invalid response from server');
                         }
                     } else {
-                        console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
-                        throw new Error(trimmed === '' ? 'Empty response (blocked by browser extension?)' : 'Unexpected server response');
+                        // Some hosts inject warnings/HTML before JSON. Try to recover by extracting the first JSON object.
+                        const firstBrace = trimmed.indexOf('{');
+                        const lastBrace = trimmed.lastIndexOf('}');
+                        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                            const maybeJson = trimmed.slice(firstBrace, lastBrace + 1);
+                            try {
+                                data = JSON.parse(maybeJson);
+                            } catch (parseError) {
+                                console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
+                                throw new Error('Unexpected server response');
+                            }
+                        } else {
+                            console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
+                            throw new Error(trimmed === '' ? 'Empty response (blocked by browser extension?)' : 'Unexpected server response');
+                        }
                     }
 
                     if (data.success) {
