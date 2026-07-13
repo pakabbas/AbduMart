@@ -145,8 +145,11 @@ function catalog_image_url(?string $url, string $kind = 'product'): string
 
 function json_response(array $data, int $code = 200): never
 {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     http_response_code($code);
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($data);
     exit;
 }

@@ -42,8 +42,21 @@
                             throw new Error('Invalid response from server');
                         }
                     } else {
-                        console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
-                        throw new Error(trimmed === '' ? 'Empty response (blocked by browser extension?)' : 'Unexpected server response');
+                        // Some hosts inject warnings/HTML before JSON. Try to recover by extracting the first JSON object.
+                        const firstBrace = trimmed.indexOf('{');
+                        const lastBrace = trimmed.lastIndexOf('}');
+                        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                            const maybeJson = trimmed.slice(firstBrace, lastBrace + 1);
+                            try {
+                                data = JSON.parse(maybeJson);
+                            } catch (parseError) {
+                                console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
+                                throw new Error('Unexpected server response');
+                            }
+                        } else {
+                            console.error('Cart non-JSON response', res.status, raw.slice(0, 300));
+                            throw new Error(trimmed === '' ? 'Empty response (blocked by browser extension?)' : 'Unexpected server response');
+                        }
                     }
 
                     if (data.success) {
