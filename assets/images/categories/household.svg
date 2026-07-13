@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600" role="img" aria-label="Household">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eceff1"/>
+      <stop offset="100%" stop-color="#b0bec5"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <rect x="310" y="180" width="280" height="250" rx="20" fill="#fff"/>
+  <rect x="340" y="210" width="220" height="30" rx="6" fill="#cfd8dc"/>
+  <rect x="340" y="260" width="220" height="30" rx="6" fill="#cfd8dc"/>
+  <rect x="340" y="310" width="220" height="30" rx="6" fill="#cfd8dc"/>
+  <rect x="520" y="150" width="90" height="280" rx="18" fill="#4fc3f7"/>
+  <rect x="535" y="120" width="60" height="40" rx="8" fill="#0288d1"/>
+</svg>

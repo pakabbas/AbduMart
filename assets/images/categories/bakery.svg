@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600" role="img" aria-label="Bakery">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffcc80"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <ellipse cx="450" cy="360" rx="220" ry="90" fill="#d7a86e"/>
+  <path d="M250 360 Q450 180 650 360" fill="#c68642"/>
+  <ellipse cx="350" cy="250" rx="45" ry="35" fill="#8d6e63"/>
+  <ellipse cx="450" cy="230" rx="50" ry="38" fill="#8d6e63"/>
+  <ellipse cx="550" cy="250" rx="45" ry="35" fill="#8d6e63"/>
+</svg>

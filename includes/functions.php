@@ -29,9 +29,13 @@ function e(?string $value): string
 
 function redirect(string $path): never
 {
-    $base = config('app.url');
     if (!str_starts_with($path, 'http')) {
-        $path = $base . '/' . ltrim($path, '/');
+        $path = ltrim($path, '/');
+        $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        if (str_contains($script, '/admin/') && !str_starts_with($path, 'admin/')) {
+            $path = 'admin/' . $path;
+        }
+        $path = config('app.url') . '/' . $path;
     }
     header('Location: ' . $path);
     exit;
@@ -175,6 +179,53 @@ function catalog_has_image(?string $url): bool
     }
     // Allow local uploaded assets like /assets/uploads/...
     return str_starts_with($url, '/assets/');
+}
+
+function category_stock_image_slug(string $name, int $id): string
+{
+    $n = strtolower(trim($name));
+
+    return match (true) {
+        str_contains($n, 'produce') => 'produce',
+        str_contains($n, 'dairy') || str_contains($n, 'egg') => 'dairy-eggs',
+        str_contains($n, 'bakery') || str_contains($n, 'bread') => 'bakery',
+        str_contains($n, 'beverage') || str_contains($n, 'drink') => 'beverages',
+        str_contains($n, 'snack') || str_contains($n, 'chips') => 'snacks',
+        str_contains($n, 'household') || str_contains($n, 'clean') => 'household',
+        default => 'default',
+    };
+}
+
+function category_stock_image_url(string $name, int $id): string
+{
+    $slug = category_stock_image_slug($name, $id);
+    $file = dirname(__DIR__) . '/assets/images/categories/' . $slug . '.svg';
+
+    if (!is_file($file)) {
+        $slug = 'default';
+    }
+
+    return asset_url('assets/images/categories/' . $slug . '.svg');
+}
+
+function category_image_needs_assign(?string $url): bool
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return true;
+    }
+    if (str_starts_with($url, '/assets/')) {
+        return false;
+    }
+
+    $lower = strtolower($url);
+    foreach (['picsum.photos', 'unsplash.com', 'placehold.co', 'placeholder.com', 'dummyimage.com'] as $host) {
+        if (str_contains($lower, $host)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function name_initials(string $name): string
