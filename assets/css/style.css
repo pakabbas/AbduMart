@@ -813,6 +813,235 @@ body {
     background: #e9ecef;
 }
 
+/* Floating AJAX cart */
+.floating-cart-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 58px;
+    height: 58px;
+    border: none;
+    border-radius: 50%;
+    background: var(--am-red);
+    color: #fff;
+    font-size: 1.35rem;
+    box-shadow: 0 8px 24px rgba(200, 16, 46, 0.45);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-cart-fab:hover {
+    transform: scale(1.06);
+    box-shadow: 0 10px 28px rgba(200, 16, 46, 0.5);
+}
+
+.floating-cart-fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #111;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
+
+.floating-cart-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.45);
+    z-index: 1055;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.floating-cart-overlay:not([hidden]) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.floating-cart-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 25vw;
+    min-width: 300px;
+    max-width: 400px;
+    height: 100vh;
+    height: 100dvh;
+    background: #fff;
+    z-index: 1060;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.15);
+    transform: translateX(-105%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-cart-panel.is-open {
+    transform: translateX(0);
+}
+
+.floating-cart-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+.floating-cart-panel-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.floating-cart-close {
+    border: none;
+    background: #f3f4f6;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #374151;
+}
+
+.floating-cart-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0;
+}
+
+.floating-cart-panel-footer {
+    padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+    flex-shrink: 0;
+}
+
+.fc-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: flex-start;
+}
+
+.fc-item-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, #fff5f6, #f3f4f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fc-item-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fc-item-initials {
+    font-weight: 700;
+    color: var(--am-red);
+    font-size: 0.85rem;
+}
+
+.fc-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.fc-item-name {
+    display: block;
+    font-size: 0.88rem;
+    line-height: 1.3;
+    margin-bottom: 0.15rem;
+}
+
+.fc-item-price {
+    font-size: 0.78rem;
+    color: var(--am-gray);
+}
+
+.fc-item-qty {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.fc-qty-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: #fff;
+    border-radius: 6px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    color: #374151;
+}
+
+.fc-qty-val {
+    min-width: 20px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.fc-item-end {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.fc-item-line {
+    display: block;
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin-bottom: 0.35rem;
+}
+
+.fc-remove-btn {
+    border: none;
+    background: none;
+    color: #9ca3af;
+    padding: 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.fc-remove-btn:hover {
+    color: var(--am-red);
+}
+
+body.floating-cart-open {
+    overflow: hidden;
+}
+
 .btn-google {
     display: inline-flex;
     align-items: center;
@@ -881,6 +1110,17 @@ body {
 
     .im-here-btn {
         width: 100%;
+    }
+
+    .floating-cart-panel {
+        width: 88vw;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .floating-cart-fab {
+        bottom: 16px;
+        right: 16px;
     }
 }
 

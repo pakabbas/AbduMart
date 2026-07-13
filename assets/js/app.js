@@ -18,12 +18,6 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
-                function fallbackSubmit() {
-                    btn.disabled = false;
-                    btn.innerHTML = original;
-                    form.submit();
-                }
-
                 try {
                     const res = await fetch(form.action, {
                         method: 'POST',
@@ -40,28 +34,26 @@
                     let data = null;
 
                     if (raw.trim().startsWith('{')) {
-                        try {
-                            data = JSON.parse(raw);
-                        } catch (parseError) {
-                            fallbackSubmit();
-                            return;
-                        }
+                        data = JSON.parse(raw);
                     } else {
-                        fallbackSubmit();
-                        return;
+                        throw new Error('Unexpected server response');
                     }
 
                     if (data.success) {
                         btn.innerHTML = '<i class="bi bi-check-lg"></i> Added';
                         btn.classList.remove('btn-danger');
                         btn.classList.add('btn-success');
-                        updateCartBadge(data.cart_count);
+
+                        document.dispatchEvent(new CustomEvent('cart:updated', {
+                            detail: { count: data.cart_count, openPanel: true },
+                        }));
+
                         setTimeout(function () {
                             btn.innerHTML = original;
                             btn.classList.remove('btn-success');
                             btn.classList.add('btn-danger');
                             btn.disabled = false;
-                        }, 1500);
+                        }, 1200);
                     } else if (data.login_required) {
                         window.location.href = 'login.php?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
                     } else {
@@ -70,7 +62,9 @@
                         btn.disabled = false;
                     }
                 } catch (err) {
-                    fallbackSubmit();
+                    alert('Could not add to cart. Please try again.');
+                    btn.innerHTML = original;
+                    btn.disabled = false;
                 }
             });
         });
@@ -144,23 +138,6 @@
             }
         });
     });
-
-    function updateCartBadge(count) {
-        let badge = document.querySelector('.cart-badge');
-        const cartBtn = document.querySelector('a[href="cart.php"]');
-        if (!cartBtn) {
-            return;
-        }
-        if (!badge && count > 0) {
-            badge = document.createElement('span');
-            badge.className = 'cart-badge';
-            cartBtn.appendChild(badge);
-        }
-        if (badge) {
-            badge.textContent = count;
-            badge.style.display = count > 0 ? 'inline-flex' : 'none';
-        }
-    }
 
     if (window.ADMIN_POLL_URL) {
         const waitingEl = document.getElementById('waiting-count');
