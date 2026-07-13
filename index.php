@@ -150,11 +150,12 @@ require __DIR__ . '/includes/header.php';
     </div>
 
     <?php if (!$categoryId && $search === ''): ?>
-    <div class="mb-5">
+    <?php $categoryCount = count($categories); ?>
+    <div class="mb-5 category-section">
         <h2 class="section-title">Shop by Category</h2>
-        <div class="row g-3">
+        <div class="row g-3 category-grid is-collapsed" id="categoryGrid">
             <?php foreach ($categories as $cat): ?>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-lg-2 category-tile">
                 <a href="?category=<?= (int) $cat['id'] ?>" class="category-card">
                     <div class="category-img catalog-tile-media<?= catalog_has_image($cat['image_url'] ?? null) ? '' : ' show-initials' ?>">
                         <?= catalog_tile_media($cat['name'], $cat['image_url'] ?? null) ?>
@@ -164,6 +165,13 @@ require __DIR__ . '/includes/header.php';
             </div>
             <?php endforeach; ?>
         </div>
+        <?php if ($categoryCount > 4): ?>
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-outline-danger btn-sm category-see-more-btn" id="categorySeeMoreBtn" aria-expanded="false">
+                See More
+            </button>
+        </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
