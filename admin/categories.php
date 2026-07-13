@@ -73,6 +73,18 @@ if ($editId) {
 
 $categories = get_categories(false);
 
+$counts = [
+    'total' => count($categories),
+    'active' => 0,
+    'hidden' => 0,
+    'with_images' => 0,
+    'missing_images' => 0,
+];
+foreach ($categories as $c) {
+    if (!empty($c['is_active'])) $counts['active']++; else $counts['hidden']++;
+    if (!empty($c['image_url'])) $counts['with_images']++; else $counts['missing_images']++;
+}
+
 $pageTitle = $editing ? ($editing['id'] ? 'Edit category' : 'New category') : 'Categories';
 $pageSubtitle = $editing ? null : 'Manage storefront categories (manual or Clover-synced)';
 $headerActions = $editing
@@ -151,6 +163,25 @@ if ($editing):
 </div>
 
 <?php else: ?>
+
+<div class="admin-stats">
+    <div class="admin-stat">
+        <div class="admin-stat-label">Total categories</div>
+        <div class="admin-stat-value"><?= (int) $counts['total'] ?></div>
+    </div>
+    <div class="admin-stat highlight">
+        <div class="admin-stat-label">Active</div>
+        <div class="admin-stat-value"><?= (int) $counts['active'] ?></div>
+    </div>
+    <div class="admin-stat">
+        <div class="admin-stat-label">Missing images</div>
+        <div class="admin-stat-value"><?= (int) $counts['missing_images'] ?></div>
+    </div>
+    <div class="admin-stat">
+        <div class="admin-stat-label">Hidden</div>
+        <div class="admin-stat-value"><?= (int) $counts['hidden'] ?></div>
+    </div>
+</div>
 
 <div class="admin-card">
     <div class="table-responsive">

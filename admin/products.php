@@ -91,6 +91,23 @@ if ($search !== '') {
 }
 $products = $editing ? [] : get_products($filters);
 
+$productCounts = [
+    'total' => 0,
+    'active' => 0,
+    'inactive' => 0,
+    'with_images' => 0,
+    'missing_images' => 0,
+    'low_stock' => 0,
+];
+if (!$editing) {
+    $productCounts['total'] = count($products);
+    foreach ($products as $p) {
+        if (!empty($p['is_active'])) $productCounts['active']++; else $productCounts['inactive']++;
+        if (!empty($p['image_url'])) $productCounts['with_images']++; else $productCounts['missing_images']++;
+        if ((int) ($p['inventory'] ?? 0) > 0 && (int) $p['inventory'] <= 5) $productCounts['low_stock']++;
+    }
+}
+
 $pageTitle = $editing ? ($editing['id'] ? 'Edit product' : 'New product') : 'Products';
 $pageSubtitle = $editing ? null : 'Manage inventory and pricing (works alongside Clover sync)';
 $headerActions = $editing
@@ -190,6 +207,25 @@ if ($editing):
 </div>
 
 <?php else: ?>
+
+<div class="admin-stats">
+    <div class="admin-stat">
+        <div class="admin-stat-label">Products (filtered)</div>
+        <div class="admin-stat-value"><?= (int) $productCounts['total'] ?></div>
+    </div>
+    <div class="admin-stat highlight">
+        <div class="admin-stat-label">Active</div>
+        <div class="admin-stat-value"><?= (int) $productCounts['active'] ?></div>
+    </div>
+    <div class="admin-stat">
+        <div class="admin-stat-label">Missing images</div>
+        <div class="admin-stat-value"><?= (int) $productCounts['missing_images'] ?></div>
+    </div>
+    <div class="admin-stat">
+        <div class="admin-stat-label">Low stock (≤5)</div>
+        <div class="admin-stat-value"><?= (int) $productCounts['low_stock'] ?></div>
+    </div>
+</div>
 
 <div class="admin-card mb-4">
     <div class="admin-card-body padded">
