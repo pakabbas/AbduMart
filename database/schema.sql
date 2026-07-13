@@ -82,6 +82,7 @@ CREATE TABLE orders (
     total DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     status ENUM('pending', 'paid', 'preparing', 'ready', 'picked_up', 'cancelled') NOT NULL DEFAULT 'pending',
     pickup_notes TEXT DEFAULT NULL,
+    admin_notes TEXT DEFAULT NULL,
     customer_here_at TIMESTAMP NULL DEFAULT NULL,
     picked_up_at TIMESTAMP NULL DEFAULT NULL,
     picked_up_by INT UNSIGNED NULL DEFAULT NULL,
