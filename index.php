@@ -55,55 +55,28 @@ require __DIR__ . '/includes/header.php';
 
 <section class="hero-section">
     <div class="container">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-6">
-                <span class="hero-badge"><i class="bi bi-geo-alt-fill"></i> Canton, MI · Curbside Pickup</span>
-                <h1 class="hero-title">Order Online.<br>Pick Up Curbside.</h1>
-                <p class="hero-lead">Shop Abdu Market from your phone, pay securely, and we'll bring your order to your car when you tap <strong>I'm Here</strong>.</p>
-                <div class="d-flex flex-wrap gap-2 hero-cta">
-                    <a href="#products" class="btn btn-light btn-lg hero-btn-primary">Start Shopping</a>
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="hero-badge">Canton, MI · Curbside Pickup</span>
+                <h1 class="hero-title">Abdu Market Curb Side Pickup</h1>
+                <p class="hero-lead">Browse our aisles online, pay securely with Stripe, and we'll bring your order to your car when you tap <strong>I'm Here</strong>.</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="#products" class="btn btn-danger btn-lg">Start Shopping</a>
                     <?php if (!is_logged_in()): ?>
-                    <a href="register.php" class="btn btn-outline-light btn-lg">Create Account</a>
+                    <a href="register.php" class="btn btn-outline-danger btn-lg">Create Account</a>
                     <?php endif; ?>
                 </div>
-                <p class="hero-location mb-0">
-                    <i class="bi bi-shop"></i>
-                    <?= e(setting('mart.address', config('mart.address'))) ?>
-                </p>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-5 d-none d-lg-block">
                 <div class="hero-card">
-                    <h3 class="hero-card-title">How it works</h3>
-                    <div class="hero-steps">
-                        <div class="hero-step">
-                            <span class="hero-step-num">1</span>
-                            <div>
-                                <strong>Shop</strong>
-                                <small>Browse categories & add to cart</small>
-                            </div>
-                        </div>
-                        <div class="hero-step">
-                            <span class="hero-step-num">2</span>
-                            <div>
-                                <strong>Pay</strong>
-                                <small>Secure checkout with Stripe</small>
-                            </div>
-                        </div>
-                        <div class="hero-step">
-                            <span class="hero-step-num">3</span>
-                            <div>
-                                <strong>Drive over</strong>
-                                <small>Head to Abdu Market</small>
-                            </div>
-                        </div>
-                        <div class="hero-step">
-                            <span class="hero-step-num">4</span>
-                            <div>
-                                <strong>Tap I'm Here</strong>
-                                <small>We bring it to your car</small>
-                            </div>
-                        </div>
-                    </div>
+                    <i class="bi bi-shop-window"></i>
+                    <h3>How it works</h3>
+                    <ol class="mb-0">
+                        <li>Shop categories & add to cart</li>
+                        <li>Checkout & pay online</li>
+                        <li>Drive to Abdu Market</li>
+                        <li>Tap <em>I'm Here</em> — we come to you</li>
+                    </ol>
                 </div>
             </div>
         </div>
