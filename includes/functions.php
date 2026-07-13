@@ -167,7 +167,14 @@ function store_uploaded_image(string $field, string $prefix): ?string
 function catalog_has_image(?string $url): bool
 {
     $url = trim((string) $url);
-    return $url !== '' && preg_match('#^https?://#i', $url);
+    if ($url === '') {
+        return false;
+    }
+    if (preg_match('#^https?://#i', $url)) {
+        return true;
+    }
+    // Allow local uploaded assets like /assets/uploads/...
+    return str_starts_with($url, '/assets/');
 }
 
 function name_initials(string $name): string
