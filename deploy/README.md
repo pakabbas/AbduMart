@@ -58,7 +58,8 @@ Every **push to `main`** triggers `.github/workflows/deploy.yml`, which:
 1. SSHs into the GCP VM
 2. Runs `git pull` on `/var/www/abdumart`
 3. Runs `composer install --no-dev`
-4. Reloads PHP-FPM and Nginx
+4. Runs `php scripts/migrate.php` (applies pending SQL migrations)
+5. Reloads PHP-FPM and Nginx
 
 You can also trigger a deploy manually: **GitHub → Actions → Deploy to GCP → Run workflow**.
 

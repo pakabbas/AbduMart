@@ -11,7 +11,7 @@ $user = current_user();
 $userId = (int) $user['id'];
 $cart = get_cart_totals($userId);
 $error = '';
-$allowPayOnArrival = setting('allow_pay_on_arrival', '') === '1';
+$allowPayOnArrival = pay_on_arrival_enabled();
 
 if (empty($cart['items'])) {
     flash('warning', 'Your cart is empty.');
@@ -42,22 +42,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $orderNumber = generate_order_number();
-            $stmt = $pdo->prepare(
-                'INSERT INTO orders (user_id, order_number, subtotal, tax, total, status, pickup_notes, vehicle_description, payment_method)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
             $status = ($paymentChoice === 'arrival') ? 'preparing' : 'pending';
-            $stmt->execute([
-                $userId,
-                $orderNumber,
-                $cart['subtotal'],
-                $cart['tax'],
-                $cart['total'],
-                $status,
-                $pickupNotes ?: null,
-                $vehicle ?: null,
-                $paymentChoice,
+            [$orderSql, $orderValues] = build_order_insert([
+                'user_id' => $userId,
+                'order_number' => $orderNumber,
+                'subtotal' => $cart['subtotal'],
+                'tax' => $cart['tax'],
+                'total' => $cart['total'],
+                'status' => $status,
+                'pickup_notes' => $pickupNotes ?: null,
+                'vehicle_description' => $vehicle ?: null,
+                'payment_method' => $paymentChoice,
             ]);
+            $stmt = $pdo->prepare($orderSql);
+            $stmt->execute($orderValues);
             $orderId = (int) $pdo->lastInsertId();
 
             $itemStmt = $pdo->prepare(

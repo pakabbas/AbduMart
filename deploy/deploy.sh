@@ -17,6 +17,9 @@ git reset --hard "origin/$BRANCH"
 echo "==> Installing Composer dependencies..."
 composer install --no-dev --optimize-autoloader --no-interaction
 
+echo "==> Running database migrations..."
+php scripts/migrate.php
+
 echo "==> Fixing permissions..."
 # Keep .env owned by deploy user; web server needs read access
 if [ -f .env ]; then

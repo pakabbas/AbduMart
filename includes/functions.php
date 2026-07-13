@@ -353,6 +353,49 @@ function shop_page_url(int $pageNum, array $queryParams): string
     return 'shop.php' . ($query !== '' ? '?' . $query : '');
 }
 
+function pay_on_arrival_enabled(): bool
+{
+    return setting('allow_pay_on_arrival', '') === '1' && db_has_column('orders', 'payment_method');
+}
+
+/**
+ * @param array{user_id:int,order_number:string,subtotal:float|int|string,tax:float|int|string,total:float|int|string,status:string,pickup_notes:?string,vehicle_description:?string,payment_method?:string} $data
+ * @return array{0:string,1:array<int,mixed>}
+ */
+function build_order_insert(array $data): array
+{
+    $columns = [
+        'user_id',
+        'order_number',
+        'subtotal',
+        'tax',
+        'total',
+        'status',
+        'pickup_notes',
+        'vehicle_description',
+    ];
+    $values = [
+        $data['user_id'],
+        $data['order_number'],
+        $data['subtotal'],
+        $data['tax'],
+        $data['total'],
+        $data['status'],
+        $data['pickup_notes'],
+        $data['vehicle_description'],
+    ];
+
+    if (db_has_column('orders', 'payment_method')) {
+        $columns[] = 'payment_method';
+        $values[] = $data['payment_method'] ?? 'stripe';
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+    $sql = 'INSERT INTO orders (' . implode(', ', $columns) . ') VALUES (' . $placeholders . ')';
+
+    return [$sql, $values];
+}
+
 function name_initials(string $name): string
 {
     $name = trim(preg_replace('/\s+/u', ' ', $name));
