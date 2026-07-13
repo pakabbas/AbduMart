@@ -353,6 +353,64 @@ function shop_page_url(int $pageNum, array $queryParams): string
     return 'shop.php' . ($query !== '' ? '?' . $query : '');
 }
 
+function category_menu_anchor(array $category): string
+{
+    $name = strtolower(trim((string) ($category['name'] ?? 'category')));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $name) ?? 'category';
+    $slug = trim((string) $slug, '-') ?: 'category';
+
+    return 'menu-' . $slug . '-' . (int) ($category['id'] ?? 0);
+}
+
+/**
+ * @param array<int, array<string, mixed>> $products
+ * @param array<int, array<string, mixed>> $categories
+ * @return list<array{category: array<string, mixed>, products: array<int, array<string, mixed>>}>
+ */
+function group_products_for_menu(array $products, array $categories): array
+{
+    $groups = [];
+    foreach ($categories as $cat) {
+        $groups[(int) $cat['id']] = [
+            'category' => $cat,
+            'products' => [],
+        ];
+    }
+
+    $extras = [];
+
+    foreach ($products as $product) {
+        $categoryId = (int) ($product['category_id'] ?? 0);
+        if ($categoryId > 0 && isset($groups[$categoryId])) {
+            $groups[$categoryId]['products'][] = $product;
+            continue;
+        }
+
+        $extras[] = $product;
+    }
+
+    $result = [];
+    foreach ($categories as $cat) {
+        $id = (int) $cat['id'];
+        if (!empty($groups[$id]['products'])) {
+            $result[] = $groups[$id];
+        }
+    }
+
+    if ($extras !== []) {
+        $result[] = [
+            'category' => [
+                'id' => 0,
+                'name' => 'More Items',
+                'image_url' => null,
+            ],
+            'products' => $extras,
+        ];
+    }
+
+    return $result;
+}
+
 function pay_on_arrival_enabled(): bool
 {
     return setting('allow_pay_on_arrival', '') === '1' && db_has_column('orders', 'payment_method');
