@@ -87,12 +87,20 @@ function json_response(array $data, int $code = 200): never
 
 function get_categories(bool $activeOnly = true): array
 {
-    $sql = 'SELECT * FROM categories';
+    $sql = 'SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count FROM categories c';
     if ($activeOnly) {
-        $sql .= ' WHERE is_active = 1';
+        $sql .= ' WHERE c.is_active = 1';
     }
-    $sql .= ' ORDER BY sort_order ASC, name ASC';
+    $sql .= ' ORDER BY c.sort_order ASC, c.name ASC';
     return db()->query($sql)->fetchAll();
+}
+
+function get_category(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM categories WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    return $row ?: null;
 }
 
 function get_products(array $filters = []): array

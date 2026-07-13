@@ -5,25 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 require_admin();
 
-use App\CloverService;
-
 $adminSection = 'dashboard';
-$syncMessage = null;
-$syncError = null;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'sync') {
-    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
-        $syncError = 'Invalid request.';
-    } else {
-        try {
-            $clover = new CloverService();
-            $result = $clover->syncAll();
-            $syncMessage = sprintf('Synced %d categories and %d products from Clover.', $result['categories'], $result['products']);
-        } catch (Throwable $e) {
-            $syncError = $e->getMessage();
-        }
-    }
-}
 
 $stats = [
     'orders_today' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'")->fetchColumn(),
@@ -47,18 +29,10 @@ $recentOrders = db()->query(
 
 $pageTitle = 'Dashboard';
 $pageSubtitle = 'Canton curbside operations overview';
-$headerActions = '<form method="post" class="d-inline">' . csrf_field() .
-    '<input type="hidden" name="action" value="sync">' .
-    '<button type="submit" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-repeat"></i> Sync Clover</button></form>';
+$headerActions = '<a href="clover-sync.php" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-repeat"></i> Clover Sync</a>';
 
 require dirname(__DIR__) . '/includes/admin_header.php';
-
-if ($syncMessage): ?>
-<div class="admin-toast admin-toast-success"><i class="bi bi-check-circle"></i> <?= e($syncMessage) ?></div>
-<?php endif;
-if ($syncError): ?>
-<div class="admin-toast admin-toast-danger"><i class="bi bi-exclamation-triangle"></i> <?= e($syncError) ?></div>
-<?php endif; ?>
+?>
 
 <div class="admin-stats">
     <div class="admin-stat">

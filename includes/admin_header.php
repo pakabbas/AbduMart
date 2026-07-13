@@ -43,6 +43,16 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
             <a href="orders.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'orders' ? 'active' : '' ?>">
                 <i class="bi bi-bag-check"></i> Orders
             </a>
+            <span class="admin-nav-group">Catalog</span>
+            <a href="categories.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'categories' ? 'active' : '' ?>">
+                <i class="bi bi-folder2"></i> Categories
+            </a>
+            <a href="products.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'products' ? 'active' : '' ?>">
+                <i class="bi bi-box-seam"></i> Products
+            </a>
+            <a href="clover-sync.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'clover-sync' ? 'active' : '' ?>">
+                <i class="bi bi-arrow-repeat"></i> Clover Sync
+            </a>
             <span class="admin-nav-group">Configuration</span>
             <a href="settings.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'settings' ? 'active' : '' ?>">
                 <i class="bi bi-sliders"></i> Settings

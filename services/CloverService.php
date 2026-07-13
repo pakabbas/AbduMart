@@ -179,4 +179,31 @@ class CloverService
         );
         $stmt->execute([$type, $status, $message]);
     }
+
+    public static function getSyncLogs(int $limit = 50): array
+    {
+        $limit = max(1, min(200, $limit));
+        $stmt = db()->prepare(
+            'SELECT * FROM clover_sync_log ORDER BY created_at DESC LIMIT ' . $limit
+        );
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public static function getSyncStats(): array
+    {
+        $pdo = db();
+        $lastSync = $pdo->query(
+            "SELECT created_at FROM clover_sync_log WHERE status = 'success' ORDER BY created_at DESC LIMIT 1"
+        )->fetchColumn();
+
+        return [
+            'categories_total' => (int) $pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn(),
+            'categories_clover' => (int) $pdo->query('SELECT COUNT(*) FROM categories WHERE clover_id IS NOT NULL')->fetchColumn(),
+            'products_total' => (int) $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn(),
+            'products_clover' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE clover_id IS NOT NULL')->fetchColumn(),
+            'products_active' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE is_active = 1')->fetchColumn(),
+            'last_success_at' => $lastSync ?: null,
+        ];
+    }
 }
