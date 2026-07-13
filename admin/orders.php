@@ -8,6 +8,7 @@ require_admin();
 $adminSection = 'orders';
 $orderId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $hasPickedUpColumns = db_has_column('orders', 'picked_up_at') && db_has_column('orders', 'picked_up_by');
+$hasAdminNotesColumn = db_has_column('orders', 'admin_notes');
 $hasOrderLogsTable = db_has_table('order_status_logs');
 $dbError = null;
 
@@ -19,6 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $orderId = (int) ($_POST['order_id'] ?? 0);
             $status = $_POST['status'] ?? '';
             $quick = $_POST['quick'] ?? '';
+            $adminNotes = trim($_POST['admin_notes'] ?? '');
+
+            if ($hasAdminNotesColumn) {
+                db()->prepare('UPDATE orders SET admin_notes = ?, updated_at = NOW() WHERE id = ?')
+                    ->execute([$adminNotes !== '' ? $adminNotes : null, $orderId]);
+            }
 
             $stmt = db()->prepare('SELECT status FROM orders WHERE id = ?');
             $stmt->execute([$orderId]);
@@ -43,7 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($hasOrderLogsTable) {
                     log_order_status_change($orderId, is_string($old) ? $old : null, $status, (int) current_user()['id']);
                 }
-                flash('success', 'Order status updated.');
+                flash('success', 'Order updated.');
+            } elseif ($hasAdminNotesColumn && array_key_exists('admin_notes', $_POST)) {
+                flash('success', 'Admin notes saved.');
             }
         } catch (Throwable $e) {
             flash('danger', 'Could not update order: ' . $e->getMessage());
@@ -150,7 +159,25 @@ if ($orderId) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" class="admin-btn admin-btn-primary w-100">Save status</button>
+                        <?php if ($hasAdminNotesColumn): ?>
+                        <div class="admin-field">
+                            <label for="admin_notes">Admin notes</label>
+                            <textarea
+                                id="admin_notes"
+                                name="admin_notes"
+                                class="admin-input"
+                                rows="4"
+                                placeholder="Cancellation reason, issues, or internal notes..."
+                            ><?= e($order['admin_notes'] ?? '') ?></textarea>
+                            <div class="hint">Visible to admins only. Not shown to customers.</div>
+                        </div>
+                        <?php else: ?>
+                        <div class="admin-callout">
+                            <strong>Admin notes unavailable</strong>
+                            <div class="hint mb-0">Run migration <code>010_admin_order_notes.sql</code> to enable internal order notes.</div>
+                        </div>
+                        <?php endif; ?>
+                        <button type="submit" class="admin-btn admin-btn-primary w-100">Save</button>
                     </form>
                     <?php if ($hasOrderLogsTable): ?>
                     <?php
