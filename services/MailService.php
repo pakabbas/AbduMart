@@ -98,6 +98,102 @@ class MailService
         $this->send($toEmail, 'Admin', 'Abdu Market SMTP test email', $html);
     }
 
+    /**
+     * @param array<int, string> $emails
+     */
+    public function sendToAddresses(array $emails, string $subject, string $html): void
+    {
+        foreach ($emails as $email) {
+            $this->send($email, 'Admin', $subject, $html);
+        }
+    }
+
+    public function sendAdminNewOrderNotification(array $order, array $user, array $items): void
+    {
+        $emails = get_admin_notify_emails();
+        if ($emails === []) {
+            return;
+        }
+
+        $itemsHtml = '';
+        foreach ($items as $item) {
+            $itemsHtml .= '<tr><td>' . (int) $item['quantity'] . '× ' . htmlspecialchars((string) $item['product_name']) .
+                '</td><td align="right">$' . number_format((float) $item['line_total'], 2) . '</td></tr>';
+        }
+
+        $paymentMethod = (string) ($order['payment_method'] ?? 'stripe');
+        $paymentLabel = $paymentMethod === 'arrival' ? 'Pay on arrival' : 'Paid online (Stripe)';
+        $vehicle = trim((string) ($order['vehicle_description'] ?? ''));
+        $pickupNotes = trim((string) ($order['pickup_notes'] ?? ''));
+        $adminUrl = rtrim(config('app.url'), '/') . '/admin/orders.php?id=' . (int) $order['id'];
+
+        $extra = '';
+        if ($vehicle !== '') {
+            $extra .= '<p><strong>Vehicle:</strong> ' . htmlspecialchars($vehicle) . '</p>';
+        }
+        if ($pickupNotes !== '') {
+            $extra .= '<p><strong>Pickup notes:</strong> ' . nl2br(htmlspecialchars($pickupNotes)) . '</p>';
+        }
+
+        $html = $this->wrapTemplate(
+            'New Order',
+            '<p>A new curbside order was placed.</p>
+            <p><strong>Order #:</strong> ' . htmlspecialchars((string) $order['order_number']) . '<br>
+            <strong>Customer:</strong> ' . htmlspecialchars(trim($user['first_name'] . ' ' . $user['last_name'])) . '<br>
+            <strong>Email:</strong> ' . htmlspecialchars((string) $user['email']) . '<br>
+            <strong>Phone:</strong> ' . htmlspecialchars((string) ($user['phone'] ?? '—')) . '<br>
+            <strong>Payment:</strong> ' . htmlspecialchars($paymentLabel) . '<br>
+            <strong>Total:</strong> $' . number_format((float) $order['total'], 2) . '</p>
+            <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+                <tr style="background:#f8f8f8;"><th align="left">Item</th><th align="right">Amount</th></tr>
+                ' . $itemsHtml . '
+            </table>
+            ' . $extra . '
+            <p style="margin-top:20px;"><a href="' . htmlspecialchars($adminUrl) . '">View order in admin</a></p>'
+        );
+
+        $this->sendToAddresses(
+            $emails,
+            'New order ' . $order['order_number'] . ' — Abdu Market',
+            $html
+        );
+    }
+
+    public function sendAdminCustomerHereNotification(array $order, array $user): void
+    {
+        $emails = get_admin_notify_emails();
+        if ($emails === []) {
+            return;
+        }
+
+        $vehicle = trim((string) ($order['vehicle_description'] ?? ''));
+        $checkedIn = !empty($order['customer_here_at'])
+            ? date('M j, Y g:i A', strtotime((string) $order['customer_here_at']))
+            : 'Just now';
+        $adminUrl = rtrim(config('app.url'), '/') . '/admin/orders.php?id=' . (int) $order['id'];
+
+        $vehicleHtml = $vehicle !== ''
+            ? '<p><strong>Vehicle:</strong> ' . htmlspecialchars($vehicle) . '</p>'
+            : '<p><strong>Vehicle:</strong> Not provided</p>';
+
+        $html = $this->wrapTemplate(
+            'Customer Arrived',
+            '<p>A customer tapped <strong>I\'m Here</strong> for curbside pickup.</p>
+            <p><strong>Order #:</strong> ' . htmlspecialchars((string) $order['order_number']) . '<br>
+            <strong>Customer:</strong> ' . htmlspecialchars(trim($user['first_name'] . ' ' . $user['last_name'])) . '<br>
+            <strong>Phone:</strong> ' . htmlspecialchars((string) ($user['phone'] ?? '—')) . '<br>
+            <strong>Checked in:</strong> ' . htmlspecialchars($checkedIn) . '</p>
+            ' . $vehicleHtml . '
+            <p style="margin-top:20px;"><a href="' . htmlspecialchars($adminUrl) . '">Open order in admin</a></p>'
+        );
+
+        $this->sendToAddresses(
+            $emails,
+            'Customer arrived — order ' . $order['order_number'],
+            $html
+        );
+    }
+
     private function wrapTemplate(string $title, string $content): string
     {
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>

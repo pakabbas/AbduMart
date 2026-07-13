@@ -16,6 +16,7 @@ $fields = [
     'stripe_secret_key', 'stripe_publishable_key', 'stripe_webhook_secret',
     'clover_merchant_id', 'clover_api_token', 'clover_env',
     'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
+    'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
     'allow_pay_on_arrival',
@@ -41,12 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $updates = [];
+            for ($i = 1; $i <= 3; $i++) {
+                $notifyKey = 'admin_notify_email_' . $i;
+                $notifyEmail = strtolower(trim($_POST[$notifyKey] ?? ''));
+                if ($notifyEmail !== '' && !filter_var($notifyEmail, FILTER_VALIDATE_EMAIL)) {
+                    $error = 'Enter a valid admin notification email for address ' . $i . ', or leave it blank.';
+                    break;
+                }
+            }
+
+            if (!$error) {
             foreach ($fields as $field) {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
                 if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'google_client_secret'], true)
                     && trim($_POST[$field] ?? '') === '') continue;
                 if ($field === 'allow_pay_on_arrival') {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '';
+                } elseif (str_starts_with($field, 'admin_notify_email_')) {
+                    $updates[$field] = strtolower(trim($_POST[$field] ?? ''));
                 } else {
                     $updates[$field] = trim($_POST[$field] ?? '');
                 }
@@ -54,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SettingsService::setMany($updates);
             $values = SettingsService::getGroup($fields);
             $message = 'Settings saved successfully.';
+            }
         }
     }
 }
@@ -223,6 +237,25 @@ if ($error): ?>
                                 <input type="text" name="smtp_from_name" class="admin-input" value="<?= e($values['smtp_from_name'] ?: 'Abdu Market') ?>">
                             </div>
                         </div>
+                    </div>
+                    <hr class="my-4">
+                    <h3 class="h6 mb-2">Admin order notifications</h3>
+                    <p class="hint mb-3">Up to 3 addresses receive an email when a new order is placed and when a customer taps <strong>I'm Here</strong>.</p>
+                    <div class="row g-3">
+                        <?php for ($i = 1; $i <= 3; $i++): ?>
+                        <div class="col-md-4">
+                            <div class="admin-field mb-0">
+                                <label>Notification email <?= $i ?></label>
+                                <input
+                                    type="email"
+                                    name="admin_notify_email_<?= $i ?>"
+                                    class="admin-input"
+                                    value="<?= e($values['admin_notify_email_' . $i] ?? '') ?>"
+                                    placeholder="<?= $i === 1 ? 'manager@example.com' : 'Optional' ?>"
+                                >
+                            </div>
+                        </div>
+                        <?php endfor; ?>
                     </div>
                     <hr class="my-4">
                     <div class="row g-3 align-items-end">

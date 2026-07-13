@@ -622,6 +622,19 @@ function build_order_insert(array $data): array
     return [$sql, $values];
 }
 
+function get_admin_notify_emails(): array
+{
+    $emails = [];
+    for ($i = 1; $i <= 3; $i++) {
+        $email = strtolower(trim((string) setting('admin_notify_email_' . $i, '')));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $emails[$email] = $email;
+        }
+    }
+
+    return array_values($emails);
+}
+
 function name_initials(string $name): string
 {
     $name = trim(preg_replace('/\s+/u', ' ', $name));

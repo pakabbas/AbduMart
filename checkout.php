@@ -84,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($paymentChoice === 'arrival') {
                 $pdo->commit();
+                notify_admins_new_order($orderId);
                 flash('success', 'Order placed. You can pay on arrival.');
                 redirect('orders.php?order=' . $orderId);
             }

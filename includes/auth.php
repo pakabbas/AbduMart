@@ -294,3 +294,75 @@ function send_order_confirmation_email(int $orderId): void
         // Do not block checkout if email fails
     }
 }
+
+function notify_admins_new_order(int $orderId): void
+{
+    if (get_admin_notify_emails() === []) {
+        return;
+    }
+
+    if (db_has_column('orders', 'admin_new_order_notified_at')) {
+        $claim = db()->prepare('UPDATE orders SET admin_new_order_notified_at = NOW() WHERE id = ? AND admin_new_order_notified_at IS NULL');
+        $claim->execute([$orderId]);
+        if ($claim->rowCount() === 0) {
+            return;
+        }
+    }
+
+    $orderStmt = db()->prepare('SELECT * FROM orders WHERE id = ?');
+    $orderStmt->execute([$orderId]);
+    $order = $orderStmt->fetch();
+    if (!$order) {
+        return;
+    }
+
+    $userStmt = db()->prepare('SELECT * FROM users WHERE id = ?');
+    $userStmt->execute([(int) $order['user_id']]);
+    $user = $userStmt->fetch();
+    if (!$user) {
+        return;
+    }
+
+    $itemsStmt = db()->prepare('SELECT * FROM order_items WHERE order_id = ?');
+    $itemsStmt->execute([$orderId]);
+    $items = $itemsStmt->fetchAll();
+
+    try {
+        $mail = new MailService();
+        if ($mail->isConfigured()) {
+            $mail->sendAdminNewOrderNotification($order, $user, $items);
+        }
+    } catch (Throwable) {
+        // Do not block order flow if admin email fails
+    }
+}
+
+function notify_admins_customer_here(int $orderId): void
+{
+    if (get_admin_notify_emails() === []) {
+        return;
+    }
+
+    $orderStmt = db()->prepare('SELECT * FROM orders WHERE id = ?');
+    $orderStmt->execute([$orderId]);
+    $order = $orderStmt->fetch();
+    if (!$order || empty($order['customer_here_at'])) {
+        return;
+    }
+
+    $userStmt = db()->prepare('SELECT * FROM users WHERE id = ?');
+    $userStmt->execute([(int) $order['user_id']]);
+    $user = $userStmt->fetch();
+    if (!$user) {
+        return;
+    }
+
+    try {
+        $mail = new MailService();
+        if ($mail->isConfigured()) {
+            $mail->sendAdminCustomerHereNotification($order, $user);
+        }
+    } catch (Throwable) {
+        // Do not block check-in if admin email fails
+    }
+}
