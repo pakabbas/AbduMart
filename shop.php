@@ -126,6 +126,7 @@ require __DIR__ . '/includes/header.php';
 
     <?php if (!$isSearch && !empty($menuGroups)): ?>
     <div class="shop-category-carousel-wrap" id="shopCategoryCarouselWrap">
+        <div class="container shop-category-carousel-inner">
         <button type="button" class="shop-category-carousel-btn shop-category-carousel-prev" id="shopCategoryPrev" aria-label="Previous categories">
             <i class="bi bi-chevron-left"></i>
         </button>
@@ -153,6 +154,7 @@ require __DIR__ . '/includes/header.php';
         <button type="button" class="shop-category-carousel-btn shop-category-carousel-next" id="shopCategoryNext" aria-label="Next categories">
             <i class="bi bi-chevron-right"></i>
         </button>
+        </div>
     </div>
     <?php endif; ?>
 
