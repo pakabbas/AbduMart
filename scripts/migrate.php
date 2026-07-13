@@ -37,6 +37,24 @@ $ignoreErrors = [
     'Duplicate foreign key constraint name',
 ];
 
+/**
+ * Remove leading SQL line comments so ALTER/UPDATE blocks are not skipped.
+ */
+function migrate_sql_executable(string $statement): string
+{
+    $lines = preg_split('/\r?\n/', $statement) ?: [];
+    $kept = [];
+    foreach ($lines as $line) {
+        $trimmed = ltrim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '--')) {
+            continue;
+        }
+        $kept[] = $line;
+    }
+
+    return trim(implode("\n", $kept));
+}
+
 foreach ($files as $file) {
     $name = basename($file);
     if (isset($applied[$name])) {
@@ -50,8 +68,8 @@ foreach ($files as $file) {
 
     echo "Applying {$name}...\n";
     foreach ($statements as $statement) {
-        $statement = trim($statement);
-        if ($statement === '' || str_starts_with($statement, '--')) {
+        $statement = migrate_sql_executable(trim($statement));
+        if ($statement === '') {
             continue;
         }
 
