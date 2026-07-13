@@ -139,6 +139,25 @@ php -r "require 'includes/bootstrap.php'; (new App\CloverService())->syncAll();"
 3. Update order status (preparing → ready → picked up)
 4. Sync products from Clover POS as needed
 
+## Production deployment (GCP)
+
+Live site: **https://abdumart.btkdeals.com**
+
+### CI/CD
+
+Pushes to **`main`** auto-deploy via GitHub Actions (`.github/workflows/deploy.yml`).
+
+**Required GitHub secrets:**
+
+| Secret | Description |
+|--------|-------------|
+| `GCP2_SSH_PRIVATE_KEY` | SSH private key for the VM |
+| `GCP2_SSH_HOST` | VM IP (`34.41.10.28`) |
+| `GCP2_SSH_USER` | SSH user (`muhamad_abbas`) |
+| `GCP2_DEPLOY_PATH` | *(optional)* default `/var/www/abdumart` |
+
+See **[deploy/README.md](deploy/README.md)** for one-time server setup, HTTPS, and troubleshooting.
+
 ## License
 
 Proprietary — Abdu Mart, Michigan.
