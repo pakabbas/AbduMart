@@ -9,45 +9,22 @@ if (isset($_GET['signed_out'])) {
     redirect('index.php');
 }
 
-$categoryId = isset($_GET['category']) ? (int) $_GET['category'] : null;
-$search = trim($_GET['q'] ?? '');
-$sort = $_GET['sort'] ?? 'name';
-$page = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = 24;
-
-$filters = [
-    'category_id' => $categoryId ?: null,
-    'search' => $search ?: null,
-    'sort' => $sort,
-    'page' => $page,
-    'per_page' => $perPage,
-];
+// Legacy product filter URLs on the homepage go to the dedicated shop page.
+if (isset($_GET['category']) || isset($_GET['q']) || isset($_GET['page']) || (isset($_GET['sort']) && $_GET['sort'] !== 'name')) {
+    $params = array_filter([
+        'category' => isset($_GET['category']) ? (int) $_GET['category'] : null,
+        'q' => trim($_GET['q'] ?? '') !== '' ? trim($_GET['q']) : null,
+        'sort' => ($_GET['sort'] ?? 'name') !== 'name' ? ($_GET['sort'] ?? null) : null,
+        'page' => isset($_GET['page']) ? max(1, (int) $_GET['page']) : null,
+    ], fn ($value) => $value !== null && $value !== '');
+    redirect('shop.php' . ($params ? '?' . http_build_query($params) : ''));
+}
 
 $categories = get_categories();
-$totalProducts = count_products($filters);
-$products = get_products($filters);
-$totalPages = max(1, (int) ceil($totalProducts / $perPage));
-if ($page > $totalPages) {
-    $page = $totalPages;
-    $filters['page'] = $page;
-    $products = get_products($filters);
-}
-
-$queryParams = array_filter([
-    'category' => $categoryId ?: null,
-    'q' => $search !== '' ? $search : null,
-    'sort' => $sort !== 'name' ? $sort : null,
-], fn ($value) => $value !== null && $value !== '');
-
-function shop_page_url(int $pageNum, array $queryParams): string
-{
-    $params = $queryParams;
-    if ($pageNum > 1) {
-        $params['page'] = $pageNum;
-    }
-    $query = http_build_query($params);
-    return 'index.php' . ($query !== '' ? '?' . $query : '');
-}
+$featuredProducts = get_featured_products(12);
+$homeProductLimit = 8;
+$homeProducts = get_products(['per_page' => $homeProductLimit, 'sort' => 'name']);
+$totalProducts = count_products([]);
 
 $pageTitle = 'Shop Fresh Groceries';
 require __DIR__ . '/includes/header.php';
@@ -61,7 +38,7 @@ require __DIR__ . '/includes/header.php';
                 <h1 class="hero-title">Order Online.<br>Pick Up Curbside.</h1>
                 <p class="hero-lead">Shop Abdu Market from your phone, pay securely, and we'll bring your order to your car when you tap <strong>I'm Here</strong>.</p>
                 <div class="d-flex flex-wrap gap-2 hero-cta">
-                    <a href="#products" class="btn btn-light btn-lg hero-btn-primary">Start Shopping</a>
+                    <a href="shop.php" class="btn btn-light btn-lg hero-btn-primary">Start Shopping</a>
                     <?php if (!is_logged_in()): ?>
                     <a href="register.php" class="btn btn-outline-light btn-lg">Create Account</a>
                     <?php endif; ?>
@@ -111,52 +88,13 @@ require __DIR__ . '/includes/header.php';
 </section>
 
 <section class="container py-4" id="products">
-    <div class="filter-bar card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Search</label>
-                    <input type="search" name="q" class="form-control" placeholder="Search products..." value="<?= e($search) ?>">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Category</label>
-                    <select name="category" class="form-select">
-                        <option value="">All Categories</option>
-                        <?php foreach ($categories as $cat): ?>
-                        <option value="<?= (int) $cat['id'] ?>" <?= $categoryId === (int) $cat['id'] ? 'selected' : '' ?>>
-                            <?= e($cat['name']) ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Sort by</label>
-                    <select name="sort" class="form-select">
-                        <option value="name" <?= $sort === 'name' ? 'selected' : '' ?>>Name A–Z</option>
-                        <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price: Low to High</option>
-                        <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price: High to Low</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-danger w-100">Filter</button>
-                </div>
-                <?php if ($categoryId || $search !== '' || $sort !== 'name'): ?>
-                <div class="col-12">
-                    <a href="index.php" class="small text-danger text-decoration-none">Clear all filters</a>
-                </div>
-                <?php endif; ?>
-            </form>
-        </div>
-    </div>
-
-    <?php if (!$categoryId && $search === ''): ?>
     <?php $categoryCount = count($categories); ?>
     <div class="mb-5 category-section">
         <h2 class="section-title">Shop by Category</h2>
         <div class="row g-3 category-grid is-collapsed" id="categoryGrid">
             <?php foreach ($categories as $cat): ?>
             <div class="col-6 col-md-4 col-lg-2 category-tile">
-                <a href="?category=<?= (int) $cat['id'] ?>" class="category-card">
+                <a href="shop.php?category=<?= (int) $cat['id'] ?>" class="category-card">
                     <div class="category-img catalog-tile-media<?= catalog_has_image($cat['image_url'] ?? null) ? '' : ' show-initials' ?>">
                         <?= catalog_tile_media($cat['name'], $cat['image_url'] ?? null) ?>
                     </div>
@@ -173,90 +111,81 @@ require __DIR__ . '/includes/header.php';
         </div>
         <?php endif; ?>
     </div>
-    <?php endif; ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="section-title mb-0">
-            <?= $categoryId ? e(array_values(array_filter($categories, fn($c) => (int)$c['id'] === $categoryId))[0]['name'] ?? 'Products') : 'All Products' ?>
-        </h2>
-        <span class="text-muted">
-            <?= $totalProducts ?> items
-            <?php if ($totalPages > 1): ?>
-            · Page <?= $page ?> of <?= $totalPages ?>
-            <?php endif; ?>
-        </span>
-    </div>
-
-    <?php if (empty($products)): ?>
-    <div class="empty-state text-center py-5">
-        <i class="bi bi-basket display-4 text-danger"></i>
-        <p class="mt-3 text-muted">No products match your filters.</p>
-        <a href="index.php" class="btn btn-outline-danger">Clear filters</a>
-    </div>
-    <?php else: ?>
-    <div class="row g-4">
-        <?php foreach ($products as $product): ?>
-        <div class="col-6 col-md-4 col-lg-3">
-            <article class="product-card card h-100 border-0 shadow-sm">
-                <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
-                    <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
-                    <?php if ((int) $product['inventory'] > 0 && (int) $product['inventory'] <= 5): ?>
-                    <span class="stock-badge">Only <?= (int) $product['inventory'] ?> left</span>
-                    <?php elseif ((int) $product['inventory'] < 1): ?>
-                    <span class="stock-badge stock-out">Out of stock</span>
-                    <?php endif; ?>
-                </div>
-                <div class="card-body d-flex flex-column">
-                    <span class="product-category"><?= e($product['category_name'] ?? 'General') ?></span>
-                    <h3 class="product-name"><?= e($product['name']) ?></h3>
-                    <p class="product-desc"><?= e(mb_strimwidth($product['description'] ?? '', 0, 80, '...')) ?></p>
-                    <div class="mt-auto d-flex justify-content-between align-items-center">
-                        <strong class="product-price"><?= format_money($product['price']) ?></strong>
-                        <?php if (is_logged_in()): ?>
-                        <?php if (product_is_purchasable($product)): ?>
-                        <form method="post" action="<?= e(asset_url('mart-line.php')) ?>" class="mart-buy-form">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="action" value="add">
-                            <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
-                            <button type="submit" class="btn btn-sm btn-danger">
-                                <i class="bi bi-plus-lg"></i> Add
-                            </button>
-                        </form>
-                        <?php else: ?>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
-                        <?php endif; ?>
-                        <?php else: ?>
-                        <a href="login.php" class="btn btn-sm btn-outline-danger">Sign in to buy</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </article>
+    <?php if (!empty($featuredProducts)): ?>
+    <div class="mb-5 featured-products-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title mb-0">Featured Products</h2>
+            <a href="shop.php?sort=featured" class="small text-danger text-decoration-none">View all featured</a>
         </div>
-        <?php endforeach; ?>
+        <div class="featured-carousel-wrap">
+            <button type="button" class="featured-carousel-btn featured-carousel-prev" id="featuredCarouselPrev" aria-label="Previous featured products">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="featured-carousel" id="featuredCarousel">
+                <?php foreach ($featuredProducts as $product): ?>
+                <div class="featured-carousel-slide">
+                    <article class="product-card card h-100 border-0 shadow-sm featured-product-card">
+                        <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                            <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
+                            <span class="featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <span class="product-category"><?= e($product['category_name'] ?? 'General') ?></span>
+                            <h3 class="product-name"><?= e($product['name']) ?></h3>
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <strong class="product-price"><?= format_money($product['price']) ?></strong>
+                                <?php if (is_logged_in() && product_is_purchasable($product)): ?>
+                                <form method="post" action="<?= e(asset_url('mart-line.php')) ?>" class="mart-buy-form">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="add">
+                                    <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-plus-lg"></i> Add
+                                    </button>
+                                </form>
+                                <?php elseif (!is_logged_in()): ?>
+                                <a href="login.php" class="btn btn-sm btn-outline-danger">Sign in</a>
+                                <?php else: ?>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="featured-carousel-btn featured-carousel-next" id="featuredCarouselNext" aria-label="Next featured products">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
     </div>
+    <?php endif; ?>
 
-    <?php if ($totalPages > 1): ?>
-    <nav class="shop-pagination mt-4" aria-label="Product pages">
-        <ul class="pagination justify-content-center mb-0">
-            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($page - 1, $queryParams)) ?>">Previous</a>
-            </li>
-            <?php
-            $start = max(1, $page - 2);
-            $end = min($totalPages, $page + 2);
-            for ($i = $start; $i <= $end; $i++):
-            ?>
-            <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($i, $queryParams)) ?>"><?= $i ?></a>
-            </li>
-            <?php endfor; ?>
-            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                <a class="page-link" href="<?= e(shop_page_url($page + 1, $queryParams)) ?>">Next</a>
-            </li>
-        </ul>
-    </nav>
-    <?php endif; ?>
-    <?php endif; ?>
+    <div class="home-products-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="section-title mb-0">Products</h2>
+            <span class="text-muted"><?= $totalProducts ?> items</span>
+        </div>
+
+        <?php if (empty($homeProducts)): ?>
+        <div class="empty-state text-center py-5">
+            <i class="bi bi-basket display-4 text-danger"></i>
+            <p class="mt-3 text-muted">No products available yet.</p>
+        </div>
+        <?php else: ?>
+        <div class="row g-4">
+            <?php foreach ($homeProducts as $product): ?>
+            <?php require __DIR__ . '/includes/product_card.php'; ?>
+            <?php endforeach; ?>
+        </div>
+        <?php if ($totalProducts > $homeProductLimit): ?>
+        <div class="text-center mt-4">
+            <a href="shop.php" class="btn btn-outline-danger btn-sm products-see-more-btn">See More</a>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </section>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

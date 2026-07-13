@@ -28,6 +28,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $redirectBack = $productId > 0 ? 'products.php?id=' . $productId : 'products.php?new=1';
 
+    if ($action === 'auto_images') {
+        $allProducts = get_products(['include_inactive' => true, 'sort' => 'name']);
+        $updated = 0;
+        $stmt = db()->prepare('UPDATE products SET image_url = ? WHERE id = ?');
+        foreach ($allProducts as $p) {
+            if (!product_image_needs_assign($p['image_url'] ?? null)) {
+                continue;
+            }
+            $url = assign_product_food_image((int) $p['id'], (string) $p['name']);
+            $stmt->execute([$url, (int) $p['id']]);
+            $updated++;
+        }
+        flash('success', $updated > 0 ? ("Assigned food images for {$updated} products.") : 'All products already have images.');
+        redirect('products.php');
+    }
+
+    if ($action === 'toggle_featured' && $productId > 0) {
+        if (!products_have_featured_column()) {
+            flash('danger', 'Featured products require database migration 008_featured_products.sql.');
+            redirect('products.php');
+        }
+        $current = get_product($productId);
+        if (!$current) {
+            flash('danger', 'Product not found.');
+            redirect('products.php');
+        }
+        $next = empty($current['is_featured']) ? 1 : 0;
+        db()->prepare('UPDATE products SET is_featured = ? WHERE id = ?')->execute([$next, $productId]);
+        flash('success', $next ? 'Product marked as featured.' : 'Product removed from featured.');
+        $back = 'products.php';
+        $backParams = array_filter([
+            'category' => isset($_GET['category']) ? (int) $_GET['category'] : null,
+            'q' => trim($_GET['q'] ?? '') !== '' ? trim($_GET['q']) : null,
+        ]);
+        if ($backParams) {
+            $back .= '?' . http_build_query($backParams);
+        }
+        redirect($back);
+    }
+
     try {
         $uploaded = store_uploaded_image('image_file', 'product');
         if ($uploaded) {
@@ -50,17 +90,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'update' && $productId > 0) {
-        db()->prepare(
-            'UPDATE products SET category_id = ?, name = ?, description = ?, price = ?, inventory = ?, image_url = ?, is_active = ? WHERE id = ?'
-        )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive, $productId]);
+        if (products_have_featured_column()) {
+            $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
+            db()->prepare(
+                'UPDATE products SET category_id = ?, name = ?, description = ?, price = ?, inventory = ?, image_url = ?, is_active = ?, is_featured = ? WHERE id = ?'
+            )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive, $isFeatured, $productId]);
+        } else {
+            db()->prepare(
+                'UPDATE products SET category_id = ?, name = ?, description = ?, price = ?, inventory = ?, image_url = ?, is_active = ? WHERE id = ?'
+            )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive, $productId]);
+        }
         flash('success', 'Product updated.');
         redirect('products.php?id=' . $productId);
     }
 
     if ($action === 'create') {
-        db()->prepare(
-            'INSERT INTO products (category_id, name, description, price, inventory, image_url, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive]);
+        if (products_have_featured_column()) {
+            $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
+            db()->prepare(
+                'INSERT INTO products (category_id, name, description, price, inventory, image_url, is_active, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive, $isFeatured]);
+        } else {
+            db()->prepare(
+                'INSERT INTO products (category_id, name, description, price, inventory, image_url, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute([$categoryId, $name, $description, $price, $inventory, $imageUrl, $isActive]);
+        }
         $newId = (int) db()->lastInsertId();
         flash('success', 'Product created.');
         redirect('products.php?id=' . $newId);
@@ -87,6 +141,7 @@ if ($editId) {
         'inventory' => 0,
         'image_url' => '',
         'is_active' => 1,
+        'is_featured' => 0,
         'clover_id' => null,
         'synced_at' => null,
         'category_name' => null,
@@ -102,6 +157,15 @@ if ($search !== '') {
 }
 $products = $editing ? [] : get_products($filters);
 
+$listAction = 'products.php';
+$listQuery = array_filter([
+    'category' => $categoryFilter > 0 ? $categoryFilter : null,
+    'q' => $search !== '' ? $search : null,
+]);
+if ($listQuery) {
+    $listAction .= '?' . http_build_query($listQuery);
+}
+
 $productCounts = [
     'total' => 0,
     'active' => 0,
@@ -109,6 +173,7 @@ $productCounts = [
     'with_images' => 0,
     'missing_images' => 0,
     'low_stock' => 0,
+    'featured' => 0,
 ];
 if (!$editing) {
     $productCounts['total'] = count($products);
@@ -116,6 +181,7 @@ if (!$editing) {
         if (!empty($p['is_active'])) $productCounts['active']++; else $productCounts['inactive']++;
         if (!empty($p['image_url'])) $productCounts['with_images']++; else $productCounts['missing_images']++;
         if ((int) ($p['inventory'] ?? 0) > 0 && (int) $p['inventory'] <= 5) $productCounts['low_stock']++;
+        if (!empty($p['is_featured'])) $productCounts['featured']++;
     }
 }
 
@@ -178,6 +244,12 @@ if ($editing):
                                     <input type="checkbox" name="is_active" value="1" <?= $editing['is_active'] ? 'checked' : '' ?>>
                                     Active on storefront
                                 </label>
+                                <?php if (products_have_featured_column()): ?>
+                                <label class="d-flex align-items-center gap-2 mt-2">
+                                    <input type="checkbox" name="is_featured" value="1" <?= !empty($editing['is_featured']) ? 'checked' : '' ?>>
+                                    Featured product
+                                </label>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -241,6 +313,12 @@ if ($editing):
         <div class="admin-stat-label">Low stock (≤5)</div>
         <div class="admin-stat-value"><?= (int) $productCounts['low_stock'] ?></div>
     </div>
+    <?php if (products_have_featured_column()): ?>
+    <div class="admin-stat highlight">
+        <div class="admin-stat-label">Featured</div>
+        <div class="admin-stat-value"><?= (int) $productCounts['featured'] ?></div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <div class="admin-card mb-4">
@@ -273,11 +351,20 @@ if ($editing):
     </div>
 </div>
 
+<form method="post" class="mb-3">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="auto_images">
+    <button type="submit" class="admin-btn admin-btn-outline">
+        <i class="bi bi-image"></i> Auto-assign food images to products missing photos
+    </button>
+</form>
+
 <div class="admin-card">
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
                 <tr>
+                    <th>Featured</th>
                     <th>Product</th>
                     <th>Category</th>
                     <th>Price</th>
@@ -290,7 +377,7 @@ if ($editing):
             <tbody>
                 <?php if (empty($products)): ?>
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="admin-empty py-4">
                             <i class="bi bi-box-seam"></i>
                             <p>No products found. Add one manually or sync from Clover.</p>
@@ -301,6 +388,24 @@ if ($editing):
                 <?php else: ?>
                 <?php foreach ($products as $product): ?>
                 <tr>
+                    <td>
+                        <?php if (products_have_featured_column()): ?>
+                        <form method="post" class="d-inline" action="<?= e($listAction) ?>">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="toggle_featured">
+                            <input type="hidden" name="product_id" value="<?= (int) $product['id'] ?>">
+                            <button
+                                type="submit"
+                                class="admin-btn admin-btn-sm <?= !empty($product['is_featured']) ? 'admin-btn-primary' : 'admin-btn-outline' ?>"
+                                title="<?= !empty($product['is_featured']) ? 'Remove from featured' : 'Mark as featured' ?>"
+                            >
+                                <i class="bi bi-star<?= !empty($product['is_featured']) ? '-fill' : '' ?>"></i>
+                            </button>
+                        </form>
+                        <?php else: ?>
+                        <span class="text-muted">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <strong><?= e($product['name']) ?></strong>
                         <?php if ($product['image_url']): ?>

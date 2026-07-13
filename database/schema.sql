@@ -55,6 +55,7 @@ CREATE TABLE products (
     inventory INT NOT NULL DEFAULT 0,
     image_url VARCHAR(500) DEFAULT NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_featured TINYINT(1) NOT NULL DEFAULT 0,
     synced_at TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
@@ -128,6 +129,7 @@ CREATE TABLE clover_sync_log (
 
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_active ON products(is_active);
+CREATE INDEX idx_products_featured ON products(is_featured);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_customer_here ON orders(customer_here_at);
