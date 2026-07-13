@@ -52,9 +52,10 @@ $pageTitle = 'Mart Dashboard';
 require dirname(__DIR__) . '/includes/header.php';
 ?>
 
-<div class="container-fluid py-4 admin-dashboard">
+<div class="admin-layout admin-dashboard">
     <?php require dirname(__DIR__) . '/includes/admin_nav.php'; ?>
 
+    <div class="container-fluid admin-content py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="section-title mb-1">Mart Dashboard</h1>
@@ -172,6 +173,7 @@ require dirname(__DIR__) . '/includes/header.php';
                 </div>
             </div>
         </div>
+    </div>
     </div>
 </div>
 

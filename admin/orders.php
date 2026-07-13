@@ -45,8 +45,9 @@ if ($orderId) {
     require dirname(__DIR__) . '/includes/header.php';
     ?>
 
-    <div class="container-fluid py-4">
+    <div class="container-fluid admin-layout admin-dashboard">
         <?php require dirname(__DIR__) . '/includes/admin_nav.php'; ?>
+        <div class="admin-content">
         <a href="orders.php" class="btn btn-link text-danger ps-0 mb-3">&larr; All orders</a>
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
@@ -100,6 +101,7 @@ if ($orderId) {
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
     <?php
@@ -123,8 +125,9 @@ $pageTitle = 'Manage Orders';
 require dirname(__DIR__) . '/includes/header.php';
 ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 admin-dashboard admin-layout">
     <?php require dirname(__DIR__) . '/includes/admin_nav.php'; ?>
+    <div class="admin-content">
     <h1 class="section-title mb-4">All Orders</h1>
     <form method="get" class="row g-2 mb-4">
         <div class="col-auto">
@@ -165,6 +168,7 @@ require dirname(__DIR__) . '/includes/header.php';
                 </tbody>
             </table>
         </div>
+    </div>
     </div>
 </div>
 
