@@ -117,7 +117,7 @@ class CloverService
 
             $priceCents = (int) ($item['price'] ?? 0);
             $price = $priceCents / 100;
-            $inventory = (int) ($item['itemStock']['quantity'] ?? $item['stockCount'] ?? 0);
+            $inventory = $this->resolveInventory($item);
             $hidden = (bool) ($item['hidden'] ?? false);
             $name = $item['name'] ?? 'Product';
             $description = $item['alternateName'] ?? null;
@@ -138,6 +138,20 @@ class CloverService
                 $hidden ? 0 : 1,
             ]);
         }
+    }
+
+    private function resolveInventory(array $item): int
+    {
+        if (isset($item['itemStock']['quantity']) && $item['itemStock']['quantity'] !== null && $item['itemStock']['quantity'] !== '') {
+            return max(0, (int) round((float) $item['itemStock']['quantity']));
+        }
+
+        if (isset($item['stockCount']) && $item['stockCount'] !== null && $item['stockCount'] !== '') {
+            return max(0, (int) $item['stockCount']);
+        }
+
+        // Untracked or missing stock data — treat as available for online orders.
+        return 999;
     }
 
     private function request(string $method, string $path): array

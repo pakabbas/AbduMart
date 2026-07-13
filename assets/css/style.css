@@ -247,6 +247,20 @@ body {
     border-radius: 999px;
 }
 
+.stock-badge.stock-out {
+    background: #6b7280;
+}
+
+.shop-pagination .page-link {
+    color: var(--am-red);
+    border-color: #e8eaed;
+}
+
+.shop-pagination .page-item.active .page-link {
+    background: var(--am-red);
+    border-color: var(--am-red);
+}
+
 .product-category {
     font-size: 0.7rem;
     text-transform: uppercase;

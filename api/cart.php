@@ -25,7 +25,7 @@ $redirectTo = $_SERVER['HTTP_REFERER'] ?? 'index.php';
 switch ($action) {
     case 'add':
         $product = get_product($productId);
-        if (!$product || !(int) $product['is_active'] || (int) $product['inventory'] < 1) {
+        if (!$product || !product_is_purchasable($product)) {
             cart_respond(['error' => 'Product unavailable'], 400, $redirectTo);
         }
         $stmt = db()->prepare(
