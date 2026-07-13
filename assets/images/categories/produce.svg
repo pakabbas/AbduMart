@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600" role="img" aria-label="Fresh Produce">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <circle cx="320" cy="250" r="70" fill="#66bb6a"/>
+  <circle cx="430" cy="220" r="55" fill="#43a047"/>
+  <circle cx="520" cy="280" r="65" fill="#81c784"/>
+  <path d="M400 170 Q420 120 450 150" stroke="#2e7d32" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <ellipse cx="580" cy="330" rx="90" ry="55" fill="#ef5350"/>
+  <path d="M250 360 Q350 300 450 360 T650 360" stroke="#388e3c" stroke-width="18" fill="none" stroke-linecap="round"/>
+</svg>

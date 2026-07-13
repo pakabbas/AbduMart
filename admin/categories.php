@@ -27,21 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $updated = 0;
         $stmt = db()->prepare('UPDATE categories SET image_url = ? WHERE id = ?');
         foreach ($cats as $c) {
-            $current = trim((string) ($c['image_url'] ?? ''));
-            if ($current !== '') {
+            $current = $c['image_url'] ?? null;
+            if (!category_image_needs_assign($current)) {
                 continue;
             }
-            $n = strtolower(trim((string) $c['name']));
-            $seed = match (true) {
-                str_contains($n, 'produce') => 'abdu-produce',
-                str_contains($n, 'dairy') || str_contains($n, 'egg') => 'abdu-dairy-eggs',
-                str_contains($n, 'bakery') || str_contains($n, 'bread') => 'abdu-bakery',
-                str_contains($n, 'beverage') || str_contains($n, 'drink') => 'abdu-beverages',
-                str_contains($n, 'snack') || str_contains($n, 'chips') => 'abdu-snacks',
-                str_contains($n, 'household') || str_contains($n, 'clean') => 'abdu-household',
-                default => 'abdu-cat-' . (int) $c['id'],
-            };
-            $url = 'https://picsum.photos/seed/' . rawurlencode($seed) . '/900/600';
+            $url = category_stock_image_url((string) $c['name'], (int) $c['id']);
             $stmt->execute([$url, (int) $c['id']]);
             $updated++;
         }

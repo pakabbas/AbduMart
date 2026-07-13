@@ -10,5 +10,7 @@ SET image_url = CASE
     WHEN LOWER(name) LIKE '%household%' OR LOWER(name) LIKE '%clean%' THEN '/assets/images/categories/household.svg'
     ELSE '/assets/images/categories/default.svg'
 END
-WHERE (image_url IS NULL OR image_url = '');
-
+WHERE image_url IS NULL
+   OR image_url = ''
+   OR image_url LIKE '%picsum.photos%'
+   OR image_url LIKE '%unsplash.com%';

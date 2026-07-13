@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600" role="img" aria-label="Beverages">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e3f2fd"/>
+      <stop offset="100%" stop-color="#90caf9"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <rect x="360" y="170" width="90" height="250" rx="20" fill="#fff" opacity="0.9"/>
+  <rect x="375" y="190" width="60" height="120" rx="8" fill="#29b6f6"/>
+  <rect x="500" y="200" width="110" height="180" rx="16" fill="#fff" opacity="0.9"/>
+  <rect x="515" y="220" width="80" height="100" rx="8" fill="#ef5350"/>
+  <circle cx="555" cy="360" r="28" fill="#bdbdbd"/>
+</svg>
