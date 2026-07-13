@@ -129,11 +129,8 @@ require __DIR__ . '/includes/header.php';
             <?php foreach ($categories as $cat): ?>
             <div class="col-6 col-md-4 col-lg-2">
                 <a href="?category=<?= (int) $cat['id'] ?>" class="category-card">
-                    <div class="category-img">
-                        <img src="<?= e(catalog_image_url($cat['image_url'] ?? null, 'category')) ?>"
-                             alt="<?= e($cat['name']) ?>"
-                             loading="lazy"
-                             onerror="this.onerror=null;this.src='<?= e(asset_url('assets/images/placeholder-category.svg')) ?>';">
+                    <div class="category-img catalog-tile-media<?= catalog_has_image($cat['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                        <?= catalog_tile_media($cat['name'], $cat['image_url'] ?? null) ?>
                     </div>
                     <span><?= e($cat['name']) ?></span>
                 </a>
@@ -166,11 +163,8 @@ require __DIR__ . '/includes/header.php';
         <?php foreach ($products as $product): ?>
         <div class="col-6 col-md-4 col-lg-3">
             <article class="product-card card h-100 border-0 shadow-sm">
-                <div class="product-img">
-                    <img src="<?= e(catalog_image_url($product['image_url'] ?? null)) ?>"
-                         alt="<?= e($product['name']) ?>"
-                         loading="lazy"
-                         onerror="this.onerror=null;this.src='<?= e(asset_url('assets/images/placeholder-product.svg')) ?>';">
+                <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                    <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
                     <?php if ((int) $product['inventory'] > 0 && (int) $product['inventory'] <= 5): ?>
                     <span class="stock-badge">Only <?= (int) $product['inventory'] ?> left</span>
                     <?php elseif ((int) $product['inventory'] < 1): ?>
