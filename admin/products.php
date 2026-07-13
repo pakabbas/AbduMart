@@ -44,6 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('products.php');
     }
 
+    if ($action === 'clear_images') {
+        $cleared = clear_all_product_images();
+        flash('success', $cleared > 0 ? ("Removed images from {$cleared} products.") : 'No product images to remove.');
+        redirect('products.php');
+    }
+
     if ($action === 'toggle_featured' && $productId > 0) {
         if (!products_have_featured_column()) {
             flash('danger', 'Featured products require database migration 008_featured_products.sql.');
@@ -351,13 +357,22 @@ if ($editing):
     </div>
 </div>
 
-<form method="post" class="mb-3">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="auto_images">
-    <button type="submit" class="admin-btn admin-btn-outline">
-        <i class="bi bi-image"></i> Auto-assign food images to products missing photos
-    </button>
-</form>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <form method="post" class="d-inline">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="auto_images">
+        <button type="submit" class="admin-btn admin-btn-outline">
+            <i class="bi bi-image"></i> Auto-assign food images to products missing photos
+        </button>
+    </form>
+    <form method="post" class="d-inline" onsubmit="return confirm('Remove images from ALL products? Uploaded files will be deleted.');">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="clear_images">
+        <button type="submit" class="admin-btn admin-btn-outline text-danger">
+            <i class="bi bi-trash"></i> Remove existing images from all
+        </button>
+    </form>
+</div>
 
 <div class="admin-card">
     <div class="table-responsive">
