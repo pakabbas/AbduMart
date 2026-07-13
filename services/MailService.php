@@ -22,6 +22,8 @@ class MailService
 
         $mail = new PHPMailer(true);
         try {
+            $mail->CharSet = PHPMailer::CHARSET_UTF8;
+            $mail->Encoding = 'base64';
             $mail->isSMTP();
             $mail->Host = (string) SettingsService::get('smtp_host');
             $mail->SMTPAuth = true;
@@ -36,9 +38,9 @@ class MailService
             $mail->setFrom($fromEmail, $fromName);
             $mail->addAddress($toEmail, $toName);
             $mail->isHTML(true);
-            $mail->Subject = $subject;
+            $mail->Subject = self::emailSubject($subject);
             $mail->Body = $htmlBody;
-            $mail->AltBody = $textBody ?? strip_tags($htmlBody);
+            $mail->AltBody = $textBody ?? self::emailPlainText(strip_tags($htmlBody));
             $mail->send();
         } catch (MailerException $e) {
             throw new \RuntimeException('Email could not be sent: ' . $mail->ErrorInfo);
@@ -63,7 +65,7 @@ class MailService
     {
         $itemsHtml = '';
         foreach ($items as $item) {
-            $itemsHtml .= '<tr><td>' . (int) $item['quantity'] . '× ' . htmlspecialchars($item['product_name']) .
+            $itemsHtml .= '<tr><td>' . self::formatEmailQuantity((int) $item['quantity']) . ' ' . htmlspecialchars($item['product_name']) .
                 '</td><td align="right">$' . number_format((float) $item['line_total'], 2) . '</td></tr>';
         }
 
@@ -84,7 +86,7 @@ class MailService
         $this->send(
             $user['email'],
             $user['first_name'] . ' ' . $user['last_name'],
-            'Order ' . $order['order_number'] . ' confirmed — Abdu Market',
+            'Order ' . $order['order_number'] . ' confirmed - Abdu Market',
             $html
         );
     }
@@ -117,7 +119,7 @@ class MailService
 
         $itemsHtml = '';
         foreach ($items as $item) {
-            $itemsHtml .= '<tr><td>' . (int) $item['quantity'] . '× ' . htmlspecialchars((string) $item['product_name']) .
+            $itemsHtml .= '<tr><td>' . self::formatEmailQuantity((int) $item['quantity']) . ' ' . htmlspecialchars((string) $item['product_name']) .
                 '</td><td align="right">$' . number_format((float) $item['line_total'], 2) . '</td></tr>';
         }
 
@@ -141,7 +143,7 @@ class MailService
             <p><strong>Order #:</strong> ' . htmlspecialchars((string) $order['order_number']) . '<br>
             <strong>Customer:</strong> ' . htmlspecialchars(trim($user['first_name'] . ' ' . $user['last_name'])) . '<br>
             <strong>Email:</strong> ' . htmlspecialchars((string) $user['email']) . '<br>
-            <strong>Phone:</strong> ' . htmlspecialchars((string) ($user['phone'] ?? '—')) . '<br>
+            <strong>Phone:</strong> ' . htmlspecialchars(self::emailMissingValue($user['phone'] ?? null)) . '<br>
             <strong>Payment:</strong> ' . htmlspecialchars($paymentLabel) . '<br>
             <strong>Total:</strong> $' . number_format((float) $order['total'], 2) . '</p>
             <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
@@ -154,7 +156,7 @@ class MailService
 
         $this->sendToAddresses(
             $emails,
-            'New order ' . $order['order_number'] . ' — Abdu Market',
+            'New order ' . $order['order_number'] . ' - Abdu Market',
             $html
         );
     }
@@ -181,7 +183,7 @@ class MailService
             '<p>A customer tapped <strong>I\'m Here</strong> for curbside pickup.</p>
             <p><strong>Order #:</strong> ' . htmlspecialchars((string) $order['order_number']) . '<br>
             <strong>Customer:</strong> ' . htmlspecialchars(trim($user['first_name'] . ' ' . $user['last_name'])) . '<br>
-            <strong>Phone:</strong> ' . htmlspecialchars((string) ($user['phone'] ?? '—')) . '<br>
+            <strong>Phone:</strong> ' . htmlspecialchars(self::emailMissingValue($user['phone'] ?? null)) . '<br>
             <strong>Checked in:</strong> ' . htmlspecialchars($checkedIn) . '</p>
             ' . $vehicleHtml . '
             <p style="margin-top:20px;"><a href="' . htmlspecialchars($adminUrl) . '">Open order in admin</a></p>'
@@ -189,7 +191,7 @@ class MailService
 
         $this->sendToAddresses(
             $emails,
-            'Customer arrived — order ' . $order['order_number'],
+            'Customer arrived - order ' . $order['order_number'],
             $html
         );
     }
@@ -204,5 +206,34 @@ class MailService
             <div style="color:#444;line-height:1.6;">' . $content . '</div>
         </div></body></html>
         <style>.otp-code{font-size:32px;font-weight:700;letter-spacing:8px;color:#c8102e;padding:16px 0;}</style>';
+    }
+
+    private static function formatEmailQuantity(int $quantity): string
+    {
+        return (int) $quantity . ' x';
+    }
+
+    private static function emailMissingValue(mixed $value): string
+    {
+        $text = trim((string) $value);
+
+        return $text !== '' ? $text : 'N/A';
+    }
+
+    private static function emailSubject(string $subject): string
+    {
+        return self::emailPlainText($subject);
+    }
+
+    private static function emailPlainText(string $text): string
+    {
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace(
+            ["\u{2014}", "\u{2013}", "\u{00D7}", "\u{2212}", "—", "–", "×"],
+            ['-', '-', 'x', '-', '-', '-', 'x'],
+            $text
+        );
+
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }
 }
