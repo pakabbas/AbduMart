@@ -11,6 +11,8 @@ $user = current_user();
 $userId = (int) $user['id'];
 $cart = get_cart_totals($userId);
 $error = '';
+$phoneValue = trim($_POST['phone'] ?? (string) ($user['phone'] ?? ''));
+$needsPhone = trim((string) ($user['phone'] ?? '')) === '';
 $allowPayOnArrival = pay_on_arrival_enabled();
 $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
@@ -28,6 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicle = trim($_POST['vehicle_description'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $phoneError = validate_customer_phone($phone);
+        if ($phoneError !== null) {
+            $error = $phoneError;
+        }
         $paymentChoice = $_POST['payment_method'] ?? 'stripe';
         if (!$allowPayOnArrival) {
             $paymentChoice = 'stripe';
@@ -36,9 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $paymentChoice = 'stripe';
         }
 
+        if ($error === '') {
         $pdo = db();
         $pdo->beginTransaction();
         try {
+            update_user_phone($userId, $phone);
+            $user['phone'] = $phone;
+
             foreach ($cart['items'] as $item) {
                 if ((int) $item['quantity'] > (int) $item['inventory']) {
                     throw new RuntimeException($item['name'] . ' no longer has enough stock.');
@@ -132,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->rollBack();
             $error = $e->getMessage();
         }
+        }
     }
 }
 
@@ -160,6 +172,17 @@ require __DIR__ . '/includes/header.php';
                     <form method="post"<?= $storeClosed ? ' class="pe-none opacity-75"' : '' ?>>
                         <?= csrf_field() ?>
                         <fieldset<?= $storeClosed ? ' disabled' : '' ?>>
+                        <?php if ($needsPhone): ?>
+                        <div class="alert alert-info">
+                            <i class="bi bi-telephone me-1"></i>
+                            Please add your phone number so we can reach you at curbside pickup.
+                        </div>
+                        <?php endif; ?>
+                        <div class="mb-3">
+                            <label class="form-label">Phone number <span class="text-muted">(for pickup contact)</span></label>
+                            <input type="tel" name="phone" class="form-control" required placeholder="(248) 555-0100" value="<?= e($phoneValue) ?>">
+                            <div class="form-text">You can update this anytime before placing your order.</div>
+                        </div>
                         <div class="mb-4">
                             <label class="form-label">Payment method</label>
                             <div class="d-grid gap-2">

@@ -69,6 +69,16 @@ function logout_user(): void
     session_destroy();
 }
 
+function update_user_phone(int $userId, string $phone): void
+{
+    $error = validate_customer_phone($phone);
+    if ($error !== null) {
+        throw new InvalidArgumentException($error);
+    }
+
+    db()->prepare('UPDATE users SET phone = ? WHERE id = ?')->execute([trim($phone), $userId]);
+}
+
 function register_user(string $email, string $password, string $firstName, string $lastName, string $phone, bool $verified = true): array
 {
     $hash = password_hash($password, PASSWORD_DEFAULT);
