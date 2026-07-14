@@ -382,6 +382,37 @@ function catalog_has_image(?string $url): bool
     return str_starts_with($url, '/assets/');
 }
 
+function category_supermarket_image_sources(): array
+{
+    // Curated grocery/supermarket photos (Unsplash). At least 20 for random assignment.
+    return [
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80', // produce aisle
+        'https://images.unsplash.com/photo-1488459716781-31db52582b45?auto=format&fit=crop&w=900&q=80', // fresh vegetables
+        'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=900&q=80', // fruit display
+        'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=900&q=80', // cheese / dairy
+        'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=80', // milk bottles
+        'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=900&q=80', // dairy fridge
+        'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80', // bakery bread
+        'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=80', // pastries
+        'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=900&q=80', // croissants
+        'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=900&q=80', // meat counter
+        'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=900&q=80', // fresh seafood
+        'https://images.unsplash.com/photo-1621939514649-c8cce24cde85?auto=format&fit=crop&w=900&q=80', // packaged snacks
+        'https://images.unsplash.com/photo-1599490659213-e2b9259e2fe8?auto=format&fit=crop&w=900&q=80', // chips snacks
+        'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?auto=format&fit=crop&w=900&q=80', // soft drinks
+        'https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=900&q=80', // water bottles
+        'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=900&q=80', // coffee / beverages shelf
+        'https://images.unsplash.com/photo-1584473457406-6240486418e9?auto=format&fit=crop&w=900&q=80', // frozen foods
+        'https://images.unsplash.com/photo-1582735689369-4fe89db7119c?auto=format&fit=crop&w=900&q=80', // pantry canned goods
+        'https://images.unsplash.com/photo-1584305574647-0cc949a2bb4f?auto=format&fit=crop&w=900&q=80', // household cleaning
+        'https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=900&q=80', // supermarket aisle
+        'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=900&q=80', // grocery shelves
+        'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&w=900&q=80', // grocery cart aisle
+        'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=80', // spice racks
+        'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&w=900&q=80', // market baskets
+    ];
+}
+
 function category_stock_image_options(): array
 {
     static $options = null;
@@ -402,49 +433,43 @@ function category_stock_image_options(): array
     return $options;
 }
 
-function category_stock_image_slug(string $name, int $id): string
+/**
+ * @param list<int>|null $preferredOrder shuffled source indexes for bulk random assign
+ */
+function assign_category_supermarket_image(int $categoryId, string $name, ?array &$preferredOrder = null): string
 {
-    $n = strtolower(trim($name));
-
-    $matched = match (true) {
-        str_contains($n, 'produce') => 'produce',
-        str_contains($n, 'dairy') || str_contains($n, 'egg') => 'dairy-eggs',
-        str_contains($n, 'bakery') || str_contains($n, 'bread') => 'bakery',
-        str_contains($n, 'beverage') || str_contains($n, 'drink') => 'beverages',
-        str_contains($n, 'snack') || str_contains($n, 'chips') => 'snacks',
-        str_contains($n, 'household') || str_contains($n, 'clean') => 'household',
-        default => null,
-    };
-
-    if ($matched !== null) {
-        return $matched;
+    $sources = category_supermarket_image_sources();
+    $count = count($sources);
+    if ($count === 0) {
+        return asset_url('assets/images/placeholder-category.svg');
     }
 
-    $options = category_stock_image_options();
-    if ($options === []) {
-        return 'default';
+    if ($preferredOrder === null || $preferredOrder === []) {
+        $preferredOrder = range(0, $count - 1);
+        shuffle($preferredOrder);
     }
 
-    $index = abs(crc32($n . ':' . $id)) % count($options);
+    $attemptIndexes = $preferredOrder;
+    // Rotate so next category starts on a different image
+    $first = array_shift($preferredOrder);
+    $preferredOrder[] = $first;
 
-    return $options[$index];
+    foreach ($attemptIndexes as $index) {
+        $remote = $sources[$index % $count];
+        $local = import_remote_image($remote, 'category', $categoryId);
+        if ($local !== null) {
+            return $local;
+        }
+    }
+
+    $fallback = $sources[abs(crc32(strtolower(trim($name)) . ':' . $categoryId)) % $count];
+
+    return $fallback;
 }
 
 function category_stock_image_url(string $name, int $id): string
 {
-    $slug = category_stock_image_slug($name, $id);
-    $file = dirname(__DIR__) . '/assets/images/categories/' . $slug . '.svg';
-
-    if (!is_file($file)) {
-        $options = category_stock_image_options();
-        if ($options === []) {
-            $slug = 'default';
-        } else {
-            $slug = $options[abs(crc32((string) $id)) % count($options)];
-        }
-    }
-
-    return asset_url('assets/images/categories/' . $slug . '.svg');
+    return assign_category_supermarket_image($id, $name);
 }
 
 function category_image_needs_assign(?string $url): bool
@@ -455,22 +480,46 @@ function category_image_needs_assign(?string $url): bool
     }
 
     $lower = strtolower($url);
-    if (str_contains($lower, '/assets/images/categories/default.svg')) {
+
+    // Replace old placeholder SVGs with real supermarket photos
+    if (
+        str_contains($lower, '/assets/images/categories/')
+        || str_contains($lower, 'placeholder-category.svg')
+        || str_ends_with($lower, '.svg')
+    ) {
         return true;
     }
 
-    if (str_starts_with($url, '/assets/')) {
+    if (str_starts_with($url, '/assets/uploads/')) {
         return false;
     }
 
-    $lower = strtolower($url);
-    foreach (['picsum.photos', 'unsplash.com', 'placehold.co', 'placeholder.com', 'dummyimage.com'] as $host) {
+    foreach (['picsum.photos', 'fastly.picsum', 'unsplash.com', 'placehold.co', 'placeholder.com', 'dummyimage.com'] as $host) {
         if (str_contains($lower, $host)) {
             return true;
         }
     }
 
     return false;
+}
+
+function auto_assign_missing_category_images(): int
+{
+    $cats = get_categories(false);
+    $updated = 0;
+    $order = null;
+    $stmt = db()->prepare('UPDATE categories SET image_url = ? WHERE id = ?');
+
+    foreach ($cats as $c) {
+        if (!category_image_needs_assign($c['image_url'] ?? null)) {
+            continue;
+        }
+        $url = assign_category_supermarket_image((int) $c['id'], (string) $c['name'], $order);
+        $stmt->execute([$url, (int) $c['id']]);
+        $updated++;
+    }
+
+    return $updated;
 }
 
 function product_food_image_sources(): array
