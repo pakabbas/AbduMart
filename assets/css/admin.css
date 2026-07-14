@@ -1075,3 +1075,107 @@ body.admin-app {
     background: var(--admin-red);
     color: #fff;
 }
+
+.theme-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.theme-preset {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.theme-preset:hover {
+    border-color: rgba(200, 16, 46, 0.28);
+}
+
+.theme-preset.is-selected {
+    border-color: var(--admin-red);
+    background: var(--admin-red-soft);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+.theme-preset input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.theme-preset-swatch {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+}
+
+.theme-preset-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.theme-preset-meta strong {
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.theme-preset-meta small {
+    color: var(--admin-muted);
+    font-size: 0.75rem;
+}
+
+.theme-color-input {
+    height: 46px;
+    padding: 0.25rem;
+    cursor: pointer;
+}
+
+.theme-live-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.85rem 1rem;
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: #fff;
+    min-height: 72px;
+    justify-content: center;
+}
+
+.theme-live-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    background: var(--preview-color, var(--admin-red));
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+}
+
+.theme-live-link {
+    color: var(--preview-color, var(--admin-red));
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 900px) {
+    .theme-picker-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -22,6 +22,7 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="../assets/css/admin.css" rel="stylesheet">
+    <style><?= theme_inline_css() ?></style>
 </head>
 <body class="admin-app">
 <div class="admin-overlay" id="adminOverlay"></div>

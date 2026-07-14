@@ -59,6 +59,113 @@ function is_admin_request(): bool
     return str_contains($script, '/admin/');
 }
 
+function theme_default_primary(): string
+{
+    return '#c8102e';
+}
+
+function normalize_theme_hex(string $color): ?string
+{
+    $color = trim($color);
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $color)) {
+        return null;
+    }
+    if (strlen($color) === 4) {
+        $color = '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return strtolower($color);
+}
+
+/**
+ * @return array{r:int,g:int,b:int}|null
+ */
+function theme_hex_to_rgb(string $hex): ?array
+{
+    $hex = normalize_theme_hex($hex);
+    if ($hex === null) {
+        return null;
+    }
+
+    return [
+        'r' => hexdec(substr($hex, 1, 2)),
+        'g' => hexdec(substr($hex, 3, 2)),
+        'b' => hexdec(substr($hex, 5, 2)),
+    ];
+}
+
+function theme_rgb_to_hex(int $r, int $g, int $b): string
+{
+    return sprintf('#%02x%02x%02x', max(0, min(255, $r)), max(0, min(255, $g)), max(0, min(255, $b)));
+}
+
+function theme_adjust_hex(string $hex, float $factor): string
+{
+    $rgb = theme_hex_to_rgb($hex);
+    if ($rgb === null) {
+        return theme_default_primary();
+    }
+
+    if ($factor < 1) {
+        return theme_rgb_to_hex(
+            (int) round($rgb['r'] * $factor),
+            (int) round($rgb['g'] * $factor),
+            (int) round($rgb['b'] * $factor)
+        );
+    }
+
+    return theme_rgb_to_hex(
+        (int) round($rgb['r'] + (255 - $rgb['r']) * ($factor - 1)),
+        (int) round($rgb['g'] + (255 - $rgb['g']) * ($factor - 1)),
+        (int) round($rgb['b'] + (255 - $rgb['b']) * ($factor - 1))
+    );
+}
+
+function theme_soft_hex(string $hex): string
+{
+    return theme_adjust_hex($hex, 1.92);
+}
+
+function theme_primary_color(): string
+{
+    $stored = normalize_theme_hex((string) setting('theme_primary_color', theme_default_primary()));
+
+    return $stored ?? theme_default_primary();
+}
+
+/**
+ * @return array{primary:string,dark:string,darker:string,soft:string,rgb:string}
+ */
+function theme_palette(?string $primary = null): array
+{
+    $primary = normalize_theme_hex($primary ?? theme_primary_color()) ?? theme_default_primary();
+    $rgb = theme_hex_to_rgb($primary) ?? ['r' => 200, 'g' => 16, 'b' => 46];
+
+    return [
+        'primary' => $primary,
+        'dark' => theme_adjust_hex($primary, 0.78),
+        'darker' => theme_adjust_hex($primary, 0.62),
+        'soft' => theme_soft_hex($primary),
+        'rgb' => $rgb['r'] . ', ' . $rgb['g'] . ', ' . $rgb['b'],
+    ];
+}
+
+function theme_inline_css(): string
+{
+    $palette = theme_palette();
+
+    return ':root{'
+        . '--am-red:' . $palette['primary'] . ';'
+        . '--am-red-dark:' . $palette['dark'] . ';'
+        . '--am-red-light:' . $palette['soft'] . ';'
+        . '--am-red-rgb:' . $palette['rgb'] . ';'
+        . '--admin-red:' . $palette['primary'] . ';'
+        . '--admin-red-dark:' . $palette['dark'] . ';'
+        . '--admin-red-soft:' . $palette['soft'] . ';'
+        . '--shadow-md:0 8px 30px rgba(' . $palette['rgb'] . ',0.08);'
+        . '}';
+}
+
 function flash(string $type, string $message): void
 {
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
