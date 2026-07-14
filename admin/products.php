@@ -10,6 +10,8 @@ $editId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $editing = null;
 $categoryFilter = isset($_GET['category']) ? (int) $_GET['category'] : 0;
 $search = trim($_GET['q'] ?? '');
+$lowStockFilter = isset($_GET['low_stock']) && $_GET['low_stock'] === '1';
+$lowStockThreshold = 20;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -67,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $backParams = array_filter([
             'category' => isset($_GET['category']) ? (int) $_GET['category'] : null,
             'q' => trim($_GET['q'] ?? '') !== '' ? trim($_GET['q']) : null,
+            'low_stock' => isset($_GET['low_stock']) && $_GET['low_stock'] === '1' ? '1' : null,
         ]);
         if ($backParams) {
             $back .= '?' . http_build_query($backParams);
@@ -161,12 +164,17 @@ if ($categoryFilter > 0) {
 if ($search !== '') {
     $filters['search'] = $search;
 }
+if ($lowStockFilter) {
+    $filters['low_stock'] = true;
+    $filters['low_stock_max'] = $lowStockThreshold;
+}
 $products = $editing ? [] : get_products($filters);
 
 $listAction = 'products.php';
 $listQuery = array_filter([
     'category' => $categoryFilter > 0 ? $categoryFilter : null,
     'q' => $search !== '' ? $search : null,
+    'low_stock' => $lowStockFilter ? '1' : null,
 ]);
 if ($listQuery) {
     $listAction .= '?' . http_build_query($listQuery);
@@ -186,7 +194,9 @@ if (!$editing) {
     foreach ($products as $p) {
         if (!empty($p['is_active'])) $productCounts['active']++; else $productCounts['inactive']++;
         if (!empty($p['image_url'])) $productCounts['with_images']++; else $productCounts['missing_images']++;
-        if ((int) ($p['inventory'] ?? 0) > 0 && (int) $p['inventory'] <= 5) $productCounts['low_stock']++;
+        if ((int) ($p['inventory'] ?? 0) < $lowStockThreshold) {
+            $productCounts['low_stock']++;
+        }
         if (!empty($p['is_featured'])) $productCounts['featured']++;
     }
 }
@@ -316,7 +326,7 @@ if ($editing):
         <div class="admin-stat-value"><?= (int) $productCounts['missing_images'] ?></div>
     </div>
     <div class="admin-stat">
-        <div class="admin-stat-label">Low stock (≤5)</div>
+        <div class="admin-stat-label">Low stock (&lt;<?= (int) $lowStockThreshold ?>)</div>
         <div class="admin-stat-value"><?= (int) $productCounts['low_stock'] ?></div>
     </div>
     <?php if (products_have_featured_column()): ?>
@@ -330,13 +340,13 @@ if ($editing):
 <div class="admin-card mb-4">
     <div class="admin-card-body padded">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <div class="admin-field mb-0">
                     <label for="q">Search</label>
                     <input type="search" id="q" name="q" class="admin-input" value="<?= e($search) ?>" placeholder="Name or description">
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="admin-field mb-0">
                     <label for="category">Category</label>
                     <select id="category" name="category" class="admin-input">
@@ -347,9 +357,18 @@ if ($editing):
                     </select>
                 </div>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-3">
+                <div class="admin-field mb-0">
+                    <label for="low_stock">Stock level</label>
+                    <select id="low_stock" name="low_stock" class="admin-input">
+                        <option value="">All products</option>
+                        <option value="1"<?= $lowStockFilter ? ' selected' : '' ?>>Low stock (&lt; <?= (int) $lowStockThreshold ?>)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="admin-btn admin-btn-primary flex-grow-1">Filter</button>
-                <?php if ($search !== '' || $categoryFilter > 0): ?>
+                <?php if ($search !== '' || $categoryFilter > 0 || $lowStockFilter): ?>
                 <a href="products.php" class="admin-btn admin-btn-outline">Clear</a>
                 <?php endif; ?>
             </div>
@@ -429,7 +448,14 @@ if ($editing):
                     </td>
                     <td><?= e($product['category_name'] ?? '—') ?></td>
                     <td><?= format_money($product['price']) ?></td>
-                    <td><?= (int) $product['inventory'] ?></td>
+                    <td>
+                        <?php $stock = (int) $product['inventory']; ?>
+                        <?php if ($stock < $lowStockThreshold): ?>
+                        <span class="admin-badge admin-badge-red"><?= $stock ?></span>
+                        <?php else: ?>
+                        <?= $stock ?>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?php if ($product['clover_id']): ?>
                         <span class="admin-badge admin-badge-green">Clover</span>

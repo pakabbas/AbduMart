@@ -41,6 +41,24 @@ function redirect(string $path): never
     exit;
 }
 
+function redirect_site(string $path = 'index.php'): never
+{
+    if (str_starts_with($path, 'http')) {
+        header('Location: ' . $path);
+        exit;
+    }
+
+    header('Location: ' . config('app.url') . '/' . ltrim($path, '/'));
+    exit;
+}
+
+function is_admin_request(): bool
+{
+    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+
+    return str_contains($script, '/admin/');
+}
+
 function flash(string $type, string $message): void
 {
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
@@ -851,6 +869,11 @@ function product_filter_sql(array $filters, array &$params): string
     }
     if (!empty($filters['featured_only']) && products_have_featured_column()) {
         $sql .= ' AND p.is_featured = 1';
+    }
+    if (!empty($filters['low_stock'])) {
+        $max = max(1, (int) ($filters['low_stock_max'] ?? 20));
+        $sql .= ' AND p.inventory < ?';
+        $params[] = $max;
     }
 
     return $sql;

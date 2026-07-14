@@ -40,7 +40,11 @@ function require_login(): void
             json_response(['error' => 'Please sign in to continue.', 'login_required' => true], 401);
         }
         flash('warning', 'Please sign in to continue.');
-        redirect('login.php?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php'));
+        $target = 'login.php?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php');
+        if (is_admin_request()) {
+            redirect_site($target);
+        }
+        redirect($target);
     }
 }
 
@@ -48,8 +52,8 @@ function require_admin(): void
 {
     require_login();
     if (!is_admin()) {
-        flash('danger', 'Admin access required.');
-        redirect('index.php');
+        flash('danger', 'You are not authorized to access the admin area.');
+        redirect_site('index.php');
     }
 }
 
