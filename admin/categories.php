@@ -23,19 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoryId = (int) ($_POST['category_id'] ?? 0);
 
     if ($action === 'auto_images') {
-        $cats = get_categories(false);
-        $updated = 0;
-        $stmt = db()->prepare('UPDATE categories SET image_url = ? WHERE id = ?');
-        foreach ($cats as $c) {
-            $current = $c['image_url'] ?? null;
-            if (!category_image_needs_assign($current)) {
-                continue;
-            }
-            $url = category_stock_image_url((string) $c['name'], (int) $c['id']);
-            $stmt->execute([$url, (int) $c['id']]);
-            $updated++;
-        }
-        flash('success', $updated > 0 ? ("Assigned images for {$updated} categories.") : 'All categories already have images.');
+        $updated = auto_assign_missing_category_images();
+        flash('success', $updated > 0
+            ? ("Assigned random supermarket photos for {$updated} categories.")
+            : 'All categories already have images.');
         redirect('categories.php');
     }
 
@@ -226,10 +217,10 @@ if ($editing):
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="auto_images">
         <button type="submit" class="admin-btn admin-btn-outline">
-            <i class="bi bi-image"></i> Auto-assign missing category images
+            <i class="bi bi-image"></i> Auto-assign random supermarket photos
         </button>
     </form>
-    <form method="post" class="d-inline" onsubmit="return confirm('Remove image URLs from ALL categories? Local SVG files are kept.');">
+    <form method="post" class="d-inline" onsubmit="return confirm('Remove images from ALL categories?');">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="clear_images">
         <button type="submit" class="admin-btn admin-btn-outline text-danger">
