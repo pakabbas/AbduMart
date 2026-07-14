@@ -75,11 +75,29 @@
                         listEl.innerHTML = '<div class="admin-empty"><i class="bi bi-car-front"></i><p>No customers checked in yet.</p></div>';
                     } else {
                         listEl.innerHTML = data.arrivals.map(function (a) {
+                            var csrf = document.querySelector('meta[name="csrf-token"]');
+                            var csrfToken = csrf ? csrf.getAttribute('content') : '';
+                            var callBtn = '';
+                            if (a.phone) {
+                                var digits = String(a.phone).replace(/\D+/g, '');
+                                if (digits.length >= 10) {
+                                    callBtn = '<a href="tel:' + digits + '" class="admin-btn admin-btn-outline admin-btn-sm" aria-label="Call customer" title="Call customer"><i class="bi bi-telephone-fill"></i> <span>Call</span></a>';
+                                }
+                            }
                             return '<div class="arrival-row"><div class="d-flex justify-content-between align-items-start mb-1"><strong>' +
                                 esc(a.customer_name) + '</strong><span class="admin-badge admin-badge-red">' + esc(a.order_number) + '</span></div>' +
                                 '<div class="small text-muted mb-2">Arrived ' + esc(a.arrived_label) +
                                 (a.vehicle ? ' · ' + esc(a.vehicle) : '') + '</div>' +
-                                '<a href="orders.php?id=' + a.id + '" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a></div>';
+                                '<div class="d-flex gap-2 flex-wrap">' +
+                                '<a href="orders.php?id=' + a.id + '" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>' +
+                                '<form method="post" class="m-0">' +
+                                '<input type="hidden" name="csrf_token" value="' + esc(csrfToken) + '">' +
+                                '<input type="hidden" name="action" value="picked_up">' +
+                                '<input type="hidden" name="order_id" value="' + a.id + '">' +
+                                '<button type="submit" class="admin-btn admin-btn-outline admin-btn-sm"><i class="bi bi-bag-check"></i> Picked up</button>' +
+                                '</form>' +
+                                callBtn +
+                                '</div></div>';
                         }).join('');
                     }
                 }

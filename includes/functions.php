@@ -287,6 +287,55 @@ function validate_customer_phone(string $phone): ?string
     return null;
 }
 
+function phone_tel_digits(?string $phone): ?string
+{
+    $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
+    if (strlen($digits) < 10) {
+        return null;
+    }
+
+    return $digits;
+}
+
+function mart_phone_number(): string
+{
+    return trim((string) setting('mart.phone', config('mart.phone', '')));
+}
+
+/**
+ * Render a tel: link button. Returns empty string when phone is missing/invalid.
+ */
+function call_phone_button(
+    ?string $phone,
+    string $label = 'Call',
+    string $classes = 'btn btn-outline-danger btn-sm',
+    bool $iconOnly = false,
+    ?string $ariaLabel = null
+): string {
+    $digits = phone_tel_digits($phone);
+    if ($digits === null) {
+        return '';
+    }
+
+    $aria = $ariaLabel ?? ($label !== '' ? $label : 'Call');
+    $content = '<i class="bi bi-telephone-fill"></i>';
+    if (!$iconOnly && $label !== '') {
+        $content .= ' <span>' . e($label) . '</span>';
+    }
+
+    return '<a href="tel:' . e($digits) . '" class="' . e($classes) . '" aria-label="' . e($aria) . '" title="' . e($aria) . '">' . $content . '</a>';
+}
+
+function call_customer_button(?string $phone, bool $iconOnly = false, string $classes = 'admin-btn admin-btn-outline admin-btn-sm'): string
+{
+    return call_phone_button($phone, 'Call', $classes, $iconOnly, 'Call customer');
+}
+
+function call_mart_button(bool $iconOnly = false, string $classes = 'btn btn-outline-danger'): string
+{
+    return call_phone_button(mart_phone_number(), 'Call store', $classes, $iconOnly, 'Call Abdu Market');
+}
+
 function is_ajax_request(): bool
 {
     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {

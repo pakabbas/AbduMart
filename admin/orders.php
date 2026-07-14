@@ -90,7 +90,9 @@ if ($orderId) {
 
     $pageTitle = 'Order ' . $order['order_number'];
     $pageSubtitle = $order['first_name'] . ' ' . $order['last_name'];
-    $headerActions = '<a href="orders.php" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-left"></i> All orders</a>';
+    $callBtn = call_customer_button($order['phone'] ?? null, false, 'admin-btn admin-btn-outline');
+    $headerActions = ($callBtn !== '' ? $callBtn . ' ' : '')
+        . '<a href="orders.php" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-left"></i> All orders</a>';
 
     require dirname(__DIR__) . '/includes/admin_header.php';
     ?>
@@ -112,6 +114,23 @@ if ($orderId) {
     </div>
     <?php endif; ?>
 
+    <div class="admin-card mb-4">
+        <div class="admin-card-body padded d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="text-muted small mb-1">Customer</div>
+                <strong><?= e(trim($order['first_name'] . ' ' . $order['last_name'])) ?></strong>
+                <div class="small text-muted"><?= e($order['email']) ?></div>
+                <?php if (!empty($order['phone'])): ?>
+                <div class="small mt-1"><i class="bi bi-telephone"></i> <?= e($order['phone']) ?></div>
+                <?php else: ?>
+                <div class="small text-muted mt-1">No phone on file</div>
+                <?php endif; ?>
+            </div>
+            <div class="d-flex gap-2">
+                <?= call_customer_button($order['phone'] ?? null, false, 'admin-btn admin-btn-primary') ?>
+            </div>
+        </div>
+    </div>
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="admin-card">
@@ -231,7 +250,7 @@ if ($orderId) {
 }
 
 $statusFilter = $_GET['status'] ?? '';
-$sql = 'SELECT o.*, u.first_name, u.last_name FROM orders o JOIN users u ON u.id = o.user_id WHERE 1=1';
+$sql = 'SELECT o.*, u.first_name, u.last_name, u.phone FROM orders o JOIN users u ON u.id = o.user_id WHERE 1=1';
 $params = [];
 if ($statusFilter !== '') {
     $sql .= ' AND o.status = ?';
@@ -282,7 +301,12 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                     <td><?= e(ucfirst(str_replace('_', ' ', $order['status']))) ?></td>
                     <td><?= $order['customer_here_at'] ? '<span class="admin-badge admin-badge-red">HERE</span>' : '—' ?></td>
                     <td><?= e(date('M j, g:i A', strtotime($order['created_at']))) ?></td>
-                    <td><a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a></td>
+                    <td>
+                        <div class="d-flex gap-2 justify-content-end flex-wrap">
+                            <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a>
+                            <?= call_customer_button($order['phone'] ?? null, true) ?>
+                        </div>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
