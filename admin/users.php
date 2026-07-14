@@ -179,7 +179,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                 <span class="admin-badge admin-badge-green"><?= count($adminUsers) ?> admin<?= count($adminUsers) === 1 ? '' : 's' ?></span>
             </div>
             <div class="table-responsive">
-                <table class="admin-table">
+                <table class="admin-table admin-table-compact">
                     <thead>
                         <tr>
                             <th>Name</th>
