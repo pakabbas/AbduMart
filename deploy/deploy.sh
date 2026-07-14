@@ -22,7 +22,7 @@ php scripts/migrate.php
 
 echo "==> Ensuring uploads directory is writable..."
 mkdir -p "$DEPLOY_PATH/assets/uploads"
-chmod 775 "$DEPLOY_PATH/assets/uploads"
+chmod 775 "$DEPLOY_PATH/assets/uploads" 2>/dev/null || sudo chmod 775 "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
 if id "$APP_USER" >/dev/null 2>&1; then
     sudo chown "$APP_USER:$APP_USER" "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
 fi
@@ -30,10 +30,15 @@ fi
 echo "==> Fixing permissions..."
 # Keep .env owned by deploy user; web server needs read access
 if [ -f .env ]; then
-    chmod 640 .env
+    chmod 640 .env 2>/dev/null || true
 fi
-find "$DEPLOY_PATH" -type d -exec chmod 775 {} \;
-find "$DEPLOY_PATH" -type f -exec chmod 664 {} \;
+# Skip assets/uploads (owned by www-data) and .git when fixing tree permissions
+find "$DEPLOY_PATH" \
+    \( -path "$DEPLOY_PATH/assets/uploads" -o -path "$DEPLOY_PATH/.git" \) -prune \
+    -o -type d -exec chmod 775 {} + 2>/dev/null || true
+find "$DEPLOY_PATH" \
+    \( -path "$DEPLOY_PATH/assets/uploads" -o -path "$DEPLOY_PATH/.git" \) -prune \
+    -o -type f -exec chmod 664 {} + 2>/dev/null || true
 
 echo "==> Reloading PHP-FPM..."
 if systemctl is-active --quiet php8.3-fpm 2>/dev/null; then
