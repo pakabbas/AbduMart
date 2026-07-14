@@ -44,7 +44,7 @@ $arrivals = db()->query(
 )->fetchAll();
 
 $recentOrders = db()->query(
-    "SELECT o.*, u.first_name, u.last_name
+    "SELECT o.*, u.first_name, u.last_name, u.phone
      FROM orders o JOIN users u ON u.id = o.user_id
      ORDER BY o.created_at DESC LIMIT 8"
 )->fetchAll();
@@ -109,6 +109,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                                 <i class="bi bi-bag-check"></i> Picked up
                             </button>
                         </form>
+                        <?= call_customer_button($order['phone'] ?? null) ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -145,7 +146,12 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                                 <span class="admin-badge admin-badge-red ms-1">HERE</span>
                                 <?php endif; ?>
                             </td>
-                            <td><a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a></td>
+                            <td>
+                                <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a>
+                                    <?= call_customer_button($order['phone'] ?? null, true) ?>
+                                </div>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

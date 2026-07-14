@@ -66,6 +66,19 @@ require __DIR__ . '/includes/header.php';
 
             <?php require __DIR__ . '/includes/im_here_panel.php'; ?>
 
+            <?php $callMart = call_mart_button(false, 'btn btn-outline-danger'); ?>
+            <?php if ($callMart !== ''): ?>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4 d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                    <div>
+                        <h2 class="h5 mb-1"><i class="bi bi-telephone text-danger me-1"></i> Call the store</h2>
+                        <p class="text-muted mb-0 small">Questions about pickup? Reach Abdu Market at <?= e(mart_phone_number()) ?></p>
+                    </div>
+                    <?= $callMart ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="d-flex flex-wrap gap-2 justify-content-center mt-4">
                 <a href="orders.php?order=<?= (int) $order['id'] ?>" class="btn btn-outline-danger">View order details</a>
                 <a href="index.php" class="btn btn-danger">Continue shopping</a>

@@ -94,6 +94,17 @@ $statusLabels = [
             <?php endif; ?>
 
             <?php $order = $activeOrder; require __DIR__ . '/includes/im_here_panel.php'; ?>
+
+            <?php $callMart = call_mart_button(false, 'btn btn-outline-danger'); ?>
+            <?php if ($callMart !== ''): ?>
+            <div class="d-flex flex-wrap gap-2 align-items-center mt-4 p-3 rounded-3 border bg-white">
+                <div class="me-auto">
+                    <strong>Need help with pickup?</strong>
+                    <div class="small text-muted">Call Abdu Market at <?= e(mart_phone_number()) ?></div>
+                </div>
+                <?= $callMart ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
