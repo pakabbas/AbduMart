@@ -7,6 +7,11 @@ require_admin();
 
 $adminSection = 'reports';
 
+$tab = $_GET['tab'] ?? 'sales';
+if (!in_array($tab, ['sales', 'products', 'customers'], true)) {
+    $tab = 'sales';
+}
+
 $range = $_GET['range'] ?? '30d';
 $days = match ($range) {
     '7d' => 7,
@@ -204,8 +209,14 @@ $paymentLabels = array_map(static function (array $row): string {
 $paymentRevenue = array_map(static fn (array $row): float => round((float) $row['method_revenue'], 2), $paymentBreakdown);
 
 $pageTitle = 'Reports';
-$pageSubtitle = 'Sales analytics and trends';
+$pageSubtitle = match ($tab) {
+    'products' => 'Product and category performance',
+    'customers' => 'Customer signup and growth',
+    default => 'Sales, revenue, and order trends',
+};
+$reportsBase = 'reports.php?range=' . rawurlencode($range);
 $headerActions = '<form method="get" class="d-flex gap-2 align-items-center">'
+    . '<input type="hidden" name="tab" value="' . e($tab) . '">'
     . '<select name="range" class="admin-input" style="min-width:140px" onchange="this.form.submit()">'
     . '<option value="7d"' . ($range === '7d' ? ' selected' : '') . '>Last 7 days</option>'
     . '<option value="30d"' . ($range === '30d' ? ' selected' : '') . '>Last 30 days</option>'
@@ -245,19 +256,37 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="admin-card">
-            <div class="admin-card-header">
-                <h2><i class="bi bi-person-plus me-2"></i>Customer registration trend</h2>
-                <span class="admin-badge"><?= (int) $newCustomers ?> new in <?= e($range) ?></span>
-            </div>
-            <div class="admin-card-body padded">
-                <canvas id="customerRegChart" height="90"></canvas>
-            </div>
-        </div>
-    </div>
+<div class="admin-tabbar admin-tabbar--reports mb-4">
+    <nav class="admin-tabbar-nav admin-tabbar-nav--3" aria-label="Report sections">
+        <a href="<?= e($reportsBase . '&tab=sales') ?>" class="admin-tabbar-item<?= $tab === 'sales' ? ' is-active' : '' ?>">
+            <span class="admin-tabbar-icon"><i class="bi bi-graph-up-arrow"></i></span>
+            <span class="admin-tabbar-copy">
+                <strong>Sales</strong>
+                <small>Revenue & orders</small>
+            </span>
+            <span class="admin-tabbar-count"><?= (int) $ordersNonCancelled ?></span>
+        </a>
+        <a href="<?= e($reportsBase . '&tab=products') ?>" class="admin-tabbar-item<?= $tab === 'products' ? ' is-active' : '' ?>">
+            <span class="admin-tabbar-icon"><i class="bi bi-box-seam"></i></span>
+            <span class="admin-tabbar-copy">
+                <strong>Products</strong>
+                <small>Top sellers & categories</small>
+            </span>
+            <span class="admin-tabbar-count"><?= count($bestItems) ?></span>
+        </a>
+        <a href="<?= e($reportsBase . '&tab=customers') ?>" class="admin-tabbar-item<?= $tab === 'customers' ? ' is-active' : '' ?>">
+            <span class="admin-tabbar-icon"><i class="bi bi-people"></i></span>
+            <span class="admin-tabbar-copy">
+                <strong>Customers</strong>
+                <small>Signups & growth</small>
+            </span>
+            <span class="admin-tabbar-count"><?= (int) $newCustomers ?></span>
+        </a>
+    </nav>
 </div>
+
+<div class="admin-report-panel">
+<?php if ($tab === 'sales'): ?>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
@@ -282,7 +311,36 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     </div>
 </div>
 
-<div class="row g-4 mb-4">
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="admin-card h-100">
+            <div class="admin-card-header"><h2><i class="bi bi-bar-chart me-2"></i>Daily revenue</h2></div>
+            <div class="admin-card-body padded">
+                <canvas id="revenueBarChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="admin-card h-100">
+            <div class="admin-card-header"><h2><i class="bi bi-wallet2 me-2"></i>Payment mix</h2></div>
+            <div class="admin-card-body padded">
+                <?php if (!$hasPaymentMethod): ?>
+                <p class="text-muted mb-0">Payment method tracking requires migration <code>005_pay_on_arrival_and_order_logs.sql</code>.</p>
+                <?php elseif (empty($paymentBreakdown)): ?>
+                <p class="text-muted mb-0">No paid orders in this range.</p>
+                <?php else: ?>
+                <canvas id="paymentChart" height="160" class="mb-3"></canvas>
+                <p class="mb-2 text-muted">Pay on arrival revenue (<?= e($range) ?>):</p>
+                <div class="fs-4 fw-bold" style="color:var(--admin-red)"><?= e(format_money($arrivalRevenue)) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php elseif ($tab === 'products'): ?>
+
+<div class="row g-4">
     <div class="col-lg-7">
         <div class="admin-card h-100">
             <div class="admin-card-header">
@@ -365,31 +423,48 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     </div>
 </div>
 
+<?php else: ?>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="admin-stat h-100 mb-0">
+            <div class="admin-stat-label">New customers</div>
+            <div class="admin-stat-value"><?= (int) $newCustomers ?></div>
+            <div class="small text-muted">Signups in <?= e($range) ?></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="admin-stat h-100 mb-0">
+            <div class="admin-stat-label">Avg daily signups</div>
+            <div class="admin-stat-value"><?= $days > 0 ? number_format($newCustomers / $days, 1) : '0' ?></div>
+            <div class="small text-muted">Per day this period</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="admin-stat h-100 mb-0">
+            <div class="admin-stat-label">Peak signup day</div>
+            <?php $peakSignups = max($customerRegSeries ?: [0]); ?>
+            <div class="admin-stat-value"><?= (int) $peakSignups ?></div>
+            <div class="small text-muted">Most in a single day</div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
-    <div class="col-lg-6">
-        <div class="admin-card h-100">
-            <div class="admin-card-header"><h2><i class="bi bi-bar-chart me-2"></i>Daily revenue</h2></div>
+    <div class="col-12">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2><i class="bi bi-person-plus me-2"></i>Customer registration trend</h2>
+                <span class="admin-badge"><?= (int) $newCustomers ?> new in <?= e($range) ?></span>
+            </div>
             <div class="admin-card-body padded">
-                <canvas id="revenueBarChart" height="120"></canvas>
+                <canvas id="customerRegChart" height="110"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="admin-card h-100">
-            <div class="admin-card-header"><h2><i class="bi bi-wallet2 me-2"></i>Payment mix</h2></div>
-            <div class="admin-card-body padded">
-                <?php if (!$hasPaymentMethod): ?>
-                <p class="text-muted mb-0">Payment method tracking requires migration <code>005_pay_on_arrival_and_order_logs.sql</code>.</p>
-                <?php elseif (empty($paymentBreakdown)): ?>
-                <p class="text-muted mb-0">No paid orders in this range.</p>
-                <?php else: ?>
-                <canvas id="paymentChart" height="160" class="mb-3"></canvas>
-                <p class="mb-2 text-muted">Pay on arrival revenue (<?= e($range) ?>):</p>
-                <div class="fs-4 fw-bold" style="color:var(--admin-red)"><?= e(format_money($arrivalRevenue)) ?></div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+</div>
+
+<?php endif; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -407,6 +482,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     const paymentLabels = <?= json_encode($paymentLabels) ?>;
     const paymentRevenue = <?= json_encode($paymentRevenue) ?>;
     const customerRegistrations = <?= json_encode($customerRegSeries) ?>;
+    const activeTab = <?= json_encode($tab) ?>;
 
     const palette = ['#c8102e', '#111827', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
     const statusColors = {
@@ -424,179 +500,185 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         return new Chart(el, config);
     }
 
-    makeChart('ordersChart', {
-        type: 'line',
-        data: {
-            labels: chartLabels,
-            datasets: [
-                {
-                    label: 'Orders',
-                    data: orders,
-                    borderColor: '#c8102e',
-                    backgroundColor: 'rgba(200, 16, 46, 0.10)',
-                    tension: 0.35,
-                    fill: true,
-                    yAxisID: 'y',
-                },
-                {
-                    label: 'Revenue ($)',
-                    data: revenue,
-                    borderColor: '#111827',
-                    backgroundColor: 'rgba(17, 24, 39, 0.08)',
-                    tension: 0.35,
-                    fill: false,
-                    yAxisID: 'y1',
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' }, tooltip: { mode: 'index', intersect: false } },
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } },
-                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
-            }
-        }
-    });
-
-    makeChart('customerRegChart', {
-        type: 'line',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                label: 'New customers',
-                data: customerRegistrations,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                tension: 0.35,
-                fill: true,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            }
-        }
-    });
-
-    if (statusLabels.length) {
-        makeChart('statusChart', {
-            type: 'doughnut',
+    if (activeTab === 'sales') {
+        makeChart('ordersChart', {
+            type: 'line',
             data: {
-                labels: statusLabels,
-                datasets: [{
-                    data: statusCounts,
-                    backgroundColor: statusLabels.map((label, i) => {
-                        const key = label.toLowerCase().replace(/ /g, '_');
-                        return statusColors[key] || palette[i % palette.length];
-                    }),
-                    borderWidth: 0,
-                }]
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Orders',
+                        data: orders,
+                        borderColor: '#c8102e',
+                        backgroundColor: 'rgba(200, 16, 46, 0.10)',
+                        tension: 0.35,
+                        fill: true,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Revenue ($)',
+                        data: revenue,
+                        borderColor: '#111827',
+                        backgroundColor: 'rgba(17, 24, 39, 0.08)',
+                        tension: 0.35,
+                        fill: false,
+                        yAxisID: 'y1',
+                    }
+                ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '62%',
+                plugins: { legend: { position: 'bottom' }, tooltip: { mode: 'index', intersect: false } },
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                    y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                }
             }
         });
-    }
 
-    if (bestItemLabels.length) {
-        makeChart('bestItemsChart', {
+        if (statusLabels.length) {
+            makeChart('statusChart', {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusCounts,
+                        backgroundColor: statusLabels.map((label, i) => {
+                            const key = label.toLowerCase().replace(/ /g, '_');
+                            return statusColors[key] || palette[i % palette.length];
+                        }),
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    cutout: '62%',
+                }
+            });
+        }
+
+        makeChart('revenueBarChart', {
             type: 'bar',
             data: {
-                labels: bestItemLabels,
+                labels: chartLabels,
                 datasets: [{
-                    label: 'Units sold',
-                    data: bestItemUnits,
-                    backgroundColor: 'rgba(200, 16, 46, 0.85)',
-                    borderRadius: 8,
+                    label: 'Revenue ($)',
+                    data: revenue,
+                    backgroundColor: 'rgba(17, 24, 39, 0.82)',
+                    borderRadius: 6,
                 }]
             },
             options: {
-                indexAxis: 'y',
                 responsive: true,
                 plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                scales: { y: { beginAtZero: true } }
             }
         });
-    }
 
-    if (bestCategoryLabels.length) {
-        makeChart('bestCategoriesChart', {
-            type: 'doughnut',
-            data: {
-                labels: bestCategoryLabels,
-                datasets: [{
-                    data: bestCategoryRevenue,
-                    backgroundColor: palette,
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label(ctx) {
-                                const value = ctx.parsed || 0;
-                                return (ctx.label || '') + ': $' + value.toFixed(2);
-                            }
-                        }
-                    }
+        if (paymentLabels.length) {
+            makeChart('paymentChart', {
+                type: 'pie',
+                data: {
+                    labels: paymentLabels,
+                    datasets: [{
+                        data: paymentRevenue,
+                        backgroundColor: ['#111827', '#c8102e'],
+                        borderWidth: 0,
+                    }]
                 },
-                cutout: '55%',
-            }
-        });
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label(ctx) {
+                                    const value = ctx.parsed || 0;
+                                    return (ctx.label || '') + ': $' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
-    makeChart('revenueBarChart', {
-        type: 'bar',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                label: 'Revenue ($)',
-                data: revenue,
-                backgroundColor: 'rgba(17, 24, 39, 0.82)',
-                borderRadius: 6,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
+    if (activeTab === 'products') {
+        if (bestItemLabels.length) {
+            makeChart('bestItemsChart', {
+                type: 'bar',
+                data: {
+                    labels: bestItemLabels,
+                    datasets: [{
+                        label: 'Units sold',
+                        data: bestItemUnits,
+                        backgroundColor: 'rgba(200, 16, 46, 0.85)',
+                        borderRadius: 8,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
         }
-    });
 
-    if (paymentLabels.length) {
-        makeChart('paymentChart', {
-            type: 'pie',
+        if (bestCategoryLabels.length) {
+            makeChart('bestCategoriesChart', {
+                type: 'doughnut',
+                data: {
+                    labels: bestCategoryLabels,
+                    datasets: [{
+                        data: bestCategoryRevenue,
+                        backgroundColor: palette,
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label(ctx) {
+                                    const value = ctx.parsed || 0;
+                                    return (ctx.label || '') + ': $' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    cutout: '55%',
+                }
+            });
+        }
+    }
+
+    if (activeTab === 'customers') {
+        makeChart('customerRegChart', {
+            type: 'line',
             data: {
-                labels: paymentLabels,
+                labels: chartLabels,
                 datasets: [{
-                    data: paymentRevenue,
-                    backgroundColor: ['#111827', '#c8102e'],
-                    borderWidth: 0,
+                    label: 'New customers',
+                    data: customerRegistrations,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
                 }]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label(ctx) {
-                                const value = ctx.parsed || 0;
-                                return (ctx.label || '') + ': $' + value.toFixed(2);
-                            }
-                        }
-                    }
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
                 }
             }
         });
