@@ -1117,6 +1117,78 @@ body.shop-app-page {
     border-radius: var(--radius) !important;
 }
 
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.order-item-row {
+    display: grid;
+    grid-template-columns: 2.1rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.85rem;
+    background: #fafafa;
+    border: 1px solid #eceff2;
+    border-radius: 12px;
+}
+
+.order-item-qty {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 8px;
+    background: var(--am-red-light);
+    color: var(--am-red);
+    font-weight: 800;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.order-item-copy {
+    min-width: 0;
+}
+
+.order-item-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--am-dark);
+    word-break: break-word;
+}
+
+.order-item-meta {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    color: var(--am-gray);
+}
+
+.order-item-price {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--am-red);
+    white-space: nowrap;
+    text-align: right;
+}
+
+@media (max-width: 575.98px) {
+    .order-item-row {
+        gap: 0.65rem;
+        padding: 0.7rem 0.75rem;
+    }
+
+    .order-item-name {
+        font-size: 0.9rem;
+    }
+
+    .order-item-price {
+        font-size: 0.9rem;
+    }
+}
+
 /* Admin layout */
 .admin-layout {
     background: linear-gradient(180deg, #f8f9fb 0%, #f3f4f6 100%);

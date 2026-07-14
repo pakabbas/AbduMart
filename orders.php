@@ -63,13 +63,17 @@ $statusLabels = [
                 </div>
             </div>
 
-            <div class="row g-3 mb-4">
+            <div class="order-items-list mb-4">
                 <?php foreach ($activeItems as $item): ?>
-                <div class="col-md-6">
-                    <div class="d-flex justify-content-between small">
-                        <span><?= (int) $item['quantity'] ?>× <?= e($item['product_name']) ?></span>
-                        <span><?= format_money($item['line_total']) ?></span>
+                <div class="order-item-row">
+                    <div class="order-item-qty" aria-hidden="true"><?= (int) $item['quantity'] ?></div>
+                    <div class="order-item-copy">
+                        <div class="order-item-name"><?= e($item['product_name']) ?></div>
+                        <?php if (!empty($item['unit_price'])): ?>
+                        <div class="order-item-meta"><?= (int) $item['quantity'] ?> × <?= format_money($item['unit_price']) ?></div>
+                        <?php endif; ?>
                     </div>
+                    <div class="order-item-price"><?= format_money($item['line_total']) ?></div>
                 </div>
                 <?php endforeach; ?>
             </div>
