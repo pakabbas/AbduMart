@@ -108,8 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             SettingsService::setMany($updates);
-            $values = SettingsService::getGroup($fields);
-            $message = 'Settings saved successfully.';
+            SettingsService::flushCache();
+            flash('success', 'Settings saved successfully.');
+            redirect('settings.php#theme');
             }
             }
         }
@@ -470,7 +471,7 @@ if ($error): ?>
                         <div class="col-md-3">
                             <div class="admin-field mb-0">
                                 <label for="theme_primary_color">Start hex</label>
-                                <input type="text" id="theme_primary_color" name="theme_primary_color" class="admin-input" value="<?= e($themePrimary) ?>" pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$" required>
+                                <input type="text" id="theme_primary_color" name="theme_primary_color" class="admin-input" value="<?= e($themePrimary) ?>" required>
                             </div>
                         </div>
                         <div class="col-md-3 theme-secondary-fields<?= $themeMode === 'gradient' ? '' : ' d-none' ?>">
@@ -482,7 +483,7 @@ if ($error): ?>
                         <div class="col-md-3 theme-secondary-fields<?= $themeMode === 'gradient' ? '' : ' d-none' ?>">
                             <div class="admin-field mb-0">
                                 <label for="theme_secondary_color">End hex</label>
-                                <input type="text" id="theme_secondary_color" name="theme_secondary_color" class="admin-input" value="<?= e($themeSecondary) ?>" pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$">
+                                <input type="text" id="theme_secondary_color" name="theme_secondary_color" class="admin-input" value="<?= e($themeSecondary) ?>">
                             </div>
                         </div>
                         <div class="col-12 col-lg-3">
@@ -662,7 +663,7 @@ if ($error): ?>
         const row = document.createElement('div');
         row.className = 'store-holiday-row';
         row.innerHTML =
-            '<input type="date" name="store_holidays[' + holidayIndex + '][date]" class="admin-input" required>' +
+            '<input type="date" name="store_holidays[' + holidayIndex + '][date]" class="admin-input">' +
             '<input type="text" name="store_holidays[' + holidayIndex + '][name]" class="admin-input" placeholder="Holiday name (optional)">' +
             '<button type="button" class="admin-btn admin-btn-outline admin-btn-sm text-danger holiday-remove-btn" aria-label="Remove holiday"><i class="bi bi-trash"></i></button>';
         holidayRows.appendChild(row);
@@ -773,19 +774,28 @@ if ($error): ?>
         });
     });
 
-    function onColorChange() {
+    colorPicker?.addEventListener('input', function () {
         markCustomPreset();
-        applyThemePreview({});
-    }
-
-    colorPicker?.addEventListener('input', onColorChange);
-    secondaryPicker?.addEventListener('input', onColorChange);
+        applyThemePreview({ primary: colorPicker.value });
+    });
+    secondaryPicker?.addEventListener('input', function () {
+        markCustomPreset();
+        applyThemePreview({ secondary: secondaryPicker.value });
+    });
 
     hexInput?.addEventListener('input', function () {
-        if (normalizeHex(hexInput.value)) onColorChange();
+        const hex = normalizeHex(hexInput.value);
+        if (hex) {
+            markCustomPreset();
+            applyThemePreview({ primary: hex });
+        }
     });
     secondaryHexInput?.addEventListener('input', function () {
-        if (normalizeHex(secondaryHexInput.value)) onColorChange();
+        const hex = normalizeHex(secondaryHexInput.value);
+        if (hex) {
+            markCustomPreset();
+            applyThemePreview({ secondary: hex });
+        }
     });
 
     syncModeUi(currentMode());
