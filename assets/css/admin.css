@@ -391,6 +391,32 @@ body.admin-app {
 .admin-table tr:hover td { background: #fafbfc; }
 .admin-table tr.row-here td { background: #fffbeb; }
 
+.admin-table-compact th {
+    font-size: 0.64rem;
+    padding: 8px 16px;
+    letter-spacing: 0.06em;
+}
+
+.admin-table-compact td {
+    font-size: 0.78rem;
+    padding: 10px 16px;
+}
+
+.admin-table-compact td strong {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.admin-table-compact .admin-badge {
+    font-size: 0.68rem;
+    padding: 0.18rem 0.45rem;
+}
+
+.admin-table-compact .admin-btn-sm {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.65rem;
+}
+
 /* ── Buttons ── */
 .admin-btn {
     display: inline-flex;
