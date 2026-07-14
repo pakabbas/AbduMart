@@ -928,6 +928,68 @@ body.admin-app {
     color: #fff;
 }
 
+.admin-tabbar--reports {
+    padding: 0.5rem;
+}
+
+.admin-tabbar-nav--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-tabbar--reports .admin-tabbar-item.is-active {
+    background: linear-gradient(135deg, rgba(200, 16, 46, 0.1), rgba(200, 16, 46, 0.03));
+}
+
+.admin-tabbar--reports .admin-tabbar-count {
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.admin-report-panel {
+    animation: adminReportFadeIn 0.28s ease;
+}
+
+@keyframes adminReportFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 992px) {
+    .admin-tabbar--reports {
+        overflow: hidden;
+    }
+
+    .admin-tabbar-nav--3 {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .admin-tabbar-nav--3::-webkit-scrollbar {
+        display: none;
+    }
+
+    .admin-tabbar-nav--3 .admin-tabbar-item {
+        flex: 0 0 min(100%, 280px);
+        scroll-snap-align: start;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-count {
+        font-size: 0.7rem;
+        min-width: auto;
+        padding: 0 0.45rem;
+    }
+}
+
 @media (max-width: 768px) {
     .admin-tabbar-nav {
         grid-template-columns: 1fr;
