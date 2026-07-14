@@ -731,7 +731,23 @@ body.admin-app {
 
     .admin-page { padding: 16px; }
 
-    .admin-top-header { padding: 16px; }
+    .admin-top-header {
+        padding: 12px 16px;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+
+    .admin-top-header-text h1 {
+        font-size: 1.15rem;
+    }
+
+    .admin-top-header-text p {
+        display: none;
+    }
+
+    .admin-header-action-desktop {
+        display: none !important;
+    }
 
     .settings-shell {
         grid-template-columns: 1fr;
@@ -762,8 +778,12 @@ body.admin-app {
 @media (max-width: 520px) {
     .admin-stats { grid-template-columns: 1fr; }
     .settings-status-row { grid-template-columns: 1fr; }
-    .admin-header-actions { width: 100%; }
-    .admin-header-actions .admin-btn { flex: 1; }
+    .admin-header-actions:not(:has(.admin-header-action-desktop:only-child)) {
+        width: 100%;
+    }
+    .admin-header-actions:not(:has(.admin-header-action-desktop:only-child)) .admin-btn {
+        flex: 1;
+    }
 }
 
 .store-hours-panel,
@@ -990,6 +1010,7 @@ body.admin-app {
 @media (max-width: 992px) {
     .admin-tabbar--reports {
         overflow: hidden;
+        padding: 0.3rem;
     }
 
     .admin-tabbar-nav--3 {
@@ -998,6 +1019,7 @@ body.admin-app {
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        gap: 0.3rem;
     }
 
     .admin-tabbar-nav--3::-webkit-scrollbar {
@@ -1005,14 +1027,33 @@ body.admin-app {
     }
 
     .admin-tabbar-nav--3 .admin-tabbar-item {
-        flex: 0 0 min(100%, 280px);
+        flex: 1 1 0;
+        min-width: 0;
         scroll-snap-align: start;
+        gap: 0.45rem;
+        padding: 0.55rem 0.55rem;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-icon {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-copy strong {
+        font-size: 0.78rem;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-copy small {
+        display: none;
     }
 
     .admin-tabbar--reports .admin-tabbar-count {
-        font-size: 0.7rem;
-        min-width: auto;
-        padding: 0 0.45rem;
+        font-size: 0.68rem;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding: 0 0.35rem;
     }
 }
 
@@ -1023,6 +1064,20 @@ body.admin-app {
 
     .admin-tabbar-copy small {
         display: none;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-nav--3 .admin-tabbar-item {
+        flex: 1 1 calc(33.333% - 0.2rem);
+        padding: 0.45rem 0.4rem;
+        gap: 0.35rem;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-icon {
+        display: none;
+    }
+
+    .admin-tabbar--reports .admin-tabbar-copy strong {
+        font-size: 0.72rem;
     }
 }
 

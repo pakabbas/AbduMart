@@ -51,7 +51,7 @@ $recentOrders = db()->query(
 
 $pageTitle = 'Dashboard';
 $pageSubtitle = 'Canton curbside operations overview';
-$headerActions = '<a href="clover-sync.php" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-repeat"></i> Clover Sync</a>';
+$headerActions = '<a href="clover-sync.php" class="admin-btn admin-btn-outline admin-header-action-desktop"><i class="bi bi-arrow-repeat"></i> Clover Sync</a>';
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
