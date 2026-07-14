@@ -821,6 +821,44 @@ body.admin-app {
     }
 }
 
+.admin-page-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-page-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--admin-border);
+    background: #fff;
+    color: var(--admin-text);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: var(--admin-shadow);
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.admin-page-tab:hover {
+    color: var(--admin-red);
+    border-color: rgba(200, 16, 46, 0.25);
+}
+
+.admin-page-tab.is-active {
+    background: var(--admin-red);
+    border-color: var(--admin-red);
+    color: #fff;
+}
+
+.admin-page-tab.is-active .admin-badge {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
 .report-rank-table .report-rank {
     display: inline-flex;
     align-items: center;
