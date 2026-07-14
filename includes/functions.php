@@ -64,6 +64,11 @@ function theme_default_primary(): string
     return '#c8102e';
 }
 
+function theme_default_secondary(): string
+{
+    return '#9b0c24';
+}
+
 function normalize_theme_hex(string $color): ?string
 {
     $color = trim($color);
@@ -126,6 +131,13 @@ function theme_soft_hex(string $hex): string
     return theme_adjust_hex($hex, 1.92);
 }
 
+function theme_mode(): string
+{
+    $mode = strtolower(trim((string) setting('theme_mode', 'solid')));
+
+    return $mode === 'gradient' ? 'gradient' : 'solid';
+}
+
 function theme_primary_color(): string
 {
     $stored = normalize_theme_hex((string) setting('theme_primary_color', theme_default_primary()));
@@ -133,20 +145,56 @@ function theme_primary_color(): string
     return $stored ?? theme_default_primary();
 }
 
+function theme_secondary_color(): string
+{
+    $stored = normalize_theme_hex((string) setting('theme_secondary_color', theme_default_secondary()));
+
+    return $stored ?? theme_default_secondary();
+}
+
 /**
- * @return array{primary:string,dark:string,darker:string,soft:string,rgb:string}
+ * @return array{
+ *   mode:string,
+ *   primary:string,
+ *   secondary:string,
+ *   dark:string,
+ *   darker:string,
+ *   soft:string,
+ *   rgb:string,
+ *   fill:string,
+ *   fill_hover:string
+ * }
  */
-function theme_palette(?string $primary = null): array
+function theme_palette(?string $primary = null, ?string $secondary = null, ?string $mode = null): array
 {
     $primary = normalize_theme_hex($primary ?? theme_primary_color()) ?? theme_default_primary();
+    $secondary = normalize_theme_hex($secondary ?? theme_secondary_color()) ?? theme_default_secondary();
+    $mode = ($mode ?? theme_mode()) === 'gradient' ? 'gradient' : 'solid';
     $rgb = theme_hex_to_rgb($primary) ?? ['r' => 200, 'g' => 16, 'b' => 46];
+    $dark = theme_adjust_hex($primary, 0.78);
+    $darker = theme_adjust_hex($primary, 0.62);
+    $soft = theme_soft_hex($primary);
+
+    if ($mode === 'gradient') {
+        $fill = 'linear-gradient(135deg, ' . $primary . ' 0%, ' . $secondary . ' 100%)';
+        $fillHover = 'linear-gradient(135deg, ' . theme_adjust_hex($primary, 0.88) . ' 0%, ' . theme_adjust_hex($secondary, 0.88) . ' 100%)';
+        $dark = $secondary;
+        $darker = theme_adjust_hex($secondary, 0.82);
+    } else {
+        $fill = $primary;
+        $fillHover = $dark;
+    }
 
     return [
+        'mode' => $mode,
         'primary' => $primary,
-        'dark' => theme_adjust_hex($primary, 0.78),
-        'darker' => theme_adjust_hex($primary, 0.62),
-        'soft' => theme_soft_hex($primary),
+        'secondary' => $secondary,
+        'dark' => $dark,
+        'darker' => $darker,
+        'soft' => $soft,
         'rgb' => $rgb['r'] . ', ' . $rgb['g'] . ', ' . $rgb['b'],
+        'fill' => $fill,
+        'fill_hover' => $fillHover,
     ];
 }
 
@@ -156,12 +204,18 @@ function theme_inline_css(): string
 
     return ':root{'
         . '--am-red:' . $palette['primary'] . ';'
+        . '--am-red-2:' . $palette['secondary'] . ';'
         . '--am-red-dark:' . $palette['dark'] . ';'
         . '--am-red-light:' . $palette['soft'] . ';'
         . '--am-red-rgb:' . $palette['rgb'] . ';'
+        . '--am-brand-fill:' . $palette['fill'] . ';'
+        . '--am-brand-fill-hover:' . $palette['fill_hover'] . ';'
         . '--admin-red:' . $palette['primary'] . ';'
+        . '--admin-red-2:' . $palette['secondary'] . ';'
         . '--admin-red-dark:' . $palette['dark'] . ';'
         . '--admin-red-soft:' . $palette['soft'] . ';'
+        . '--admin-brand-fill:' . $palette['fill'] . ';'
+        . '--admin-brand-fill-hover:' . $palette['fill_hover'] . ';'
         . '--shadow-md:0 8px 30px rgba(' . $palette['rgb'] . ',0.08);'
         . '}';
 }

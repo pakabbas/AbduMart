@@ -4,8 +4,11 @@
 
 :root {
     --admin-red: #c8102e;
+    --admin-red-2: #9b0c24;
     --admin-red-dark: #a30d25;
     --admin-red-soft: #fff5f6;
+    --admin-brand-fill: var(--admin-red);
+    --admin-brand-fill-hover: var(--admin-red-dark);
     --admin-bg: #f4f5f7;
     --admin-surface: #ffffff;
     --admin-border: #e8eaed;
@@ -60,7 +63,7 @@ body.admin-app {
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
     display: flex;
     align-items: center;
@@ -126,7 +129,7 @@ body.admin-app {
 .admin-sidebar-link:hover i { color: var(--admin-red); }
 
 .admin-sidebar-link.active {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
     box-shadow: 0 4px 12px rgba(200, 16, 46, 0.25);
 }
@@ -349,7 +352,7 @@ body.admin-app {
 }
 
 .admin-card-header.red {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
     border-bottom: none;
 }
@@ -435,13 +438,13 @@ body.admin-app {
 }
 
 .admin-btn-primary {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
     box-shadow: 0 2px 8px rgba(200, 16, 46, 0.3);
 }
 
 .admin-btn-primary:hover {
-    background: var(--admin-red-dark);
+    background: var(--admin-brand-fill-hover);
     color: #fff;
 }
 
@@ -927,7 +930,7 @@ body.admin-app {
 }
 
 .admin-tabbar-item.is-active .admin-tabbar-icon {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
 }
 
@@ -970,7 +973,7 @@ body.admin-app {
 }
 
 .admin-tabbar-item.is-active .admin-tabbar-count {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
 }
 
@@ -1103,7 +1106,7 @@ body.admin-app {
 }
 
 .admin-page-tab.is-active {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     border-color: var(--admin-red);
     color: #fff;
 }
@@ -1127,15 +1130,49 @@ body.admin-app {
 }
 
 .report-rank-table tbody tr:first-child .report-rank {
-    background: var(--admin-red);
+    background: var(--admin-brand-fill);
     color: #fff;
 }
 
 .theme-picker-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+.theme-mode-toggle {
+    display: inline-flex;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    background: #fff;
+}
+
+.theme-mode-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 5.5rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--admin-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-mode-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.theme-mode-option.is-selected {
+    background: var(--admin-brand-fill);
+    color: #fff;
 }
 
 .theme-preset {
@@ -1215,7 +1252,7 @@ body.admin-app {
     align-items: center;
     justify-content: center;
     align-self: flex-start;
-    background: var(--preview-color, var(--admin-red));
+    background: var(--preview-fill, var(--preview-color, var(--admin-brand-fill)));
     color: #fff;
     font-size: 0.78rem;
     font-weight: 700;
