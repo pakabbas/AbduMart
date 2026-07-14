@@ -124,7 +124,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                 <a href="orders.php" class="admin-btn admin-btn-outline admin-btn-sm">View all</a>
             </div>
             <div class="table-responsive">
-                <table class="admin-table">
+                <table class="admin-table admin-table-compact">
                     <thead>
                         <tr>
                             <th>Order</th>
