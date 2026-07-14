@@ -23,6 +23,8 @@ $fields = [
     'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
     'theme_primary_color',
+    'theme_secondary_color',
+    'theme_mode',
 ];
 
 $values = SettingsService::getGroup($fields);
@@ -78,11 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$error) {
+                $themeMode = (($_POST['theme_mode'] ?? 'solid') === 'gradient') ? 'gradient' : 'solid';
                 $themeColor = normalize_theme_hex((string) ($_POST['theme_primary_color'] ?? ''));
+                $themeSecondary = normalize_theme_hex((string) ($_POST['theme_secondary_color'] ?? theme_default_secondary()));
                 if ($themeColor === null) {
-                    $error = 'Choose a valid theme color (hex format like #c8102e).';
+                    $error = 'Choose a valid start color (hex format like #c8102e).';
+                } elseif ($themeMode === 'gradient' && $themeSecondary === null) {
+                    $error = 'Choose a valid end color for the gradient.';
                 } else {
+                    $_POST['theme_mode'] = $themeMode;
                     $_POST['theme_primary_color'] = $themeColor;
+                    $_POST['theme_secondary_color'] = $themeSecondary ?? theme_default_secondary();
                 }
             }
 
@@ -109,10 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $values = SettingsService::getGroup($fields);
+$themeMode = (($values['theme_mode'] ?? 'solid') === 'gradient') ? 'gradient' : 'solid';
 $themePrimary = normalize_theme_hex((string) ($values['theme_primary_color'] ?? '')) ?? theme_default_primary();
+$themeSecondary = normalize_theme_hex((string) ($values['theme_secondary_color'] ?? '')) ?? theme_default_secondary();
+$themeFillPreview = $themeMode === 'gradient'
+    ? 'linear-gradient(135deg, ' . $themePrimary . ' 0%, ' . $themeSecondary . ' 100%)'
+    : $themePrimary;
 $themePresets = [
-    ['label' => 'Red', 'hex' => theme_default_primary()],
-    ['label' => 'Green', 'hex' => '#2bf728'],
+    ['id' => 'red', 'label' => 'Red', 'mode' => 'solid', 'primary' => theme_default_primary(), 'secondary' => theme_default_secondary()],
+    ['id' => 'green', 'label' => 'Green', 'mode' => 'solid', 'primary' => '#2bf728', 'secondary' => '#16a34a'],
+    ['id' => 'red-glow', 'label' => 'Red glow', 'mode' => 'gradient', 'primary' => '#c8102e', 'secondary' => '#ff6b35'],
+    ['id' => 'green-glow', 'label' => 'Green glow', 'mode' => 'gradient', 'primary' => '#2bf728', 'secondary' => '#0ea5e9'],
 ];
 $storeHours = StoreHoursService::weeklyHours();
 $storeHolidays = StoreHoursService::holidays();
@@ -376,47 +391,102 @@ if ($error): ?>
             <section class="settings-section" id="theme">
                 <div class="settings-section-head">
                     <h2><i class="bi bi-palette"></i> Theme color</h2>
-                    <p>Replace the brand red with any color. Whites and neutrals stay the same.</p>
+                    <p>Use a solid color or a two-color gradient. Whites and neutrals stay the same.</p>
                 </div>
                 <div class="settings-section-body">
                     <div class="admin-callout mb-4">
-                        This updates buttons, badges, links, and accents on both the storefront and admin panel.
+                        Updates buttons, badges, logos, and accents on both the storefront and admin panel.
                     </div>
+
+                    <div class="theme-mode-toggle mb-3" role="group" aria-label="Theme style">
+                        <label class="theme-mode-option<?= $themeMode === 'solid' ? ' is-selected' : '' ?>">
+                            <input type="radio" name="theme_mode" value="solid" <?= $themeMode === 'solid' ? 'checked' : '' ?>>
+                            <span>Solid</span>
+                        </label>
+                        <label class="theme-mode-option<?= $themeMode === 'gradient' ? ' is-selected' : '' ?>">
+                            <input type="radio" name="theme_mode" value="gradient" <?= $themeMode === 'gradient' ? 'checked' : '' ?>>
+                            <span>Gradient</span>
+                        </label>
+                    </div>
+
                     <div class="theme-picker-grid">
                         <?php foreach ($themePresets as $preset): ?>
-                        <label class="theme-preset<?= $themePrimary === $preset['hex'] ? ' is-selected' : '' ?>">
-                            <input type="radio" name="theme_preset" value="<?= e($preset['hex']) ?>" class="theme-preset-radio" <?= $themePrimary === $preset['hex'] ? 'checked' : '' ?>>
-                            <span class="theme-preset-swatch" style="background:<?= e($preset['hex']) ?>"></span>
+                        <?php
+                            $presetFill = $preset['mode'] === 'gradient'
+                                ? 'linear-gradient(135deg, ' . $preset['primary'] . ' 0%, ' . $preset['secondary'] . ' 100%)'
+                                : $preset['primary'];
+                            $isSelected = $themeMode === $preset['mode']
+                                && $themePrimary === $preset['primary']
+                                && ($preset['mode'] === 'solid' || $themeSecondary === $preset['secondary']);
+                        ?>
+                        <label class="theme-preset<?= $isSelected ? ' is-selected' : '' ?>" data-theme-preset="<?= e($preset['id']) ?>">
+                            <input
+                                type="radio"
+                                name="theme_preset"
+                                value="<?= e($preset['id']) ?>"
+                                class="theme-preset-radio"
+                                data-mode="<?= e($preset['mode']) ?>"
+                                data-primary="<?= e($preset['primary']) ?>"
+                                data-secondary="<?= e($preset['secondary']) ?>"
+                                <?= $isSelected ? 'checked' : '' ?>
+                            >
+                            <span class="theme-preset-swatch" style="background:<?= e($presetFill) ?>"></span>
                             <span class="theme-preset-meta">
                                 <strong><?= e($preset['label']) ?></strong>
-                                <small><?= e(strtoupper($preset['hex'])) ?></small>
+                                <small><?= $preset['mode'] === 'gradient' ? 'Gradient' : strtoupper($preset['primary']) ?></small>
                             </span>
                         </label>
                         <?php endforeach; ?>
-                        <label class="theme-preset theme-preset-custom<?= !in_array($themePrimary, array_column($themePresets, 'hex'), true) ? ' is-selected' : '' ?>">
-                            <input type="radio" name="theme_preset" value="custom" class="theme-preset-radio" <?= !in_array($themePrimary, array_column($themePresets, 'hex'), true) ? 'checked' : '' ?>>
-                            <span class="theme-preset-swatch theme-preset-swatch-custom" id="themeCustomSwatch" style="background:<?= e($themePrimary) ?>"></span>
+                        <?php
+                            $customSelected = true;
+                            foreach ($themePresets as $preset) {
+                                if (
+                                    $themeMode === $preset['mode']
+                                    && $themePrimary === $preset['primary']
+                                    && ($preset['mode'] === 'solid' || $themeSecondary === $preset['secondary'])
+                                ) {
+                                    $customSelected = false;
+                                    break;
+                                }
+                            }
+                        ?>
+                        <label class="theme-preset theme-preset-custom<?= $customSelected ? ' is-selected' : '' ?>">
+                            <input type="radio" name="theme_preset" value="custom" class="theme-preset-radio" data-mode="custom" <?= $customSelected ? 'checked' : '' ?>>
+                            <span class="theme-preset-swatch theme-preset-swatch-custom" id="themeCustomSwatch" style="background:<?= e($themeFillPreview) ?>"></span>
                             <span class="theme-preset-meta">
                                 <strong>Custom</strong>
-                                <small>Pick any color</small>
+                                <small>Your colors</small>
                             </span>
                         </label>
                     </div>
+
                     <div class="row g-3 align-items-end mt-1">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="admin-field mb-0">
-                                <label for="theme_primary_picker">Color picker</label>
+                                <label for="theme_primary_picker">Start color</label>
                                 <input type="color" id="theme_primary_picker" class="admin-input theme-color-input" value="<?= e($themePrimary) ?>">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="admin-field mb-0">
-                                <label for="theme_primary_color">Hex value</label>
+                                <label for="theme_primary_color">Start hex</label>
                                 <input type="text" id="theme_primary_color" name="theme_primary_color" class="admin-input" value="<?= e($themePrimary) ?>" pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="theme-live-preview" id="themeLivePreview" style="--preview-color:<?= e($themePrimary) ?>">
+                        <div class="col-md-3 theme-secondary-fields<?= $themeMode === 'gradient' ? '' : ' d-none' ?>">
+                            <div class="admin-field mb-0">
+                                <label for="theme_secondary_picker">End color</label>
+                                <input type="color" id="theme_secondary_picker" class="admin-input theme-color-input" value="<?= e($themeSecondary) ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-3 theme-secondary-fields<?= $themeMode === 'gradient' ? '' : ' d-none' ?>">
+                            <div class="admin-field mb-0">
+                                <label for="theme_secondary_color">End hex</label>
+                                <input type="text" id="theme_secondary_color" name="theme_secondary_color" class="admin-input" value="<?= e($themeSecondary) ?>" pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$">
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3">
+                            <div class="theme-live-preview" id="themeLivePreview" style="--preview-fill:<?= e($themeFillPreview) ?>; --preview-color:<?= e($themePrimary) ?>">
                                 <span class="theme-live-btn">Primary button</span>
                                 <span class="theme-live-link">Accent text</span>
                             </div>
@@ -603,9 +673,13 @@ if ($error): ?>
 
     const hexInput = document.getElementById('theme_primary_color');
     const colorPicker = document.getElementById('theme_primary_picker');
+    const secondaryHexInput = document.getElementById('theme_secondary_color');
+    const secondaryPicker = document.getElementById('theme_secondary_picker');
     const customSwatch = document.getElementById('themeCustomSwatch');
     const livePreview = document.getElementById('themeLivePreview');
     const presetRadios = document.querySelectorAll('.theme-preset-radio');
+    const modeRadios = document.querySelectorAll('input[name="theme_mode"]');
+    const secondaryFields = document.querySelectorAll('.theme-secondary-fields');
 
     function normalizeHex(value) {
         const raw = String(value || '').trim();
@@ -616,57 +690,105 @@ if ($error): ?>
         return null;
     }
 
-    function applyThemePreview(hex) {
-        const normalized = normalizeHex(hex);
-        if (!normalized) return;
-        if (hexInput) hexInput.value = normalized;
-        if (colorPicker) colorPicker.value = normalized;
-        if (customSwatch) customSwatch.style.background = normalized;
-        if (livePreview) livePreview.style.setProperty('--preview-color', normalized);
-        document.querySelectorAll('.theme-preset').forEach(function (el) {
-            const radio = el.querySelector('.theme-preset-radio');
-            const isMatch = radio && radio.value === normalized;
-            const isCustom = radio && radio.value === 'custom' && !Array.from(presetRadios).some(function (r) {
-                return r.value !== 'custom' && normalizeHex(r.value) === normalized;
-            });
-            el.classList.toggle('is-selected', !!(isMatch || isCustom));
-            if (radio && (isMatch || isCustom)) radio.checked = true;
+    function currentMode() {
+        const checked = document.querySelector('input[name="theme_mode"]:checked');
+        return checked && checked.value === 'gradient' ? 'gradient' : 'solid';
+    }
+
+    function fillValue(primary, secondary, mode) {
+        if (mode === 'gradient') {
+            return 'linear-gradient(135deg, ' + primary + ' 0%, ' + secondary + ' 100%)';
+        }
+        return primary;
+    }
+
+    function syncModeUi(mode) {
+        document.querySelectorAll('.theme-mode-option').forEach(function (el) {
+            const input = el.querySelector('input[name="theme_mode"]');
+            el.classList.toggle('is-selected', !!(input && input.value === mode && input.checked));
+        });
+        secondaryFields.forEach(function (el) {
+            el.classList.toggle('d-none', mode !== 'gradient');
         });
     }
+
+    function markCustomPreset() {
+        const customRadio = document.querySelector('.theme-preset-radio[value="custom"]');
+        if (customRadio) customRadio.checked = true;
+        document.querySelectorAll('.theme-preset').forEach(function (el) {
+            const radio = el.querySelector('.theme-preset-radio');
+            el.classList.toggle('is-selected', !!(radio && radio.value === 'custom'));
+        });
+    }
+
+    function applyThemePreview(opts) {
+        const mode = opts.mode || currentMode();
+        const primary = normalizeHex(opts.primary || hexInput?.value) || '#c8102e';
+        const secondary = normalizeHex(opts.secondary || secondaryHexInput?.value) || '#9b0c24';
+        const fill = fillValue(primary, secondary, mode);
+
+        if (hexInput) hexInput.value = primary;
+        if (colorPicker) colorPicker.value = primary;
+        if (secondaryHexInput) secondaryHexInput.value = secondary;
+        if (secondaryPicker) secondaryPicker.value = secondary;
+        if (customSwatch) customSwatch.style.background = fill;
+        if (livePreview) {
+            livePreview.style.setProperty('--preview-fill', fill);
+            livePreview.style.setProperty('--preview-color', primary);
+        }
+        syncModeUi(mode);
+
+        if (opts.fromPreset) {
+            document.querySelectorAll('.theme-preset').forEach(function (el) {
+                const radio = el.querySelector('.theme-preset-radio');
+                el.classList.toggle('is-selected', !!(radio && radio.checked));
+            });
+        }
+    }
+
+    modeRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (!radio.checked) return;
+            markCustomPreset();
+            applyThemePreview({ mode: radio.value });
+        });
+    });
 
     presetRadios.forEach(function (radio) {
         radio.addEventListener('change', function () {
             if (!radio.checked) return;
             if (radio.value === 'custom') {
-                colorPicker?.focus();
-                applyThemePreview(colorPicker?.value || hexInput?.value || '#c8102e');
+                applyThemePreview({ fromPreset: true });
                 return;
             }
-            applyThemePreview(radio.value);
+            const mode = radio.dataset.mode === 'gradient' ? 'gradient' : 'solid';
+            const modeInput = document.querySelector('input[name="theme_mode"][value="' + mode + '"]');
+            if (modeInput) modeInput.checked = true;
+            applyThemePreview({
+                mode: mode,
+                primary: radio.dataset.primary,
+                secondary: radio.dataset.secondary,
+                fromPreset: true,
+            });
         });
     });
 
-    colorPicker?.addEventListener('input', function () {
-        const customRadio = document.querySelector('.theme-preset-radio[value="custom"]');
-        if (customRadio) customRadio.checked = true;
-        applyThemePreview(colorPicker.value);
-    });
+    function onColorChange() {
+        markCustomPreset();
+        applyThemePreview({});
+    }
+
+    colorPicker?.addEventListener('input', onColorChange);
+    secondaryPicker?.addEventListener('input', onColorChange);
 
     hexInput?.addEventListener('input', function () {
-        const normalized = normalizeHex(hexInput.value);
-        if (normalized) {
-            const customRadio = document.querySelector('.theme-preset-radio[value="custom"]');
-            const matched = Array.from(presetRadios).find(function (r) {
-                return r.value !== 'custom' && normalizeHex(r.value) === normalized;
-            });
-            if (matched) {
-                matched.checked = true;
-            } else if (customRadio) {
-                customRadio.checked = true;
-            }
-            applyThemePreview(normalized);
-        }
+        if (normalizeHex(hexInput.value)) onColorChange();
     });
+    secondaryHexInput?.addEventListener('input', function () {
+        if (normalizeHex(secondaryHexInput.value)) onColorChange();
+    });
+
+    syncModeUi(currentMode());
 })();
 </script>
 

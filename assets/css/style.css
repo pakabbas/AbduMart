@@ -1,7 +1,10 @@
 :root {
     --am-red: #c8102e;
+    --am-red-2: #9b0c24;
     --am-red-dark: #9b0c24;
     --am-red-light: #fff1f3;
+    --am-brand-fill: var(--am-red);
+    --am-brand-fill-hover: var(--am-red-dark);
     --am-gray: #6c757d;
     --am-dark: #1a1a1a;
     --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
@@ -38,7 +41,7 @@ body {
     justify-content: center;
     width: 42px;
     height: 42px;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     font-weight: 700;
     border-radius: 10px;
@@ -65,7 +68,7 @@ body {
     position: absolute;
     top: -6px;
     right: -6px;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     font-size: 0.65rem;
     min-width: 18px;
@@ -78,13 +81,13 @@ body {
 }
 
 .btn-danger {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     border-color: var(--am-red);
 }
 
 .btn-danger:hover,
 .btn-danger:focus {
-    background: var(--am-red-dark);
+    background: var(--am-brand-fill-hover);
     border-color: var(--am-red-dark);
 }
 
@@ -94,7 +97,7 @@ body {
 }
 
 .btn-outline-danger:hover {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     border-color: var(--am-red);
 }
 
@@ -104,7 +107,7 @@ body {
 
 /* Hero */
 .hero-section {
-    background: linear-gradient(135deg, var(--am-red) 0%, var(--am-red-dark) 55%, color-mix(in srgb, var(--am-red) 62%, #000) 100%);
+    background: var(--am-brand-fill);
     padding: 3.5rem 0 3rem;
     color: #fff;
     position: relative;
@@ -583,7 +586,7 @@ body.shop-app-page {
 }
 
 .shop-app-sort-chip.is-active {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     border-color: var(--am-red);
     color: #fff;
 }
@@ -853,7 +856,7 @@ body.shop-app-page {
     height: 38px;
     border: none;
     border-radius: 50%;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     display: inline-flex;
     align-items: center;
@@ -937,7 +940,7 @@ body.shop-app-page {
     top: 10px;
     left: 10px;
     z-index: 2;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     font-size: 0.65rem;
     font-weight: 600;
@@ -955,7 +958,7 @@ body.shop-app-page {
 }
 
 .shop-pagination .page-item.active .page-link {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     border-color: var(--am-red);
     color: #fff;
 }
@@ -1106,7 +1109,7 @@ body.shop-app-page {
 }
 
 .admin-nav-link.active {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
 }
 
@@ -1231,7 +1234,7 @@ body.shop-app-page {
 }
 
 .admin-settings-tabs .nav-link.active {
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     border-color: var(--am-red);
 }
@@ -1273,7 +1276,7 @@ body.shop-app-page {
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     display: flex;
     align-items: center;
@@ -1419,7 +1422,7 @@ body.shop-app-page {
     height: 58px;
     border: none;
     border-radius: 50%;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     color: #fff;
     font-size: 1.35rem;
     box-shadow: 0 8px 24px rgba(200, 16, 46, 0.45);
@@ -1716,7 +1719,7 @@ body.floating-cart-open {
     font-size: 0.75rem;
     font-weight: 700;
     color: #fff;
-    background: var(--am-red);
+    background: var(--am-brand-fill);
     padding: 0.35rem 0.65rem;
     border-radius: 999px;
 }
