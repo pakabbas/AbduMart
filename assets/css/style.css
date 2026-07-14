@@ -96,8 +96,7 @@ body {
     --bs-btn-active-border-color: var(--am-red-dark);
     --bs-btn-disabled-bg: var(--am-red);
     --bs-btn-disabled-border-color: var(--am-red);
-    background: var(--am-brand-fill);
-    background-color: var(--am-red);
+    background: var(--am-brand-fill) !important;
     border-color: var(--am-red);
     color: #fff;
 }
@@ -105,8 +104,7 @@ body {
 .btn-danger:hover,
 .btn-danger:focus,
 .btn-danger:focus-visible {
-    background: var(--am-brand-fill-hover);
-    background-color: var(--am-red-dark);
+    background: var(--am-brand-fill-hover) !important;
     border-color: var(--am-red-dark);
     color: #fff;
     box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.35);
@@ -119,7 +117,6 @@ body {
 .btn-check:active + .btn-danger,
 :not(.btn-check) + .btn-danger:active {
     background: var(--am-brand-fill-hover) !important;
-    background-color: var(--am-red-dark) !important;
     border-color: var(--am-red-dark) !important;
     color: #fff !important;
     box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.4) !important;
@@ -137,13 +134,13 @@ body {
     --bs-btn-active-border-color: var(--am-red);
     color: var(--am-red);
     border-color: var(--am-red);
+    background: transparent;
 }
 
 .btn-outline-danger:hover,
 .btn-outline-danger:focus,
 .btn-outline-danger:focus-visible {
-    background: var(--am-brand-fill);
-    background-color: var(--am-red);
+    background: var(--am-brand-fill) !important;
     border-color: var(--am-red);
     color: #fff;
     box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.35);
@@ -154,7 +151,6 @@ body {
 .btn-check:checked + .btn-outline-danger,
 :not(.btn-check) + .btn-outline-danger:active {
     background: var(--am-brand-fill-hover) !important;
-    background-color: var(--am-red-dark) !important;
     border-color: var(--am-red-dark) !important;
     color: #fff !important;
 }
