@@ -32,6 +32,8 @@ $bestItems = [];
 $bestCategories = [];
 $statusBreakdown = [];
 $paymentBreakdown = [];
+$customerRegRows = [];
+$newCustomers = 0;
 
 try {
     $stmt = db()->prepare('SELECT COUNT(*) FROM orders WHERE DATE(created_at) BETWEEN ? AND ?');
@@ -116,6 +118,25 @@ try {
     $stmt->execute([$start, $end]);
     $statusBreakdown = $stmt->fetchAll();
 
+    $stmt = db()->prepare(
+        "SELECT DATE(created_at) AS day, COUNT(*) AS signups
+         FROM users
+         WHERE role = 'customer'
+           AND DATE(created_at) BETWEEN ? AND ?
+         GROUP BY DATE(created_at)
+         ORDER BY day ASC"
+    );
+    $stmt->execute([$start, $end]);
+    $customerRegRows = $stmt->fetchAll();
+
+    $stmt = db()->prepare(
+        "SELECT COUNT(*) FROM users
+         WHERE role = 'customer'
+           AND DATE(created_at) BETWEEN ? AND ?"
+    );
+    $stmt->execute([$start, $end]);
+    $newCustomers = (int) $stmt->fetchColumn();
+
     if ($hasPaymentMethod) {
         $stmt = db()->prepare(
             "SELECT payment_method, COUNT(*) AS order_count, COALESCE(SUM(total), 0) AS method_revenue
@@ -148,6 +169,19 @@ foreach ($rows as $r) {
 $labels = array_keys($byDay);
 $ordersSeries = array_map(static fn ($v) => (int) $v['orders'], array_values($byDay));
 $revenueSeries = array_map(static fn ($v) => round((float) $v['revenue'], 2), array_values($byDay));
+
+$customerByDay = [];
+for ($i = 0; $i < $days; $i++) {
+    $d = date('Y-m-d', strtotime($start . ' +' . $i . ' days'));
+    $customerByDay[$d] = 0;
+}
+foreach ($customerRegRows as $row) {
+    $day = $row['day'];
+    if (isset($customerByDay[$day])) {
+        $customerByDay[$day] = (int) $row['signups'];
+    }
+}
+$customerRegSeries = array_values($customerByDay);
 
 $chartLabels = array_map(static fn (string $d): string => date('M j', strtotime($d)), $labels);
 
@@ -203,6 +237,25 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     <div class="admin-stat">
         <div class="admin-stat-label">Picked up</div>
         <div class="admin-stat-value"><?= (int) $pickedUpCount ?></div>
+    </div>
+    <div class="admin-stat">
+        <div class="admin-stat-label">New customers</div>
+        <div class="admin-stat-value"><?= (int) $newCustomers ?></div>
+        <div class="small text-muted"><?= e($range) ?> signups</div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2><i class="bi bi-person-plus me-2"></i>Customer registration trend</h2>
+                <span class="admin-badge"><?= (int) $newCustomers ?> new in <?= e($range) ?></span>
+            </div>
+            <div class="admin-card-body padded">
+                <canvas id="customerRegChart" height="90"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -353,6 +406,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     const statusCounts = <?= json_encode($statusCounts) ?>;
     const paymentLabels = <?= json_encode($paymentLabels) ?>;
     const paymentRevenue = <?= json_encode($paymentRevenue) ?>;
+    const customerRegistrations = <?= json_encode($customerRegSeries) ?>;
 
     const palette = ['#c8102e', '#111827', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
     const statusColors = {
@@ -402,6 +456,30 @@ require dirname(__DIR__) . '/includes/admin_header.php';
             scales: {
                 y: { beginAtZero: true, ticks: { precision: 0 } },
                 y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+            }
+        }
+    });
+
+    makeChart('customerRegChart', {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'New customers',
+                data: customerRegistrations,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                tension: 0.35,
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
             }
         }
     });

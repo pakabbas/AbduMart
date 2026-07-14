@@ -14,6 +14,36 @@ if (!in_array($tab, ['admins', 'customers'], true)) {
 $search = trim($_GET['q'] ?? '');
 $currentAdminId = (int) current_user()['id'];
 
+function build_customer_query(string $search): array
+{
+    $sql = "SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.google_id, u.email_verified_at, u.created_at,
+            (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count,
+            (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.user_id = u.id AND o.status != 'cancelled') AS order_total
+         FROM users u
+         WHERE u.role = 'customer'";
+    $params = [];
+    if ($search !== '') {
+        $sql .= ' AND (u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.phone LIKE ?)';
+        $like = '%' . $search . '%';
+        $params = [$like, $like, $like, $like];
+    }
+    $sql .= ' ORDER BY u.created_at DESC';
+
+    return [$sql, $params];
+}
+
+function fetch_customers(string $search, ?int $limit = null): array
+{
+    [$sql, $params] = build_customer_query($search);
+    if ($limit !== null) {
+        $sql .= ' LIMIT ' . (int) $limit;
+    }
+    $stmt = db()->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         flash('danger', 'Invalid request.');
@@ -56,6 +86,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if (isset($_GET['export']) && $_GET['export'] === 'csv' && $tab === 'customers') {
+    $exportRows = fetch_customers($search);
+    $filename = 'customers-' . date('Y-m-d');
+    if ($search !== '') {
+        $filename .= '-filtered';
+    }
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['First Name', 'Last Name', 'Email', 'Phone', 'Orders', 'Total Spent', 'Sign-in', 'Joined']);
+    foreach ($exportRows as $row) {
+        fputcsv($out, [
+            $row['first_name'],
+            $row['last_name'],
+            $row['email'],
+            $row['phone'] ?: '',
+            (int) $row['order_count'],
+            number_format((float) $row['order_total'], 2, '.', ''),
+            !empty($row['google_id']) ? 'Google' : 'Email',
+            date('Y-m-d', strtotime($row['created_at'])),
+        ]);
+    }
+    fclose($out);
+    exit;
+}
+
 $adminUsers = db()->query(
     "SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.google_id, u.email_verified_at, u.created_at
      FROM users u
@@ -63,42 +121,52 @@ $adminUsers = db()->query(
      ORDER BY u.created_at ASC"
 )->fetchAll();
 
-$customerSql = "SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.google_id, u.email_verified_at, u.created_at,
-        (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count,
-        (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.user_id = u.id AND o.status != 'cancelled') AS order_total
-     FROM users u
-     WHERE u.role = 'customer'";
-$customerParams = [];
-if ($search !== '') {
-    $customerSql .= ' AND (u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.phone LIKE ?)';
-    $like = '%' . $search . '%';
-    $customerParams = [$like, $like, $like, $like];
-}
-$customerSql .= ' ORDER BY u.created_at DESC LIMIT 100';
-$customerStmt = db()->prepare($customerSql);
-$customerStmt->execute($customerParams);
-$customers = $customerStmt->fetchAll();
+$customers = fetch_customers($search, 100);
 
 $customerTotal = (int) db()->query("SELECT COUNT(*) FROM users WHERE role = 'customer'")->fetchColumn();
+if ($search === '') {
+    $customerFilteredTotal = $customerTotal;
+} else {
+    $countStmt = db()->prepare(
+        "SELECT COUNT(*) FROM users u WHERE u.role = 'customer'
+         AND (u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.phone LIKE ?)"
+    );
+    $like = '%' . $search . '%';
+    $countStmt->execute([$like, $like, $like, $like]);
+    $customerFilteredTotal = (int) $countStmt->fetchColumn();
+}
 
 $pageTitle = 'Users';
-$pageSubtitle = 'System admins and storefront customers';
+$pageSubtitle = $tab === 'admins'
+    ? 'Manage admin access and permissions'
+    : 'Browse storefront customer accounts';
+$exportUrl = 'users.php?tab=customers&export=csv' . ($search !== '' ? '&q=' . rawurlencode($search) : '');
 $headerActions = $tab === 'admins'
     ? '<a href="#add-admin-panel" class="admin-btn admin-btn-primary"><i class="bi bi-person-plus"></i> Add admin</a>'
-    : '';
+    : '<a href="' . e($exportUrl) . '" class="admin-btn admin-btn-outline"><i class="bi bi-download"></i> Export CSV</a>';
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
 
-<div class="admin-page-tabs mb-4">
-    <a href="users.php?tab=admins" class="admin-page-tab<?= $tab === 'admins' ? ' is-active' : '' ?>">
-        <i class="bi bi-shield-lock"></i> System Admins
-        <span class="admin-badge"><?= count($adminUsers) ?></span>
-    </a>
-    <a href="users.php?tab=customers" class="admin-page-tab<?= $tab === 'customers' ? ' is-active' : '' ?>">
-        <i class="bi bi-people"></i> Customers
-        <span class="admin-badge"><?= $customerTotal ?></span>
-    </a>
+<div class="admin-tabbar mb-4">
+    <nav class="admin-tabbar-nav" aria-label="User sections">
+        <a href="users.php?tab=admins" class="admin-tabbar-item<?= $tab === 'admins' ? ' is-active' : '' ?>">
+            <span class="admin-tabbar-icon"><i class="bi bi-shield-lock"></i></span>
+            <span class="admin-tabbar-copy">
+                <strong>System Admins</strong>
+                <small>Dashboard access</small>
+            </span>
+            <span class="admin-tabbar-count"><?= count($adminUsers) ?></span>
+        </a>
+        <a href="users.php?tab=customers" class="admin-tabbar-item<?= $tab === 'customers' ? ' is-active' : '' ?>">
+            <span class="admin-tabbar-icon"><i class="bi bi-people"></i></span>
+            <span class="admin-tabbar-copy">
+                <strong>Customers</strong>
+                <small>Storefront accounts</small>
+            </span>
+            <span class="admin-tabbar-count"><?= $customerTotal ?></span>
+        </a>
+    </nav>
 </div>
 
 <?php if ($tab === 'admins'): ?>
@@ -233,7 +301,12 @@ require dirname(__DIR__) . '/includes/admin_header.php';
 <div class="admin-card">
     <div class="admin-card-header">
         <h2>Customer accounts</h2>
-        <span class="admin-badge"><?= count($customers) ?><?= $search === '' && $customerTotal > count($customers) ? ' of ' . $customerTotal : '' ?> shown</span>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="admin-badge"><?= count($customers) ?> of <?= $customerFilteredTotal ?> shown</span>
+            <a href="<?= e($exportUrl) ?>" class="admin-btn admin-btn-outline admin-btn-sm">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+        </div>
     </div>
     <div class="table-responsive">
         <table class="admin-table">
