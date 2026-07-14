@@ -104,7 +104,7 @@ body {
 
 /* Hero */
 .hero-section {
-    background: linear-gradient(135deg, var(--am-red) 0%, #9a0c24 55%, #7a0a1d 100%);
+    background: linear-gradient(135deg, var(--am-red) 0%, var(--am-red-dark) 55%, color-mix(in srgb, var(--am-red) 62%, #000) 100%);
     padding: 3.5rem 0 3rem;
     color: #fff;
     position: relative;

@@ -22,6 +22,7 @@ $fields = [
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
     'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
+    'theme_primary_color',
 ];
 
 $values = SettingsService::getGroup($fields);
@@ -77,6 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$error) {
+                $themeColor = normalize_theme_hex((string) ($_POST['theme_primary_color'] ?? ''));
+                if ($themeColor === null) {
+                    $error = 'Choose a valid theme color (hex format like #c8102e).';
+                } else {
+                    $_POST['theme_primary_color'] = $themeColor;
+                }
+            }
+
+            if (!$error) {
             foreach ($fields as $field) {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
                 if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'google_client_secret'], true)
@@ -99,6 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $values = SettingsService::getGroup($fields);
+$themePrimary = normalize_theme_hex((string) ($values['theme_primary_color'] ?? '')) ?? theme_default_primary();
+$themePresets = [
+    ['label' => 'Red', 'hex' => theme_default_primary()],
+    ['label' => 'Green', 'hex' => '#2bf728'],
+];
 $storeHours = StoreHoursService::weeklyHours();
 $storeHolidays = StoreHoursService::holidays();
 $storeTimezone = StoreHoursService::timezone();
@@ -148,6 +163,7 @@ if ($error): ?>
             <a href="#smtp"><i class="bi bi-envelope"></i> Email SMTP</a>
             <a href="#google"><i class="bi bi-google"></i> Google Auth</a>
             <a href="#store"><i class="bi bi-geo-alt"></i> Store info</a>
+            <a href="#theme"><i class="bi bi-palette"></i> Theme</a>
             <a href="#store-hours"><i class="bi bi-clock"></i> Hours & holidays</a>
         </nav>
 
@@ -357,6 +373,58 @@ if ($error): ?>
                 </div>
             </section>
 
+            <section class="settings-section" id="theme">
+                <div class="settings-section-head">
+                    <h2><i class="bi bi-palette"></i> Theme color</h2>
+                    <p>Replace the brand red with any color. Whites and neutrals stay the same.</p>
+                </div>
+                <div class="settings-section-body">
+                    <div class="admin-callout mb-4">
+                        This updates buttons, badges, links, and accents on both the storefront and admin panel.
+                    </div>
+                    <div class="theme-picker-grid">
+                        <?php foreach ($themePresets as $preset): ?>
+                        <label class="theme-preset<?= $themePrimary === $preset['hex'] ? ' is-selected' : '' ?>">
+                            <input type="radio" name="theme_preset" value="<?= e($preset['hex']) ?>" class="theme-preset-radio" <?= $themePrimary === $preset['hex'] ? 'checked' : '' ?>>
+                            <span class="theme-preset-swatch" style="background:<?= e($preset['hex']) ?>"></span>
+                            <span class="theme-preset-meta">
+                                <strong><?= e($preset['label']) ?></strong>
+                                <small><?= e(strtoupper($preset['hex'])) ?></small>
+                            </span>
+                        </label>
+                        <?php endforeach; ?>
+                        <label class="theme-preset theme-preset-custom<?= !in_array($themePrimary, array_column($themePresets, 'hex'), true) ? ' is-selected' : '' ?>">
+                            <input type="radio" name="theme_preset" value="custom" class="theme-preset-radio" <?= !in_array($themePrimary, array_column($themePresets, 'hex'), true) ? 'checked' : '' ?>>
+                            <span class="theme-preset-swatch theme-preset-swatch-custom" id="themeCustomSwatch" style="background:<?= e($themePrimary) ?>"></span>
+                            <span class="theme-preset-meta">
+                                <strong>Custom</strong>
+                                <small>Pick any color</small>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="row g-3 align-items-end mt-1">
+                        <div class="col-md-4">
+                            <div class="admin-field mb-0">
+                                <label for="theme_primary_picker">Color picker</label>
+                                <input type="color" id="theme_primary_picker" class="admin-input theme-color-input" value="<?= e($themePrimary) ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="admin-field mb-0">
+                                <label for="theme_primary_color">Hex value</label>
+                                <input type="text" id="theme_primary_color" name="theme_primary_color" class="admin-input" value="<?= e($themePrimary) ?>" pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="theme-live-preview" id="themeLivePreview" style="--preview-color:<?= e($themePrimary) ?>">
+                                <span class="theme-live-btn">Primary button</span>
+                                <span class="theme-live-link">Accent text</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="settings-section" id="store-hours">
                 <div class="settings-section-head">
                     <h2><i class="bi bi-clock"></i> Store Timings & Holidays</h2>
@@ -531,6 +599,73 @@ if ($error): ?>
         bindHolidayRemove(row);
         holidayIndex++;
         row.querySelector('input[type="date"]')?.focus();
+    });
+
+    const hexInput = document.getElementById('theme_primary_color');
+    const colorPicker = document.getElementById('theme_primary_picker');
+    const customSwatch = document.getElementById('themeCustomSwatch');
+    const livePreview = document.getElementById('themeLivePreview');
+    const presetRadios = document.querySelectorAll('.theme-preset-radio');
+
+    function normalizeHex(value) {
+        const raw = String(value || '').trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
+        if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+            return ('#' + raw[1] + raw[1] + raw[2] + raw[2] + raw[3] + raw[3]).toLowerCase();
+        }
+        return null;
+    }
+
+    function applyThemePreview(hex) {
+        const normalized = normalizeHex(hex);
+        if (!normalized) return;
+        if (hexInput) hexInput.value = normalized;
+        if (colorPicker) colorPicker.value = normalized;
+        if (customSwatch) customSwatch.style.background = normalized;
+        if (livePreview) livePreview.style.setProperty('--preview-color', normalized);
+        document.querySelectorAll('.theme-preset').forEach(function (el) {
+            const radio = el.querySelector('.theme-preset-radio');
+            const isMatch = radio && radio.value === normalized;
+            const isCustom = radio && radio.value === 'custom' && !Array.from(presetRadios).some(function (r) {
+                return r.value !== 'custom' && normalizeHex(r.value) === normalized;
+            });
+            el.classList.toggle('is-selected', !!(isMatch || isCustom));
+            if (radio && (isMatch || isCustom)) radio.checked = true;
+        });
+    }
+
+    presetRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (!radio.checked) return;
+            if (radio.value === 'custom') {
+                colorPicker?.focus();
+                applyThemePreview(colorPicker?.value || hexInput?.value || '#c8102e');
+                return;
+            }
+            applyThemePreview(radio.value);
+        });
+    });
+
+    colorPicker?.addEventListener('input', function () {
+        const customRadio = document.querySelector('.theme-preset-radio[value="custom"]');
+        if (customRadio) customRadio.checked = true;
+        applyThemePreview(colorPicker.value);
+    });
+
+    hexInput?.addEventListener('input', function () {
+        const normalized = normalizeHex(hexInput.value);
+        if (normalized) {
+            const customRadio = document.querySelector('.theme-preset-radio[value="custom"]');
+            const matched = Array.from(presetRadios).find(function (r) {
+                return r.value !== 'custom' && normalizeHex(r.value) === normalized;
+            });
+            if (matched) {
+                matched.checked = true;
+            } else if (customRadio) {
+                customRadio.checked = true;
+            }
+            applyThemePreview(normalized);
+        }
     });
 })();
 </script>
