@@ -81,6 +81,28 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
+function phone_digit_count(string $phone): int
+{
+    return strlen(preg_replace('/\D/', '', $phone));
+}
+
+function validate_customer_phone(string $phone): ?string
+{
+    $phone = trim($phone);
+    if ($phone === '') {
+        return 'Phone number is required.';
+    }
+    $digits = phone_digit_count($phone);
+    if ($digits < 10) {
+        return 'Enter a valid phone number (at least 10 digits).';
+    }
+    if ($digits > 15) {
+        return 'Enter a valid phone number.';
+    }
+
+    return null;
+}
+
 function is_ajax_request(): bool
 {
     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {

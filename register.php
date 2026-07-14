@@ -34,6 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($firstName === '' || $lastName === '') {
             $errors[] = 'First and last name are required.';
         }
+        $phoneError = validate_customer_phone($phone);
+        if ($phoneError !== null) {
+            $errors[] = $phoneError;
+        }
 
         if (empty($errors)) {
             $check = db()->prepare('SELECT id FROM users WHERE email = ?');
@@ -89,7 +93,7 @@ require __DIR__ . '/includes/header.php';
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Phone <span class="text-muted">(for pickup)</span></label>
-                                <input type="tel" name="phone" class="form-control" placeholder="(248) 555-0100" value="<?= e($_POST['phone'] ?? '') ?>">
+                                <input type="tel" name="phone" class="form-control" required placeholder="(248) 555-0100" value="<?= e($_POST['phone'] ?? '') ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Password</label>
