@@ -3,14 +3,17 @@
     --am-red-2: #9b0c24;
     --am-red-dark: #9b0c24;
     --am-red-light: #fff1f3;
+    --am-red-rgb: 200, 16, 46;
     --am-brand-fill: var(--am-red);
     --am-brand-fill-hover: var(--am-red-dark);
     --am-gray: #6c757d;
     --am-dark: #1a1a1a;
     --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
     --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 8px 30px rgba(200, 16, 46, 0.08);
+    --shadow-md: 0 8px 30px rgba(var(--am-red-rgb), 0.08);
     --radius: 14px;
+    --bs-danger: var(--am-red);
+    --bs-danger-rgb: var(--am-red-rgb);
 }
 
 * {
@@ -81,28 +84,99 @@ body {
 }
 
 .btn-danger {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--am-red);
+    --bs-btn-border-color: var(--am-red);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--am-red-dark);
+    --bs-btn-hover-border-color: var(--am-red-dark);
+    --bs-btn-focus-shadow-rgb: var(--am-red-rgb);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--am-red-dark);
+    --bs-btn-active-border-color: var(--am-red-dark);
+    --bs-btn-disabled-bg: var(--am-red);
+    --bs-btn-disabled-border-color: var(--am-red);
     background: var(--am-brand-fill);
+    background-color: var(--am-red);
     border-color: var(--am-red);
+    color: #fff;
 }
 
 .btn-danger:hover,
-.btn-danger:focus {
+.btn-danger:focus,
+.btn-danger:focus-visible {
     background: var(--am-brand-fill-hover);
+    background-color: var(--am-red-dark);
     border-color: var(--am-red-dark);
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.35);
+}
+
+.btn-danger:active,
+.btn-danger.active,
+.btn-danger.show,
+.btn-check:checked + .btn-danger,
+.btn-check:active + .btn-danger,
+:not(.btn-check) + .btn-danger:active {
+    background: var(--am-brand-fill-hover) !important;
+    background-color: var(--am-red-dark) !important;
+    border-color: var(--am-red-dark) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.4) !important;
 }
 
 .btn-outline-danger {
+    --bs-btn-color: var(--am-red);
+    --bs-btn-border-color: var(--am-red);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--am-red);
+    --bs-btn-hover-border-color: var(--am-red);
+    --bs-btn-focus-shadow-rgb: var(--am-red-rgb);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--am-red);
+    --bs-btn-active-border-color: var(--am-red);
     color: var(--am-red);
     border-color: var(--am-red);
 }
 
-.btn-outline-danger:hover {
+.btn-outline-danger:hover,
+.btn-outline-danger:focus,
+.btn-outline-danger:focus-visible {
     background: var(--am-brand-fill);
+    background-color: var(--am-red);
     border-color: var(--am-red);
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.35);
+}
+
+.btn-outline-danger:active,
+.btn-outline-danger.active,
+.btn-check:checked + .btn-outline-danger,
+:not(.btn-check) + .btn-outline-danger:active {
+    background: var(--am-brand-fill-hover) !important;
+    background-color: var(--am-red-dark) !important;
+    border-color: var(--am-red-dark) !important;
+    color: #fff !important;
 }
 
 .text-danger {
     color: var(--am-red) !important;
+}
+
+.link-danger {
+    color: var(--am-red) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    border-color: var(--am-red);
+    box-shadow: 0 0 0 0.25rem rgba(var(--am-red-rgb), 0.2);
+}
+
+.form-check-input:checked {
+    background-color: var(--am-red);
+    border-color: var(--am-red);
 }
 
 /* Hero */
@@ -533,8 +607,8 @@ body.shop-app-page {
 }
 
 .shop-app-search-input:focus {
-    outline: 2px solid rgba(200, 16, 46, 0.18);
-    box-shadow: 0 8px 24px rgba(200, 16, 46, 0.12);
+    outline: 2px solid rgba(var(--am-red-rgb), 0.18);
+    box-shadow: 0 8px 24px rgba(var(--am-red-rgb), 0.12);
 }
 
 .shop-app-search-clear {
@@ -681,7 +755,7 @@ body.shop-app-page {
 
 .shop-cat-chip.is-active .shop-cat-chip-icon {
     border-color: var(--am-red);
-    box-shadow: 0 6px 18px rgba(200, 16, 46, 0.18);
+    box-shadow: 0 6px 18px rgba(var(--am-red-rgb), 0.18);
 }
 
 .shop-cat-chip.is-active .shop-cat-chip-label {
@@ -862,7 +936,7 @@ body.shop-app-page {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    box-shadow: 0 8px 18px rgba(200, 16, 46, 0.28);
+    box-shadow: 0 8px 18px rgba(var(--am-red-rgb), 0.28);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1021,7 +1095,7 @@ body.shop-app-page {
 /* Orders */
 .im-here-panel {
     background: linear-gradient(135deg, var(--am-red-light), #fff);
-    border: 2px solid rgba(200, 16, 46, 0.15);
+    border: 2px solid rgba(var(--am-red-rgb), 0.15);
 }
 
 .im-here-btn {
@@ -1031,8 +1105,8 @@ body.shop-app-page {
 }
 
 @keyframes pulse-soft {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0.35); }
-    50% { box-shadow: 0 0 0 12px rgba(200, 16, 46, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--am-red-rgb), 0.35); }
+    50% { box-shadow: 0 0 0 12px rgba(var(--am-red-rgb), 0); }
 }
 
 .success-icon i {
@@ -1230,7 +1304,7 @@ body.shop-app-page {
 
 .admin-settings-tabs .nav-link:hover {
     color: var(--am-red);
-    border-color: rgba(200, 16, 46, 0.15);
+    border-color: rgba(var(--am-red-rgb), 0.15);
 }
 
 .admin-settings-tabs .nav-link.active {
@@ -1425,7 +1499,7 @@ body.shop-app-page {
     background: var(--am-brand-fill);
     color: #fff;
     font-size: 1.35rem;
-    box-shadow: 0 8px 24px rgba(200, 16, 46, 0.45);
+    box-shadow: 0 8px 24px rgba(var(--am-red-rgb), 0.45);
     z-index: 1050;
     display: flex;
     align-items: center;
@@ -1436,7 +1510,7 @@ body.shop-app-page {
 
 .floating-cart-fab:hover {
     transform: scale(1.06);
-    box-shadow: 0 10px 28px rgba(200, 16, 46, 0.5);
+    box-shadow: 0 10px 28px rgba(var(--am-red-rgb), 0.5);
 }
 
 .floating-cart-fab-badge {
@@ -1674,7 +1748,7 @@ body.floating-cart-open {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(200, 16, 46, 0.18);
+    background: rgba(var(--am-red-rgb), 0.18);
     color: #ff8a9b;
     display: inline-flex;
     align-items: center;

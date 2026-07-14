@@ -214,8 +214,13 @@ function theme_inline_css(): string
         . '--admin-red-2:' . $palette['secondary'] . ';'
         . '--admin-red-dark:' . $palette['dark'] . ';'
         . '--admin-red-soft:' . $palette['soft'] . ';'
+        . '--admin-red-rgb:' . $palette['rgb'] . ';'
         . '--admin-brand-fill:' . $palette['fill'] . ';'
         . '--admin-brand-fill-hover:' . $palette['fill_hover'] . ';'
+        . '--bs-danger:' . $palette['primary'] . ';'
+        . '--bs-danger-rgb:' . $palette['rgb'] . ';'
+        . '--bs-link-color:' . $palette['primary'] . ';'
+        . '--bs-link-hover-color:' . $palette['dark'] . ';'
         . '--shadow-md:0 8px 30px rgba(' . $palette['rgb'] . ',0.08);'
         . '}';
 }
