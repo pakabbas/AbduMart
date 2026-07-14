@@ -82,6 +82,7 @@ tail -f /var/log/nginx/error.log
 | 502 Bad Gateway | `sudo systemctl status php8.3-fpm nginx` |
 | `.env` missing | Copy from `.env.example` and configure |
 | Workflow not running | Workflow only runs on pushes to **`main`** |
+| Deploy fails on `chmod ... assets/uploads` | `assets/uploads` is owned by `www-data`; deploy script now skips/tolerates this (see `deploy/deploy.sh`) |
 
 ## Hourly Clover sync (while store is open)
 
