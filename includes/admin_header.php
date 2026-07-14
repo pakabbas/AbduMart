@@ -57,6 +57,9 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
                 <i class="bi bi-arrow-repeat"></i> Clover Sync
             </a>
             <span class="admin-nav-group">Configuration</span>
+            <a href="users.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'users' ? 'active' : '' ?>">
+                <i class="bi bi-people"></i> Users
+            </a>
             <a href="settings.php" class="admin-sidebar-link <?= ($adminSection ?? '') === 'settings' ? 'active' : '' ?>">
                 <i class="bi bi-sliders"></i> Settings
             </a>

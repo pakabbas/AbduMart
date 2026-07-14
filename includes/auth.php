@@ -87,6 +87,124 @@ function register_user(string $email, string $password, string $firstName, strin
     ];
 }
 
+function count_admin_users(): int
+{
+    $stmt = db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+
+    return (int) $stmt->fetchColumn();
+}
+
+function get_user_by_id(int $userId): ?array
+{
+    $stmt = db()->prepare('SELECT id, email, first_name, last_name, phone, role, google_id, email_verified_at, created_at FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
+/**
+ * @return array{id:int,email:string,first_name:string,last_name:string,phone:?string,role:string,created:bool}
+ */
+function create_or_promote_admin(string $email, string $firstName, string $lastName, ?string $phone, string $password): array
+{
+    $email = strtolower(trim($email));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Enter a valid email address.');
+    }
+    if (strlen($password) < 8) {
+        throw new InvalidArgumentException('Password must be at least 8 characters.');
+    }
+    if (trim($firstName) === '' || trim($lastName) === '') {
+        throw new InvalidArgumentException('First and last name are required.');
+    }
+
+    $stmt = db()->prepare('SELECT * FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    $existing = $stmt->fetch();
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+    if ($existing) {
+        if (($existing['role'] ?? '') === 'admin') {
+            throw new InvalidArgumentException('That email is already an admin.');
+        }
+
+        db()->prepare(
+            'UPDATE users SET role = ?, password_hash = ?, first_name = ?, last_name = ?, phone = ?, email_verified_at = COALESCE(email_verified_at, NOW()) WHERE id = ?'
+        )->execute([
+            'admin',
+            $hash,
+            trim($firstName),
+            trim($lastName),
+            $phone !== null && trim($phone) !== '' ? trim($phone) : null,
+            (int) $existing['id'],
+        ]);
+
+        return [
+            'id' => (int) $existing['id'],
+            'email' => $email,
+            'first_name' => trim($firstName),
+            'last_name' => trim($lastName),
+            'phone' => $phone,
+            'role' => 'admin',
+            'created' => false,
+        ];
+    }
+
+    db()->prepare(
+        'INSERT INTO users (email, password_hash, first_name, last_name, phone, email_verified_at, role) VALUES (?, ?, ?, ?, ?, NOW(), ?)'
+    )->execute([
+        $email,
+        $hash,
+        trim($firstName),
+        trim($lastName),
+        $phone !== null && trim($phone) !== '' ? trim($phone) : null,
+        'admin',
+    ]);
+
+    return [
+        'id' => (int) db()->lastInsertId(),
+        'email' => $email,
+        'first_name' => trim($firstName),
+        'last_name' => trim($lastName),
+        'phone' => $phone,
+        'role' => 'admin',
+        'created' => true,
+    ];
+}
+
+function demote_admin_user(int $userId, int $actorId): void
+{
+    if ($userId === $actorId) {
+        throw new InvalidArgumentException('You cannot remove your own admin access.');
+    }
+
+    $user = get_user_by_id($userId);
+    if (!$user || ($user['role'] ?? '') !== 'admin') {
+        throw new InvalidArgumentException('Admin user not found.');
+    }
+
+    if (count_admin_users() <= 1) {
+        throw new InvalidArgumentException('At least one admin must remain.');
+    }
+
+    db()->prepare("UPDATE users SET role = 'customer' WHERE id = ?")->execute([$userId]);
+}
+
+function promote_user_to_admin(int $userId): void
+{
+    $user = get_user_by_id($userId);
+    if (!$user) {
+        throw new InvalidArgumentException('User not found.');
+    }
+    if (($user['role'] ?? '') === 'admin') {
+        throw new InvalidArgumentException('User is already an admin.');
+    }
+
+    db()->prepare("UPDATE users SET role = 'admin' WHERE id = ?")->execute([$userId]);
+}
+
 function authenticate(string $email, string $password): ?array
 {
     $stmt = db()->prepare('SELECT * FROM users WHERE email = ?');
