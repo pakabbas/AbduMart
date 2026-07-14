@@ -49,12 +49,20 @@ $statusLabels = [
     <h1 class="section-title mb-4">My Orders</h1>
 
     <?php if ($activeOrder): ?>
-    <?php $st = $statusLabels[$activeOrder['status']] ?? ['label' => $activeOrder['status'], 'class' => 'secondary']; ?>
+    <?php
+    $st = $statusLabels[$activeOrder['status']] ?? ['label' => $activeOrder['status'], 'class' => 'secondary'];
+    $activeItemUnits = 0;
+    foreach ($activeItems as $item) {
+        $activeItemUnits += (int) $item['quantity'];
+    }
+    ?>
     <div class="card border-0 shadow-sm mb-4 order-detail-card" id="order-<?= (int) $activeOrder['id'] ?>">
         <div class="card-body p-4">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                 <div>
-                    <h2 class="h4 mb-1">Order <?= e($activeOrder['order_number']) ?></h2>
+                    <h2 class="h4 mb-1">
+                        Order <?= e($activeOrder['order_number']) ?> - <?= (int) $activeItemUnits ?> Item<?= $activeItemUnits === 1 ? '' : 's' ?>
+                    </h2>
                     <span class="badge bg-<?= e($st['class']) ?>"><?= e($st['label']) ?></span>
                 </div>
                 <div class="text-end">
