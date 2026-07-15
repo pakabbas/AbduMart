@@ -141,7 +141,7 @@ php -r "require 'includes/bootstrap.php'; (new App\CloverService())->syncAll();"
 
 ## Production deployment (GCP)
 
-Live site: **https://abdumart.btkdeals.com**
+Live site: **https://abdumarket.spiralloopstechnologies.com**
 
 ### CI/CD
 

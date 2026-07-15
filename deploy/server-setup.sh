@@ -8,7 +8,7 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/var/www/abdumart}"
 REPO_URL="${REPO_URL:-https://github.com/pakabbas/AbduMart.git}"
-DOMAIN="${DOMAIN:-abdumart.btkdeals.com}"
+DOMAIN="${DOMAIN:-abdumarket.spiralloopstechnologies.com}"
 APP_USER="${APP_USER:-www-data}"
 
 echo "==> Installing packages..."

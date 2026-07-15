@@ -1,6 +1,6 @@
 # Deployment — GCP VM + GitHub Actions
 
-**Live URL:** https://abdumart.btkdeals.com  
+**Live URL:** https://abdumarket.spiralloopstechnologies.com  
 **Server:** `muhamad_abbas@34.41.10.28`  
 **Deploy path:** `/var/www/abdumart`
 
@@ -36,7 +36,7 @@ Then:
    ```bash
    nano /var/www/abdumart/.env
    ```
-   Set `APP_URL=https://abdumart.btkdeals.com`, database credentials, and `APP_KEY`.
+   Set `APP_URL=https://abdumarket.spiralloopstechnologies.com`, database credentials, and `APP_KEY`.
 
 2. **Create database:**
    ```bash
@@ -46,10 +46,14 @@ Then:
 
 3. **Enable HTTPS:**
    ```bash
-   sudo certbot --nginx -d abdumart.btkdeals.com
+   sudo certbot --nginx -d abdumarket.spiralloopstechnologies.com
    ```
 
 4. **Merge app code to `main`** on GitHub (if not already) so the workflow file exists on the server after first pull.
+
+5. **Update external callbacks** to the new origin:
+   - Google OAuth redirect URI: `https://abdumarket.spiralloopstechnologies.com/auth/google-callback.php`
+   - Stripe webhook endpoint: `https://abdumarket.spiralloopstechnologies.com/stripe-webhook.php`
 
 ## Auto-deploy
 
@@ -67,7 +71,7 @@ You can also trigger a deploy manually: **GitHub → Actions → Deploy to GCP �
 
 ```bash
 # On your machine
-curl -I https://abdumart.btkdeals.com
+curl -I https://abdumarket.spiralloopstechnologies.com
 
 # On the server
 tail -f /var/log/nginx/error.log
@@ -79,7 +83,7 @@ tail -f /var/log/nginx/error.log
 |-------|-----|
 | Permission denied (SSH) | Ensure public key is on VM in `~/.ssh/authorized_keys` |
 | `git pull` fails | Run setup script; ensure deploy path is a git clone |
-| 502 Bad Gateway | `sudo systemctl status php8.3-fpm nginx` |
+| 502 Bad Gateway | `sudo systemctl status php8.3-fpm nginx` (or `php8.2-fpm`) |
 | `.env` missing | Copy from `.env.example` and configure |
 | Workflow not running | Workflow only runs on pushes to **`main`** |
 | Deploy fails on `chmod ... assets/uploads` | `assets/uploads` is owned by `www-data`; deploy script now skips/tolerates this (see `deploy/deploy.sh`) |

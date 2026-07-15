@@ -662,7 +662,7 @@ function fetch_remote_bytes(string $url): ?string
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_CONNECTTIMEOUT => 15,
                 CURLOPT_TIMEOUT => 25,
-                CURLOPT_USERAGENT => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
+                CURLOPT_USERAGENT => 'AbduMart/1.0 (+https://abdumarket.spiralloopstechnologies.com)',
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
             ]);
@@ -678,7 +678,7 @@ function fetch_remote_bytes(string $url): ?string
     $ctx = stream_context_create([
         'http' => [
             'timeout' => 20,
-            'user_agent' => 'AbduMart/1.0 (+https://abdumart.btkdeals.com)',
+            'user_agent' => 'AbduMart/1.0 (+https://abdumarket.spiralloopstechnologies.com)',
             'follow_location' => 1,
         ],
         'ssl' => [

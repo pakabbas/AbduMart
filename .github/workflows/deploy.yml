@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy to abdumart.btkdeals.com
+    name: Deploy to abdumarket.spiralloopstechnologies.com
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +40,6 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "Deployed to https://abdumart.btkdeals.com"
+          echo "Deployed to https://abdumarket.spiralloopstechnologies.com"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
