@@ -58,6 +58,8 @@ body.admin-app {
     gap: 12px;
     padding: 24px 20px 20px;
     border-bottom: 1px solid var(--admin-border);
+    text-decoration: none;
+    color: inherit;
 }
 
 .admin-logo {
@@ -72,6 +74,14 @@ body.admin-app {
     font-weight: 800;
     font-size: 0.85rem;
     flex-shrink: 0;
+}
+
+.admin-brand-logo {
+    display: block;
+    height: 28px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
 }
 
 .admin-sidebar-brand strong {

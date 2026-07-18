@@ -51,16 +51,42 @@ body {
     font-size: 0.9rem;
 }
 
+.brand-logo {
+    display: block;
+    height: 36px;
+    width: auto;
+    max-width: min(220px, 52vw);
+    object-fit: contain;
+}
+
 .brand-text {
     display: flex;
     flex-direction: column;
     line-height: 1.15;
 }
 
+.brand-text-tagline {
+    display: none;
+}
+
+@media (min-width: 576px) {
+    .brand-text-tagline {
+        display: flex;
+    }
+}
+
 .brand-text small {
     font-size: 0.68rem;
     color: var(--am-gray);
     font-weight: 500;
+}
+
+.footer-brand-logo {
+    display: block;
+    height: 32px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
 }
 
 .nav-link {

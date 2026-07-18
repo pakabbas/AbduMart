@@ -12,6 +12,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?> | Abdu Market</title>
     <meta name="description" content="<?= e($pageDescription) ?>">
+    <link rel="icon" type="image/png" href="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <meta name="pickup-here-url" content="<?= e(asset_url('pickup-here.php')) ?>">
     <meta name="mart-line-url" content="<?= e(asset_url('mart-line.php')) ?>">
@@ -26,10 +27,15 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
-            <span class="brand-mark">AM</span>
-            <span class="brand-text">
-                <strong>Abdu Market</strong>
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.php" aria-label="Abdu Market home">
+            <img
+                src="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>"
+                alt="Abdu Market"
+                class="brand-logo"
+                width="200"
+                height="25"
+            >
+            <span class="brand-text brand-text-tagline">
                 <small>Curbside Pickup · Canton, MI</small>
             </span>
         </a>

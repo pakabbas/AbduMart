@@ -3,7 +3,13 @@
     <div class="container py-5">
         <div class="row g-4">
             <div class="col-md-4">
-                <h5 class="text-danger">Abdu Market</h5>
+                <img
+                    src="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>"
+                    alt="Abdu Market"
+                    class="footer-brand-logo mb-2"
+                    width="180"
+                    height="22"
+                >
                 <p class="text-muted mb-1">Your neighborhood market in Canton, Michigan.</p>
                 <p class="text-muted small mb-0">Order online, pay securely, and pick up curbside.</p>
             </div>
