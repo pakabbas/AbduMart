@@ -15,6 +15,7 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?> · Abdu Market Admin</title>
+    <link rel="icon" type="image/png" href="../assets/images/abdu-market-logo.png">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,13 +29,18 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
 <div class="admin-overlay" id="adminOverlay"></div>
 <div class="admin-shell">
     <aside class="admin-sidebar" id="adminSidebar">
-        <div class="admin-sidebar-brand">
-            <span class="admin-logo">AM</span>
+        <a href="../index.php" class="admin-sidebar-brand" aria-label="Abdu Market home">
+            <img
+                src="../assets/images/abdu-market-logo.png"
+                alt="Abdu Market"
+                class="admin-brand-logo"
+                width="160"
+                height="20"
+            >
             <div>
-                <strong>Abdu Market</strong>
                 <span>Admin Console</span>
             </div>
-        </div>
+        </a>
 
         <nav class="admin-sidebar-nav">
             <span class="admin-nav-group">Operations</span>
