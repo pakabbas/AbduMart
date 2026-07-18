@@ -51,11 +51,19 @@ body {
     font-size: 0.9rem;
 }
 
+.brand-lockup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    line-height: 1.1;
+}
+
 .brand-logo {
     display: block;
-    height: 36px;
+    height: 34px;
     width: auto;
-    max-width: min(220px, 52vw);
+    max-width: min(220px, 56vw);
     object-fit: contain;
 }
 
@@ -66,13 +74,8 @@ body {
 }
 
 .brand-text-tagline {
-    display: none;
-}
-
-@media (min-width: 576px) {
-    .brand-text-tagline {
-        display: flex;
-    }
+    display: flex;
+    margin-left: 0.15rem;
 }
 
 .brand-text small {

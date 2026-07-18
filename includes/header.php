@@ -27,7 +27,7 @@ $cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="index.php" aria-label="Abdu Market home">
+        <a class="navbar-brand brand-lockup" href="index.php" aria-label="Abdu Market home">
             <img
                 src="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>"
                 alt="Abdu Market"
