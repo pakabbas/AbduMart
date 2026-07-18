@@ -54,6 +54,7 @@ Then:
 5. **Update external callbacks** to the new origin:
    - Google OAuth redirect URI: `https://abdumarket.spiralloopstechnologies.com/auth/google-callback.php`
    - Stripe webhook endpoint: `https://abdumarket.spiralloopstechnologies.com/stripe-webhook.php`
+   - Clover Hosted Checkout webhook: `https://abdumarket.spiralloopstechnologies.com/clover-webhook.php`
 
 ## Auto-deploy
 

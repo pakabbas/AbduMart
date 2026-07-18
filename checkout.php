@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/bootstrap.php';
 require_login();
 
+use App\CloverCheckoutService;
 use App\StripeService;
 
 $user = current_user();
@@ -14,6 +15,11 @@ $error = '';
 $phoneValue = trim($_POST['phone'] ?? (string) ($user['phone'] ?? ''));
 $needsPhone = trim((string) ($user['phone'] ?? '')) === '';
 $allowPayOnArrival = pay_on_arrival_enabled();
+$cloverPay = new CloverCheckoutService();
+$stripePay = new StripeService();
+$cloverConfigured = $cloverPay->isConfigured();
+$stripeConfigured = $stripePay->isConfigured();
+$defaultPayment = $cloverConfigured ? 'clover' : ($stripeConfigured ? 'stripe' : ($allowPayOnArrival ? 'arrival' : 'clover'));
 $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
 
@@ -35,12 +41,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($phoneError !== null) {
             $error = $phoneError;
         }
-        $paymentChoice = $_POST['payment_method'] ?? 'stripe';
-        if (!$allowPayOnArrival) {
-            $paymentChoice = 'stripe';
+        $allowedPayments = [];
+        if ($cloverConfigured) {
+            $allowedPayments[] = 'clover';
         }
-        if (!in_array($paymentChoice, ['stripe', 'arrival'], true)) {
-            $paymentChoice = 'stripe';
+        if ($stripeConfigured) {
+            $allowedPayments[] = 'stripe';
+        }
+        if ($allowPayOnArrival) {
+            $allowedPayments[] = 'arrival';
+        }
+        if ($allowedPayments === []) {
+            $error = 'No payment method is configured. Add Clover or Stripe in Admin → Settings.';
+        }
+
+        $paymentChoice = (string) ($_POST['payment_method'] ?? $defaultPayment);
+        if (!in_array($paymentChoice, $allowedPayments, true)) {
+            $paymentChoice = $allowedPayments[0] ?? $defaultPayment;
         }
 
         if ($error === '') {
@@ -104,8 +121,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect('orders.php?order=' . $orderId);
             }
 
-            $stripe = new StripeService();
-            if (!$stripe->isConfigured()) {
+            if ($paymentChoice === 'clover') {
+                $session = $cloverPay->createCheckoutSession(
+                    $orderId,
+                    array_map(static fn (array $item): array => [
+                        'name' => (string) $item['name'],
+                        'price' => (float) $item['price'],
+                        'quantity' => (int) $item['quantity'],
+                    ], $cart['items']),
+                    (float) $cart['tax'],
+                    [
+                        'email' => (string) ($user['email'] ?? ''),
+                        'first_name' => (string) ($user['first_name'] ?? ''),
+                        'last_name' => (string) ($user['last_name'] ?? ''),
+                        'phone' => (string) $phone,
+                    ]
+                );
+                $pdo->commit();
+                header('Location: ' . $session['href']);
+                exit;
+            }
+
+            if (!$stripeConfigured) {
                 throw new RuntimeException('Stripe is not configured. Add keys to Admin → Settings.');
             }
 
@@ -133,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
 
-            $session = $stripe->createCheckoutSession($orderId, $lineItems, $cart['total'], $user['email']);
+            $session = $stripePay->createCheckoutSession($orderId, $lineItems, $cart['total'], $user['email']);
             $pdo->prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?')->execute([$session->id, $orderId]);
 
             $pdo->commit();
@@ -186,16 +223,31 @@ require __DIR__ . '/includes/header.php';
                         <div class="mb-4">
                             <label class="form-label">Payment method</label>
                             <div class="d-grid gap-2">
+                                <?php
+                                $selectedPayment = (string) ($_POST['payment_method'] ?? $defaultPayment);
+                                if ($cloverConfigured):
+                                ?>
                                 <label class="form-check border rounded-3 p-3">
-                                    <input class="form-check-input" type="radio" name="payment_method" value="stripe" checked>
+                                    <input class="form-check-input" type="radio" name="payment_method" value="clover" <?= $selectedPayment === 'clover' ? 'checked' : '' ?>>
+                                    <span class="ms-2"><strong>Pay online</strong> (Clover)</span>
+                                    <div class="small text-muted ms-4">Secure card payment via Clover Hosted Checkout.</div>
+                                </label>
+                                <?php endif; ?>
+                                <?php if ($stripeConfigured): ?>
+                                <label class="form-check border rounded-3 p-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" value="stripe" <?= $selectedPayment === 'stripe' ? 'checked' : '' ?>>
                                     <span class="ms-2"><strong>Pay online</strong> (Stripe)</span>
                                 </label>
+                                <?php endif; ?>
                                 <?php if ($allowPayOnArrival): ?>
                                 <label class="form-check border rounded-3 p-3">
-                                    <input class="form-check-input" type="radio" name="payment_method" value="arrival" <?= (($_POST['payment_method'] ?? '') === 'arrival') ? 'checked' : '' ?>>
+                                    <input class="form-check-input" type="radio" name="payment_method" value="arrival" <?= $selectedPayment === 'arrival' ? 'checked' : '' ?>>
                                     <span class="ms-2"><strong>Pay on Arrival</strong></span>
                                     <div class="small text-muted ms-4">Place the order now and pay when you arrive.</div>
                                 </label>
+                                <?php endif; ?>
+                                <?php if (!$cloverConfigured && !$stripeConfigured && !$allowPayOnArrival): ?>
+                                <div class="alert alert-warning mb-0">No payment methods are configured yet.</div>
                                 <?php endif; ?>
                             </div>
                         </div>

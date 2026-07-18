@@ -5,18 +5,45 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/bootstrap.php';
 require_login();
 
+use App\CloverCheckoutService;
 use App\StripeService;
 
-$sessionId = $_GET['session_id'] ?? '';
+$sessionId = trim((string) ($_GET['session_id'] ?? $_GET['checkoutSessionId'] ?? $_GET['checkout_session_id'] ?? ''));
+$provider = strtolower(trim((string) ($_GET['provider'] ?? '')));
 $order = null;
 
 if ($sessionId !== '') {
     try {
-        $stripe = new StripeService();
-        $order = $stripe->fulfillSession($sessionId);
+        $looksLikeStripe = str_starts_with($sessionId, 'cs_');
+        if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe)) {
+            $order = (new CloverCheckoutService())->fulfillSession($sessionId);
+        }
+        if (!$order && ($provider === 'stripe' || $looksLikeStripe || $provider === '')) {
+            $order = (new StripeService())->fulfillSession($sessionId);
+        }
     } catch (Throwable $e) {
         flash('danger', 'Could not verify payment: ' . $e->getMessage());
         redirect('orders.php');
+    }
+} elseif ($provider === 'clover') {
+    // Dashboard redirect may omit session id; use the shopper's latest pending/paid Clover order.
+    $userId = (int) current_user()['id'];
+    $stmt = db()->prepare(
+        "SELECT * FROM orders
+         WHERE user_id = ? AND payment_method = 'clover'
+         ORDER BY created_at DESC
+         LIMIT 1"
+    );
+    $stmt->execute([$userId]);
+    $latest = $stmt->fetch() ?: null;
+    if ($latest && in_array(($latest['status'] ?? ''), ['paid', 'preparing', 'ready'], true)) {
+        $order = $latest;
+    } elseif ($latest && ($latest['status'] ?? '') === 'pending' && !empty($latest['clover_checkout_session_id'])) {
+        try {
+            $order = (new CloverCheckoutService())->fulfillSession((string) $latest['clover_checkout_session_id']);
+        } catch (Throwable) {
+            $order = null;
+        }
     }
 }
 
