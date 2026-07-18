@@ -15,7 +15,7 @@ $error = null;
 
 $fields = [
     'stripe_secret_key', 'stripe_publishable_key', 'stripe_webhook_secret',
-    'clover_merchant_id', 'clover_api_token', 'clover_env',
+    'clover_merchant_id', 'clover_api_token', 'clover_env', 'clover_webhook_secret',
     'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
     'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
     'google_client_id', 'google_client_secret',
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$error) {
             foreach ($fields as $field) {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
-                if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'google_client_secret'], true)
+                if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'clover_webhook_secret', 'google_client_secret'], true)
                     && trim($_POST[$field] ?? '') === '') continue;
                 if ($field === 'allow_pay_on_arrival') {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '';
@@ -227,8 +227,8 @@ if ($error): ?>
 
             <section class="settings-section" id="clover">
                 <div class="settings-section-head">
-                    <h2><i class="bi bi-shop"></i> Clover POS</h2>
-                    <p>Sync products, prices, and inventory from Clover.</p>
+                    <h2><i class="bi bi-shop"></i> Clover POS &amp; Payments</h2>
+                    <p>Sync catalog from Clover and accept online payments via Hosted Checkout.</p>
                 </div>
                 <div class="settings-section-body">
                     <div class="row g-3">
@@ -249,8 +249,22 @@ if ($error): ?>
                         </div>
                         <div class="col-12">
                             <div class="admin-field">
-                                <label>API token</label>
+                                <label>Private API token (Hosted Checkout)</label>
                                 <input type="password" name="clover_api_token" class="admin-input" placeholder="Enter new token to update" autocomplete="off">
+                                <div class="hint">Leave blank to keep the existing token.</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="admin-field">
+                                <label>Hosted Checkout webhook signing secret</label>
+                                <input type="password" name="clover_webhook_secret" class="admin-input" placeholder="hcp_..." autocomplete="off">
+                                <div class="hint">From Clover Dashboard → Ecommerce → Hosted Checkout → Webhook. Leave blank to keep existing.</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="admin-callout">
+                                Webhook URL:
+                                <code><?= e(rtrim(config('app.url'), '/') . '/clover-webhook.php') ?></code>
                             </div>
                         </div>
                     </div>

@@ -204,7 +204,11 @@ $statusLabels = array_map(static function (array $row): string {
 $statusCounts = array_map(static fn (array $row): int => (int) $row['order_count'], $statusBreakdown);
 
 $paymentLabels = array_map(static function (array $row): string {
-    return ($row['payment_method'] ?? '') === 'arrival' ? 'Pay on arrival' : 'Stripe online';
+    return match ($row['payment_method'] ?? '') {
+        'arrival' => 'Pay on arrival',
+        'clover' => 'Clover online',
+        default => 'Stripe online',
+    };
 }, $paymentBreakdown);
 $paymentRevenue = array_map(static fn (array $row): float => round((float) $row['method_revenue'], 2), $paymentBreakdown);
 

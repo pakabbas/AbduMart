@@ -10,6 +10,7 @@ class SettingsService
         'stripe_secret_key',
         'stripe_webhook_secret',
         'clover_api_token',
+        'clover_webhook_secret',
         'smtp_password',
         'google_client_secret',
     ];
@@ -111,6 +112,7 @@ class SettingsService
             'clover_merchant_id' => 'CLOVER_MERCHANT_ID',
             'clover_api_token' => 'CLOVER_API_TOKEN',
             'clover_env' => 'CLOVER_ENV',
+            'clover_webhook_secret' => 'CLOVER_WEBHOOK_SECRET',
             'smtp_host' => 'SMTP_HOST',
             'smtp_port' => 'SMTP_PORT',
             'smtp_username' => 'SMTP_USERNAME',

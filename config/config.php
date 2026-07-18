@@ -23,6 +23,7 @@ return [
         'merchant_id' => $_ENV['CLOVER_MERCHANT_ID'] ?? '',
         'api_token' => $_ENV['CLOVER_API_TOKEN'] ?? '',
         'env' => $_ENV['CLOVER_ENV'] ?? 'sandbox',
+        'webhook_secret' => $_ENV['CLOVER_WEBHOOK_SECRET'] ?? '',
     ],
     'smtp' => [
         'host' => $_ENV['SMTP_HOST'] ?? 'smtp.gmail.com',

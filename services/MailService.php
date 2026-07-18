@@ -124,7 +124,11 @@ class MailService
         }
 
         $paymentMethod = (string) ($order['payment_method'] ?? 'stripe');
-        $paymentLabel = $paymentMethod === 'arrival' ? 'Pay on arrival' : 'Paid online (Stripe)';
+        $paymentLabel = match ($paymentMethod) {
+            'arrival' => 'Pay on arrival',
+            'clover' => 'Paid online (Clover)',
+            default => 'Paid online (Stripe)',
+        };
         $vehicle = trim((string) ($order['vehicle_description'] ?? ''));
         $pickupNotes = trim((string) ($order['pickup_notes'] ?? ''));
         $adminUrl = rtrim(config('app.url'), '/') . '/admin/orders.php?id=' . (int) $order['id'];

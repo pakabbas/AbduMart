@@ -73,9 +73,9 @@ php -S localhost:8000
 
 Visit `http://localhost:8000`
 
-### 5. Stripe webhook
+### 5. Payment webhooks
 
-In the Stripe Dashboard, add a webhook endpoint:
+**Stripe** (optional if using Clover):
 
 ```
 https://your-domain.com/stripe-webhook.php
@@ -83,12 +83,20 @@ https://your-domain.com/stripe-webhook.php
 
 Listen for `checkout.session.completed` and copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
 
+**Clover Hosted Checkout:**
+
+```
+https://your-domain.com/clover-webhook.php
+```
+
+In the Clover Merchant Dashboard → Ecommerce → Hosted Checkout, set redirect URLs and the webhook URL, then copy the signing secret to `CLOVER_WEBHOOK_SECRET` (or Admin → Settings).
+
 ### 6. Configure integrations in Admin
 
 Sign in as admin → **Mart Dashboard** → **Settings**
 
-- **Stripe** — payment keys and webhook secret
-- **Clover POS** — merchant ID, API token, environment
+- **Clover** — merchant ID, Hosted Checkout private token, environment, webhook signing secret
+- **Stripe** — optional alternate card payments
 - **Gmail SMTP** — use a Google App Password for OTP and order emails
 - **Google Sign-In** — OAuth client ID/secret (redirect URI shown on settings page)
 
