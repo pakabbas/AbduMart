@@ -661,6 +661,15 @@ function product_relevant_image_url(string $name): ?string
         [['pancake'], $u('photo-1567620905732-2d1ec7ab7445')],
         [['oatmeal'], $u('photo-1710444223962-a18f0de17a24')],
         [['cereal', 'honey oat'], $u('photo-1521483451569-e33803c0330c')],
+        // Fresh Produce / Dairy / Snacks / Pantry / Meat / Frozen / Bakery / Household
+        [['banana'], $u('photo-1571771894821-ce9b6c11b08e')],
+        [['egg'], $u('photo-1665538941694-e1705e52d1b2')],
+        [['chip', 'chips'], $u('photo-1613919113640-25732ec5e61f')],
+        [['rice'], $u('photo-1586201375761-83865001e31c')],
+        [['chicken'], $u('photo-1604503468506-a8da13d82791')],
+        [['ice cream'], $u('photo-1745914412106-dbdcf0a41377')],
+        [['bread', 'sourdough'], $u('photo-1549931319-a545dcf3bc73')],
+        [['laundry', 'detergent'], $u('photo-1755752919883-e5d0912e2321')],
     ];
 
     foreach ($rules as [$keywords, $url]) {
