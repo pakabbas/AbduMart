@@ -646,6 +646,11 @@ function product_relevant_image_url(string $name): ?string
         [['fruit snack', 'gummy', 'gummies'], $u('photo-1744870654593-e0a6aaa50019')],
         [['applesauce', 'apple sauce'], $u('photo-1560806887-1e4cd0b6cbd6')],
         [['toddler', 'baby food', 'puree'], $u('photo-1560806887-1e4cd0b6cbd6')],
+        // Personal Care
+        [['bar soap', 'soap'], $u('photo-1636846528145-46195929433c')],
+        [['sanitizer'], $u('photo-1583947215259-38e31be8751f')],
+        [['shampoo'], $u('photo-1535585209827-a15fcdbc4c2d')],
+        [['toothpaste', 'tooth paste'], $u('photo-1760184762833-7c6bd9ef1415')],
     ];
 
     foreach ($rules as [$keywords, $url]) {
