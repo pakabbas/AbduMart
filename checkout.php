@@ -23,6 +23,21 @@ $defaultPayment = $cloverConfigured ? 'clover' : ($stripeConfigured ? 'stripe' :
 $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
 
+$lastVehicle = '';
+$lastVehicleStmt = db()->prepare(
+    "SELECT vehicle_description
+     FROM orders
+     WHERE user_id = ?
+       AND vehicle_description IS NOT NULL
+       AND TRIM(vehicle_description) != ''
+       AND status != 'cancelled'
+     ORDER BY created_at DESC
+     LIMIT 1"
+);
+$lastVehicleStmt->execute([$userId]);
+$lastVehicle = trim((string) ($lastVehicleStmt->fetchColumn() ?: ''));
+$vehicleValue = trim((string) ($_POST['vehicle_description'] ?? $lastVehicle));
+
 if (empty($cart['items'])) {
     flash('warning', 'Your cart is empty.');
     redirect('cart.php');
@@ -253,7 +268,10 @@ require __DIR__ . '/includes/header.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Vehicle description <span class="text-muted">(color, make, plate)</span></label>
-                            <input type="text" name="vehicle_description" class="form-control" placeholder="e.g. Red Toyota Camry — ABC 1234" value="<?= e($_POST['vehicle_description'] ?? '') ?>">
+                            <input type="text" name="vehicle_description" class="form-control" placeholder="e.g. Red Toyota Camry — ABC 1234" value="<?= e($vehicleValue) ?>">
+                            <?php if ($lastVehicle !== '' && !isset($_POST['vehicle_description'])): ?>
+                            <div class="form-text">Prefilled from your last order. You can change it if needed.</div>
+                            <?php endif; ?>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Pickup notes <span class="text-muted">(optional)</span></label>
