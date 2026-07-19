@@ -858,6 +858,24 @@ function pay_on_arrival_enabled(): bool
     return setting('allow_pay_on_arrival', '') === '1' && db_has_column('orders', 'payment_method');
 }
 
+function stripe_payments_enabled(): bool
+{
+    if (setting('allow_stripe_payment', '1') !== '1') {
+        return false;
+    }
+
+    return (new \App\StripeService())->isConfigured();
+}
+
+function clover_payments_enabled(): bool
+{
+    if (setting('allow_clover_payment', '1') !== '1') {
+        return false;
+    }
+
+    return (new \App\CloverCheckoutService())->isConfigured();
+}
+
 function order_status_display(string $status): array
 {
     return match ($status) {
