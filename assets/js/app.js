@@ -250,6 +250,7 @@
                         document.dispatchEvent(new CustomEvent('cart:updated', {
                             detail: {
                                 count: nextCount,
+                                subtotal_label: data.cart_subtotal_label,
                                 openPanel: prevCount === 0 && nextCount > 0,
                             },
                         }));

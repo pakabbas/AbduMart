@@ -27,28 +27,42 @@
         return div.innerHTML;
     }
 
-    function updateBadges(count) {
-        const n = parseInt(count, 10) || 0;
-        root.dataset.count = String(n);
+    function updateHeaderTotal(label) {
+        if (label === undefined || label === null) {
+            return;
+        }
+        document.querySelectorAll('.js-header-cart-total').forEach(function (el) {
+            el.textContent = label;
+        });
+    }
 
-        if (fabBadge) {
-            fabBadge.textContent = n;
-            fabBadge.hidden = n <= 0;
+    function updateBadges(count, subtotalLabel) {
+        if (count !== undefined && count !== null && count !== '') {
+            const n = parseInt(count, 10) || 0;
+            root.dataset.count = String(n);
+
+            if (fabBadge) {
+                fabBadge.textContent = n;
+                fabBadge.hidden = n <= 0;
+            }
+
+            let navBadge = document.querySelector('.js-floating-cart-open .cart-badge');
+            const navBtn = document.querySelector('.js-floating-cart-open');
+            if (navBtn) {
+                if (!navBadge && n > 0) {
+                    navBadge = document.createElement('span');
+                    navBadge.className = 'cart-badge';
+                    const iconWrap = navBtn.querySelector('.site-header-cart-icon-wrap');
+                    (iconWrap || navBtn).appendChild(navBadge);
+                }
+                if (navBadge) {
+                    navBadge.textContent = n;
+                    navBadge.style.display = n > 0 ? 'inline-flex' : 'none';
+                }
+            }
         }
 
-        let navBadge = document.querySelector('.js-floating-cart-open .cart-badge');
-        const navBtn = document.querySelector('.js-floating-cart-open');
-        if (navBtn) {
-            if (!navBadge && n > 0) {
-                navBadge = document.createElement('span');
-                navBadge.className = 'cart-badge';
-                navBtn.appendChild(navBadge);
-            }
-            if (navBadge) {
-                navBadge.textContent = n;
-                navBadge.style.display = n > 0 ? 'inline-flex' : 'none';
-            }
-        }
+        updateHeaderTotal(subtotalLabel);
     }
 
     function openPanel() {
@@ -142,6 +156,7 @@
             const data = JSON.parse(raw);
             if (data.success) {
                 renderBasket(data);
+                updateBadges(data.count, data.subtotal_label);
             } else if (data.login_required) {
                 window.location.href = 'login.php';
             }
@@ -177,7 +192,7 @@
         if (!data.success) {
             throw new Error(data.error || 'Cart update failed');
         }
-        updateBadges(data.cart_count);
+        updateBadges(data.cart_count, data.cart_subtotal_label);
         await loadBasket();
         return data;
     }
@@ -226,13 +241,26 @@
 
     document.addEventListener('cart:updated', function (e) {
         const detail = e.detail || {};
-        if (detail.count !== undefined) {
-            updateBadges(detail.count);
+        if (detail.count !== undefined || detail.subtotal_label !== undefined) {
+            updateBadges(detail.count, detail.subtotal_label);
         }
         if (detail.openPanel) {
             openPanel();
         } else if (isOpen) {
             loadBasket();
+        } else if (detail.subtotal_label === undefined && detail.count !== undefined) {
+            // Refresh totals when add-to-cart didn't include a subtotal label.
+            fetch(basketUrl, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        updateBadges(data.count, data.subtotal_label);
+                    }
+                })
+                .catch(function () { /* ignore */ });
         }
     });
 
