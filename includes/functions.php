@@ -651,6 +651,16 @@ function product_relevant_image_url(string $name): ?string
         [['sanitizer'], $u('photo-1583947215259-38e31be8751f')],
         [['shampoo'], $u('photo-1535585209827-a15fcdbc4c2d')],
         [['toothpaste', 'tooth paste'], $u('photo-1760184762833-7c6bd9ef1415')],
+        // Condiments & Sauces
+        [['hot sauce', 'sriracha'], $u('photo-1757800499190-9927c5806d36')],
+        [['soy sauce', 'soya'], $u('photo-1638324396179-61035bc1e645')],
+        [['mayonnaise', 'mayo'], $u('photo-1638697586690-37f66f05083a')],
+        [['ketchup'], $u('photo-1770065207917-96b97b70172b')],
+        // Breakfast & Cereal
+        [['maple', 'syrup'], $u('photo-1671522636384-abaa828ec275')],
+        [['pancake'], $u('photo-1567620905732-2d1ec7ab7445')],
+        [['oatmeal'], $u('photo-1710444223962-a18f0de17a24')],
+        [['cereal', 'honey oat'], $u('photo-1521483451569-e33803c0330c')],
     ];
 
     foreach ($rules as [$keywords, $url]) {
