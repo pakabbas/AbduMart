@@ -530,33 +530,8 @@ function assign_category_supermarket_image(int $categoryId, string $name, ?array
         return $local;
     }
 
-    $sources = category_supermarket_image_sources();
-    $count = count($sources);
-    if ($count === 0) {
-        return asset_url('assets/images/placeholder-category.svg');
-    }
-
-    if ($preferredOrder === null || $preferredOrder === []) {
-        $preferredOrder = range(0, $count - 1);
-        shuffle($preferredOrder);
-    }
-
-    $attemptIndexes = $preferredOrder;
-    // Rotate so next category starts on a different image
-    $first = array_shift($preferredOrder);
-    $preferredOrder[] = $first;
-
-    foreach ($attemptIndexes as $index) {
-        $remote = $sources[$index % $count];
-        $local = import_remote_image($remote, 'category', $categoryId);
-        if ($local !== null) {
-            return $local;
-        }
-    }
-
-    $fallback = $sources[abs(crc32(strtolower(trim($name)) . ':' . $categoryId)) % $count];
-
-    return $fallback;
+    // Prefer the name-matched remote URL when local import is unavailable.
+    return $preferred;
 }
 
 function category_stock_image_url(string $name, int $id): string
