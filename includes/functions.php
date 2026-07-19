@@ -631,6 +631,34 @@ function product_food_image_sources(): array
     ];
 }
 
+/**
+ * Prefer a name-matched Unsplash photo for common grocery products.
+ */
+function product_relevant_image_url(string $name): ?string
+{
+    $n = strtolower(trim($name));
+    $u = static fn (string $id): string => 'https://images.unsplash.com/' . $id . '?auto=format&fit=crop&w=800&q=80';
+
+    $rules = [
+        // Baby & Kids
+        [['diaper'], $u('photo-1695998575483-b215c8b2f619')],
+        [['wipe'], $u('photo-1706524077391-12206f155e94')],
+        [['fruit snack', 'gummy', 'gummies'], $u('photo-1744870654593-e0a6aaa50019')],
+        [['applesauce', 'apple sauce'], $u('photo-1560806887-1e4cd0b6cbd6')],
+        [['toddler', 'baby food', 'puree'], $u('photo-1560806887-1e4cd0b6cbd6')],
+    ];
+
+    foreach ($rules as [$keywords, $url]) {
+        foreach ($keywords as $keyword) {
+            if (str_contains($n, $keyword)) {
+                return $url;
+            }
+        }
+    }
+
+    return null;
+}
+
 function product_image_needs_assign(?string $url): bool
 {
     $url = trim((string) $url);
@@ -727,6 +755,15 @@ function fetch_remote_bytes(string $url): ?string
 
 function assign_product_food_image(int $productId, string $name): string
 {
+    $preferred = product_relevant_image_url($name);
+    if ($preferred !== null) {
+        $local = import_remote_image($preferred, 'product', $productId);
+        if ($local !== null) {
+            return $local;
+        }
+        return $preferred;
+    }
+
     $sources = product_food_image_sources();
     $start = abs(crc32(strtolower(trim($name)) . ':' . $productId)) % count($sources);
 
@@ -738,7 +775,32 @@ function assign_product_food_image(int $productId, string $name): string
         }
     }
 
-    return asset_url('assets/images/placeholder-product.svg');
+    return $sources[$start] ?? asset_url('assets/images/placeholder-product.svg');
+}
+
+/**
+ * Force-assign images for products in a category (by category name match).
+ */
+function reassign_category_product_images(string $categoryName): int
+{
+    $stmt = db()->prepare(
+        'SELECT p.id, p.name FROM products p
+         INNER JOIN categories c ON c.id = p.category_id
+         WHERE c.name = ?
+         ORDER BY p.name'
+    );
+    $stmt->execute([$categoryName]);
+    $products = $stmt->fetchAll();
+    $updated = 0;
+    $update = db()->prepare('UPDATE products SET image_url = ? WHERE id = ?');
+
+    foreach ($products as $product) {
+        $url = assign_product_food_image((int) $product['id'], (string) $product['name']);
+        $update->execute([$url, (int) $product['id']]);
+        $updated++;
+    }
+
+    return $updated;
 }
 
 function repair_product_images(bool $onlyMissing = false): int
