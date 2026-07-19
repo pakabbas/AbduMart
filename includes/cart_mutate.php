@@ -45,9 +45,12 @@ function handle_cart_mutation(bool $jsonOnly = false): never
             } else {
                 guest_cart_add($productId, (int) $product['inventory']);
             }
+            $cartTotals = get_cart_totals($userId);
             $respond([
                 'success' => true,
-                'cart_count' => get_cart_count($userId),
+                'cart_count' => $cartTotals['count'],
+                'cart_subtotal' => $cartTotals['subtotal'],
+                'cart_subtotal_label' => format_money($cartTotals['subtotal']),
                 'message' => 'Added to cart',
             ]);
 
@@ -71,9 +74,12 @@ function handle_cart_mutation(bool $jsonOnly = false): never
                     guest_cart_set_quantity($productId, $qty);
                 }
             }
+            $cartTotals = get_cart_totals($userId);
             $respond([
                 'success' => true,
-                'cart_count' => get_cart_count($userId),
+                'cart_count' => $cartTotals['count'],
+                'cart_subtotal' => $cartTotals['subtotal'],
+                'cart_subtotal_label' => format_money($cartTotals['subtotal']),
                 'message' => 'Cart updated',
             ], 200, 'cart.php');
 
@@ -84,9 +90,12 @@ function handle_cart_mutation(bool $jsonOnly = false): never
             } else {
                 guest_cart_set_quantity($productId, 0);
             }
+            $cartTotals = get_cart_totals($userId);
             $respond([
                 'success' => true,
-                'cart_count' => get_cart_count($userId),
+                'cart_count' => $cartTotals['count'],
+                'cart_subtotal' => $cartTotals['subtotal'],
+                'cart_subtotal_label' => format_money($cartTotals['subtotal']),
                 'message' => 'Item removed from cart',
             ], 200, 'cart.php');
 

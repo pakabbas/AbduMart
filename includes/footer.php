@@ -21,8 +21,9 @@
             <div class="col-md-4">
                 <h6>Quick Links</h6>
                 <ul class="list-unstyled small">
-                    <li><a href="index.php">Shop Products</a></li>
-                    <li><a href="cart.php">View Cart</a></li>
+                    <li><a href="shop.php">Shop Products</a></li>
+                    <li><a href="about.php">About Us</a></li>
+                    <li><a href="contact.php">Contact Us</a></li>
                     <li><a href="orders.php">Track Orders</a></li>
                 </ul>
             </div>
