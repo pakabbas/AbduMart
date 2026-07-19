@@ -37,7 +37,7 @@ $isContact = $currentScript === 'contact.php';
     <style><?= theme_inline_css() ?></style>
 </head>
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
-<header class="site-header sticky-top">
+<header class="site-header sticky-top" id="siteHeader">
     <div class="site-header-top">
         <div class="container site-header-top-inner">
             <p class="site-header-location mb-0">
