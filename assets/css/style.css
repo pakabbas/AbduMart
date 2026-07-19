@@ -40,6 +40,41 @@ body {
     z-index: 1030;
     background: #fff;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease;
+}
+
+.site-header.is-compact {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.site-header-top,
+.site-header-nav-bar {
+    overflow: hidden;
+    transition: max-height 0.28s ease, opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.site-header.is-compact .site-header-top {
+    max-height: 0;
+    opacity: 0;
+    border-bottom-color: transparent;
+    pointer-events: none;
+}
+
+@media (min-width: 992px) {
+    .site-header.is-compact .site-header-nav-bar {
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    /* Keep the nav bar available while the mobile menu is open. */
+    .site-header.is-compact .site-header-nav-bar:not(:has(#siteHeaderNav.show)) {
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
 }
 
 .site-header-top {
@@ -47,6 +82,7 @@ body {
     border-bottom: 1px solid #ececec;
     font-size: 0.78rem;
     color: #666;
+    max-height: 6rem;
 }
 
 .site-header-top-inner {
@@ -299,6 +335,7 @@ body {
 
 .site-header-nav-bar {
     background: var(--site-header-nav-bg);
+    max-height: 24rem;
 }
 
 .site-header-nav {

@@ -2,6 +2,28 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
+        const siteHeader = document.getElementById('siteHeader');
+        if (siteHeader) {
+            const topBar = siteHeader.querySelector('.site-header-top');
+            let headerScrollTicking = false;
+
+            function syncHeaderCompact() {
+                headerScrollTicking = false;
+                const threshold = Math.max(8, topBar ? topBar.scrollHeight : 24);
+                siteHeader.classList.toggle('is-compact', window.scrollY > threshold);
+            }
+
+            window.addEventListener('scroll', function () {
+                if (headerScrollTicking) {
+                    return;
+                }
+                headerScrollTicking = true;
+                requestAnimationFrame(syncHeaderCompact);
+            }, { passive: true });
+
+            syncHeaderCompact();
+        }
+
         const categoryGrid = document.getElementById('categoryGrid');
         const categorySeeMoreBtn = document.getElementById('categorySeeMoreBtn');
 
