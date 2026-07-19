@@ -22,6 +22,8 @@ $fields = [
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
     'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
+    'allow_stripe_payment',
+    'allow_clover_payment',
     'theme_primary_color',
     'theme_secondary_color',
     'theme_mode',
@@ -101,6 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     && trim($_POST[$field] ?? '') === '') continue;
                 if ($field === 'allow_pay_on_arrival') {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '';
+                } elseif (in_array($field, ['allow_stripe_payment', 'allow_clover_payment'], true)) {
+                    $updates[$field] = !empty($_POST[$field]) ? '1' : '0';
                 } elseif (str_starts_with($field, 'admin_notify_email_')) {
                     $updates[$field] = strtolower(trim($_POST[$field] ?? ''));
                 } else {
@@ -193,6 +197,17 @@ if ($error): ?>
                     <div class="admin-callout">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div>
+                                <strong>Enable Stripe payments</strong>
+                                <div class="hint mb-0">If enabled, customers can pay online with Stripe at checkout.</div>
+                            </div>
+                            <label class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="allow_stripe_payment" value="1" <?= (($values['allow_stripe_payment'] ?? '1') === '1') ? 'checked' : '' ?>>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="admin-callout">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
                                 <strong>Allow “Pay on Arrival”</strong>
                                 <div class="hint mb-0">If enabled, customers can place an order without paying online.</div>
                             </div>
@@ -231,6 +246,17 @@ if ($error): ?>
                     <p>Sync catalog from Clover and accept online payments via Hosted Checkout.</p>
                 </div>
                 <div class="settings-section-body">
+                    <div class="admin-callout">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <strong>Enable Clover payments</strong>
+                                <div class="hint mb-0">If enabled, customers can pay online with Clover Hosted Checkout.</div>
+                            </div>
+                            <label class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="allow_clover_payment" value="1" <?= (($values['allow_clover_payment'] ?? '1') === '1') ? 'checked' : '' ?>>
+                            </label>
+                        </div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="admin-field">
