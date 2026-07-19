@@ -37,9 +37,7 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
                 width="160"
                 height="20"
             >
-            <div>
-                <span>Admin Console</span>
-            </div>
+            <span class="admin-brand-tagline">Admin Console</span>
         </a>
 
         <nav class="admin-sidebar-nav">
