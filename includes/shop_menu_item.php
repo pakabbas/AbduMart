@@ -3,14 +3,17 @@
 declare(strict_types=1);
 
 /** @var array $product */
+$productUrl = 'product.php?id=' . (int) $product['id'];
 ?>
 <article class="shop-menu-item">
-    <div class="shop-menu-item-thumb catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
+    <a href="<?= e($productUrl) ?>" class="shop-menu-item-thumb catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?> text-decoration-none">
         <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
-    </div>
+    </a>
     <div class="shop-menu-item-body">
         <div class="shop-menu-item-top">
-            <h3 class="shop-menu-item-name"><?= e($product['name']) ?></h3>
+            <h3 class="shop-menu-item-name">
+                <a href="<?= e($productUrl) ?>" class="text-decoration-none text-dark"><?= e($product['name']) ?></a>
+            </h3>
             <?php if (!empty($product['is_featured'])): ?>
             <span class="shop-menu-item-badge">Popular</span>
             <?php endif; ?>
@@ -28,7 +31,6 @@ declare(strict_types=1);
         </div>
     </div>
     <div class="shop-menu-item-action">
-        <?php if (is_logged_in()): ?>
         <?php if (product_is_purchasable($product)): ?>
         <form method="post" action="<?= e(asset_url('mart-line.php')) ?>" class="mart-buy-form">
             <?= csrf_field() ?>
@@ -42,11 +44,6 @@ declare(strict_types=1);
         <button type="button" class="shop-menu-add-btn is-disabled" disabled aria-label="Unavailable">
             <i class="bi bi-dash-lg"></i>
         </button>
-        <?php endif; ?>
-        <?php else: ?>
-        <a href="login.php" class="shop-menu-add-btn" aria-label="Sign in to buy">
-            <i class="bi bi-plus-lg"></i>
-        </a>
         <?php endif; ?>
     </div>
 </article>

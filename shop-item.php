@@ -40,16 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ], 200, $jsonOnly);
     }
 
-    if (!is_logged_in()) {
-        shop_item_browser_response(['error' => 'Please sign in first.', 'login_required' => true], 401, $jsonOnly);
-    }
-
     if (!isset($_GET['product_id'])) {
         shop_item_browser_response([
             'success' => true,
             'message' => 'Shop item API ready. Pass ?product_id=ID to test add-to-cart.',
             'example' => asset_url('shop-item.php?product_id=123'),
-            'cart_count' => get_cart_count((int) current_user()['id']),
+            'cart_count' => get_cart_count(is_logged_in() ? (int) current_user()['id'] : null),
         ], 200, $jsonOnly);
     }
 
@@ -59,12 +55,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         shop_item_browser_response(['error' => 'Product unavailable', 'product_id' => $productId], 400, $jsonOnly);
     }
 
-    $userId = (int) current_user()['id'];
-    $stmt = db()->prepare(
-        'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, 1)
-         ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + 1, ?)'
-    );
-    $stmt->execute([$userId, $productId, (int) $product['inventory']]);
+    if (is_logged_in()) {
+        $userId = (int) current_user()['id'];
+        $stmt = db()->prepare(
+            'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, 1)
+             ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + 1, ?)'
+        );
+        $stmt->execute([$userId, $productId, (int) $product['inventory']]);
+    } else {
+        guest_cart_add($productId, (int) $product['inventory']);
+        $userId = null;
+    }
 
     shop_item_browser_response([
         'success' => true,

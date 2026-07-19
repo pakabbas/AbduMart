@@ -1039,6 +1039,42 @@ body.shop-app-page {
     box-shadow: var(--shadow-md) !important;
 }
 
+.product-card-media-link {
+    display: block;
+}
+
+.product-detail-media {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 280px;
+    background: #f3f4f6;
+}
+
+.product-detail-media .catalog-tile-media,
+.product-detail-media.catalog-tile-media {
+    min-height: 280px;
+    height: 100%;
+}
+
+.product-detail-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700;
+    margin: 0.35rem 0 0.75rem;
+}
+
+.product-detail-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.product-detail-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
 .stock-badge {
     position: absolute;
     top: 10px;

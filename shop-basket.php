@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
-if (!is_logged_in()) {
-    json_response(['error' => 'Please sign in to continue.', 'login_required' => true], 401);
-}
-
-$userId = (int) current_user()['id'];
+$userId = is_logged_in() ? (int) current_user()['id'] : null;
 $cart = get_cart_totals($userId);
 
 $items = [];

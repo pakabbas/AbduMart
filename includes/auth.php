@@ -61,6 +61,7 @@ function login_user(array $user): void
 {
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) $user['id'];
+    merge_guest_cart_into_user((int) $user['id']);
 }
 
 function logout_user(): void

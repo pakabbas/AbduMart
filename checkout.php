@@ -36,7 +36,10 @@ $lastVehicleStmt = db()->prepare(
 );
 $lastVehicleStmt->execute([$userId]);
 $lastVehicle = trim((string) ($lastVehicleStmt->fetchColumn() ?: ''));
-$vehicleValue = trim((string) ($_POST['vehicle_description'] ?? $lastVehicle));
+$vehicleMakeValue = trim((string) ($_POST['vehicle_make'] ?? ''));
+$vehicleModelValue = trim((string) ($_POST['vehicle_model'] ?? ''));
+$vehicleDetailsValue = trim((string) ($_POST['vehicle_details'] ?? $lastVehicle));
+$vehicleValue = trim(implode(' · ', array_filter([$vehicleMakeValue, $vehicleModelValue, $vehicleDetailsValue])));
 
 if (empty($cart['items'])) {
     flash('warning', 'Your cart is empty.');
@@ -50,7 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = $storeStatus['banner_message'];
     } else {
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
-        $vehicle = trim($_POST['vehicle_description'] ?? '');
+        $vehicleMake = trim((string) ($_POST['vehicle_make'] ?? ''));
+        $vehicleModel = trim((string) ($_POST['vehicle_model'] ?? ''));
+        $vehicleDetails = trim((string) ($_POST['vehicle_details'] ?? ''));
+        $vehicleParts = array_values(array_filter([$vehicleMake, $vehicleModel, $vehicleDetails], static fn ($p) => $p !== ''));
+        $vehicle = implode(' · ', $vehicleParts);
         $phone = trim($_POST['phone'] ?? '');
         $phoneError = validate_customer_phone($phone);
         if ($phoneError !== null) {
@@ -267,10 +274,39 @@ require __DIR__ . '/includes/header.php';
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Vehicle description <span class="text-muted">(color, make, plate)</span></label>
-                            <input type="text" name="vehicle_description" class="form-control" placeholder="e.g. Red Toyota Camry — ABC 1234" value="<?= e($vehicleValue) ?>">
-                            <?php if ($lastVehicle !== '' && !isset($_POST['vehicle_description'])): ?>
-                            <div class="form-text">Prefilled from your last order. You can change it if needed.</div>
+                            <label class="form-label mb-1">Vehicle details <span class="text-muted">(optional)</span></label>
+                            <div class="form-text mb-2">Helpful for curbside pickup — select a make/model or type anything manually.</div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1" for="vehicle_make">Make</label>
+                                    <select id="vehicle_make" name="vehicle_make" class="form-select">
+                                        <option value="">Select make (optional)</option>
+                                        <?php if ($vehicleMakeValue !== ''): ?>
+                                        <option value="<?= e($vehicleMakeValue) ?>" selected><?= e($vehicleMakeValue) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1" for="vehicle_model">Model</label>
+                                    <select id="vehicle_model" name="vehicle_model" class="form-select" <?= $vehicleMakeValue === '' ? 'disabled' : '' ?>>
+                                        <option value="">Select model (optional)</option>
+                                        <?php if ($vehicleModelValue !== ''): ?>
+                                        <option value="<?= e($vehicleModelValue) ?>" selected><?= e($vehicleModelValue) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="form-label small text-muted mb-1" for="vehicle_details">Color, plate, or other notes</label>
+                            <input
+                                type="text"
+                                id="vehicle_details"
+                                name="vehicle_details"
+                                class="form-control"
+                                placeholder="e.g. Red · ABC 1234 · parked near entrance"
+                                value="<?= e($vehicleDetailsValue) ?>"
+                            >
+                            <?php if ($lastVehicle !== '' && !isset($_POST['vehicle_details'])): ?>
+                            <div class="form-text">Notes prefilled from your last order. You can change anything.</div>
                             <?php endif; ?>
                         </div>
                         <div class="mb-4">
@@ -305,5 +341,76 @@ require __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+(() => {
+    const makesUrl = <?= json_encode(asset_url('api/vehicle-options.php?action=makes')) ?>;
+    const modelsUrl = <?= json_encode(asset_url('api/vehicle-options.php?action=models')) ?>;
+    const makeSelect = document.getElementById('vehicle_make');
+    const modelSelect = document.getElementById('vehicle_model');
+    if (!makeSelect || !modelSelect) return;
+
+    const selectedMake = <?= json_encode($vehicleMakeValue) ?>;
+    const selectedModel = <?= json_encode($vehicleModelValue) ?>;
+
+    function setOptions(select, items, placeholder, selected) {
+        select.innerHTML = '';
+        const empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = placeholder;
+        select.appendChild(empty);
+        items.forEach((name) => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            if (selected && selected.toLowerCase() === String(name).toLowerCase()) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+    }
+
+    async function loadMakes() {
+        try {
+            const res = await fetch(makesUrl, { credentials: 'same-origin' });
+            const data = await res.json();
+            const makes = Array.isArray(data.makes) ? data.makes : [];
+            setOptions(makeSelect, makes, 'Select make (optional)', selectedMake);
+            if (selectedMake) {
+                modelSelect.disabled = false;
+                await loadModels(selectedMake, selectedModel);
+            }
+        } catch (err) {
+            // Keep manual entry usable if the free API is temporarily down.
+        }
+    }
+
+    async function loadModels(make, selected) {
+        modelSelect.disabled = true;
+        setOptions(modelSelect, [], 'Loading models…', '');
+        if (!make) {
+            setOptions(modelSelect, [], 'Select model (optional)', '');
+            modelSelect.disabled = true;
+            return;
+        }
+        try {
+            const res = await fetch(modelsUrl + '&make=' + encodeURIComponent(make), { credentials: 'same-origin' });
+            const data = await res.json();
+            const models = Array.isArray(data.models) ? data.models : [];
+            setOptions(modelSelect, models, 'Select model (optional)', selected || '');
+            modelSelect.disabled = false;
+        } catch (err) {
+            setOptions(modelSelect, [], 'Select model (optional)', '');
+            modelSelect.disabled = false;
+        }
+    }
+
+    makeSelect.addEventListener('change', function () {
+        loadModels(makeSelect.value, '');
+    });
+
+    loadMakes();
+})();
+</script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

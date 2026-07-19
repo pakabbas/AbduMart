@@ -21,15 +21,12 @@ function handle_cart_mutation(bool $jsonOnly = false): never
         redirect('cart.php');
     }
 
-    if (!is_logged_in()) {
-        $respond(['error' => 'Please sign in to continue.', 'login_required' => true], 401, 'login.php');
-    }
-
     if (!verify_csrf($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null)) {
         $respond(['error' => 'Invalid CSRF token. Refresh the page and try again.'], 403);
     }
 
-    $userId = (int) current_user()['id'];
+    $loggedIn = is_logged_in();
+    $userId = $loggedIn ? (int) current_user()['id'] : null;
     $action = $_POST['action'] ?? '';
     $productId = (int) ($_POST['product_id'] ?? 0);
 
@@ -39,11 +36,15 @@ function handle_cart_mutation(bool $jsonOnly = false): never
             if (!$product || !product_is_purchasable($product)) {
                 $respond(['error' => 'Product unavailable'], 400);
             }
-            $stmt = db()->prepare(
-                'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, 1)
-                 ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + 1, ?)'
-            );
-            $stmt->execute([$userId, $productId, (int) $product['inventory']]);
+            if ($loggedIn) {
+                $stmt = db()->prepare(
+                    'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, 1)
+                     ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + 1, ?)'
+                );
+                $stmt->execute([$userId, $productId, (int) $product['inventory']]);
+            } else {
+                guest_cart_add($productId, (int) $product['inventory']);
+            }
             $respond([
                 'success' => true,
                 'cart_count' => get_cart_count($userId),
@@ -52,15 +53,23 @@ function handle_cart_mutation(bool $jsonOnly = false): never
 
         case 'update':
             $qty = max(0, (int) ($_POST['quantity'] ?? 0));
+            $product = get_product($productId);
+            $maxQty = $product ? (int) $product['inventory'] : 0;
             if ($qty === 0) {
-                $stmt = db()->prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?');
-                $stmt->execute([$userId, $productId]);
+                if ($loggedIn) {
+                    $stmt = db()->prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?');
+                    $stmt->execute([$userId, $productId]);
+                } else {
+                    guest_cart_set_quantity($productId, 0);
+                }
             } else {
-                $product = get_product($productId);
-                $maxQty = $product ? (int) $product['inventory'] : 0;
                 $qty = min($qty, $maxQty);
-                $stmt = db()->prepare('UPDATE cart_items SET quantity = ? WHERE user_id = ? AND product_id = ?');
-                $stmt->execute([$qty, $userId, $productId]);
+                if ($loggedIn) {
+                    $stmt = db()->prepare('UPDATE cart_items SET quantity = ? WHERE user_id = ? AND product_id = ?');
+                    $stmt->execute([$qty, $userId, $productId]);
+                } else {
+                    guest_cart_set_quantity($productId, $qty);
+                }
             }
             $respond([
                 'success' => true,
@@ -69,8 +78,12 @@ function handle_cart_mutation(bool $jsonOnly = false): never
             ], 200, 'cart.php');
 
         case 'remove':
-            $stmt = db()->prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?');
-            $stmt->execute([$userId, $productId]);
+            if ($loggedIn) {
+                $stmt = db()->prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?');
+                $stmt->execute([$userId, $productId]);
+            } else {
+                guest_cart_set_quantity($productId, 0);
+            }
             $respond([
                 'success' => true,
                 'cart_count' => get_cart_count($userId),
