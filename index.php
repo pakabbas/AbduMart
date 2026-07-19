@@ -126,16 +126,20 @@ require __DIR__ . '/includes/header.php';
                 <?php foreach ($featuredProducts as $product): ?>
                 <div class="featured-carousel-slide">
                     <article class="product-card card h-100 border-0 shadow-sm featured-product-card">
-                        <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
-                            <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
-                            <span class="featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
-                        </div>
+                        <a href="product.php?id=<?= (int) $product['id'] ?>" class="product-card-media-link text-decoration-none text-dark">
+                            <div class="product-img catalog-tile-media<?= catalog_has_image($product['image_url'] ?? null) ? '' : ' show-initials' ?>">
+                                <?= catalog_tile_media($product['name'], $product['image_url'] ?? null) ?>
+                                <span class="featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
+                            </div>
+                        </a>
                         <div class="card-body d-flex flex-column">
                             <span class="product-category"><?= e($product['category_name'] ?? 'General') ?></span>
-                            <h3 class="product-name"><?= e($product['name']) ?></h3>
-                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <h3 class="product-name">
+                                <a href="product.php?id=<?= (int) $product['id'] ?>" class="text-decoration-none text-dark"><?= e($product['name']) ?></a>
+                            </h3>
+                            <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
                                 <strong class="product-price"><?= format_money($product['price']) ?></strong>
-                                <?php if (is_logged_in() && product_is_purchasable($product)): ?>
+                                <?php if (product_is_purchasable($product)): ?>
                                 <form method="post" action="<?= e(asset_url('mart-line.php')) ?>" class="mart-buy-form">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="add">
@@ -144,8 +148,6 @@ require __DIR__ . '/includes/header.php';
                                         <i class="bi bi-plus-lg"></i> Add
                                     </button>
                                 </form>
-                                <?php elseif (!is_logged_in()): ?>
-                                <a href="login.php" class="btn btn-sm btn-outline-danger">Sign in</a>
                                 <?php else: ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Unavailable</button>
                                 <?php endif; ?>

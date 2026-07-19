@@ -44,7 +44,7 @@ require __DIR__ . '/includes/header.php';
             <div class="auth-card card border-0 shadow">
                 <div class="card-body p-4 p-md-5">
                     <h1 class="h3 mb-1">Welcome back</h1>
-                    <p class="text-muted mb-4">Sign in to shop and track your curbside orders.</p>
+                    <p class="text-muted mb-4">Sign in to checkout and track your curbside orders.</p>
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>

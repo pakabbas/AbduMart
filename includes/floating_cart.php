@@ -39,7 +39,7 @@ $storeClosed = !$storeStatus['open'];
                     <span class="text-danger" id="floatingCartTotal">$0.00</span>
                 </div>
             </div>
-            <a href="<?= e(asset_url('checkout.php')) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn">Checkout</a>
+            <a href="<?= e(is_logged_in() ? asset_url('checkout.php') : asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn"><?= is_logged_in() ? 'Checkout' : 'Sign in to checkout' ?></a>
             <a href="<?= e(asset_url('cart.php')) ?>" class="btn btn-link w-100 mt-2 small">View full cart</a>
         </div>
         <div class="floating-cart-panel-footer" id="floatingCartFooterClosed" hidden>

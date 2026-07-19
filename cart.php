@@ -3,9 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
-require_login();
 
-$userId = (int) current_user()['id'];
+$userId = is_logged_in() ? (int) current_user()['id'] : null;
 $cart = get_cart_totals($userId);
 $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
@@ -89,10 +88,13 @@ require __DIR__ . '/includes/header.php';
                         <i class="bi bi-clock-history me-1"></i><?= e($storeStatus['banner_message']) ?>
                     </div>
                     <button type="button" class="btn btn-secondary w-100 btn-lg" disabled>Checkout unavailable</button>
+                    <?php elseif (!is_logged_in()): ?>
+                    <a href="login.php?redirect=<?= urlencode('checkout.php') ?>" class="btn btn-danger w-100 btn-lg">Sign in to checkout</a>
+                    <p class="small text-muted mt-2 mb-0 text-center">Create an account or sign in to place your order.</p>
                     <?php else: ?>
                     <a href="checkout.php" class="btn btn-danger w-100 btn-lg">Proceed to Checkout</a>
                     <?php endif; ?>
-                    <p class="small text-muted mt-3 mb-0 text-center">Curbside pickup only · Pay with Stripe</p>
+                    <p class="small text-muted mt-3 mb-0 text-center">Curbside pickup only</p>
                 </div>
             </div>
         </div>

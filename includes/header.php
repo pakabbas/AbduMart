@@ -3,7 +3,7 @@
 /** @var string|null $pageDescription */
 $pageTitle = $pageTitle ?? config('app.name');
 $pageDescription = $pageDescription ?? 'Shop Abdu Market online for curbside pickup in Canton, Michigan.';
-$cartCount = is_logged_in() ? get_cart_count((int) current_user()['id']) : 0;
+$cartCount = get_cart_count(is_logged_in() ? (int) current_user()['id'] : null);
 ?>
 <!DOCTYPE html>
 <html lang="en">

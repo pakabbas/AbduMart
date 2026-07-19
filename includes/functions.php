@@ -1175,8 +1175,113 @@ function get_product(int $id): ?array
     return $row ?: null;
 }
 
-function get_cart_items(int $userId): array
+/**
+ * @return array<int, int> product_id => quantity
+ */
+function guest_cart_map(): array
 {
+    if (!isset($_SESSION['guest_cart']) || !is_array($_SESSION['guest_cart'])) {
+        $_SESSION['guest_cart'] = [];
+    }
+
+    $clean = [];
+    foreach ($_SESSION['guest_cart'] as $productId => $qty) {
+        $pid = (int) $productId;
+        $quantity = (int) $qty;
+        if ($pid > 0 && $quantity > 0) {
+            $clean[$pid] = $quantity;
+        }
+    }
+    $_SESSION['guest_cart'] = $clean;
+
+    return $clean;
+}
+
+function clear_guest_cart(): void
+{
+    $_SESSION['guest_cart'] = [];
+}
+
+function guest_cart_set_quantity(int $productId, int $quantity): void
+{
+    $cart = guest_cart_map();
+    if ($quantity <= 0) {
+        unset($cart[$productId]);
+    } else {
+        $cart[$productId] = $quantity;
+    }
+    $_SESSION['guest_cart'] = $cart;
+}
+
+function guest_cart_add(int $productId, int $maxInventory): void
+{
+    $cart = guest_cart_map();
+    $current = $cart[$productId] ?? 0;
+    $cart[$productId] = min($current + 1, max(1, $maxInventory));
+    $_SESSION['guest_cart'] = $cart;
+}
+
+function merge_guest_cart_into_user(int $userId): void
+{
+    $guest = guest_cart_map();
+    if ($guest === [] || $userId <= 0) {
+        return;
+    }
+
+    $stmt = db()->prepare(
+        'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)'
+    );
+
+    foreach ($guest as $productId => $qty) {
+        $product = get_product($productId);
+        if (!$product || !product_is_purchasable($product)) {
+            continue;
+        }
+        $max = (int) $product['inventory'];
+        $addQty = min((int) $qty, $max);
+        if ($addQty < 1) {
+            continue;
+        }
+        $stmt->execute([$userId, $productId, $addQty, $max]);
+    }
+
+    clear_guest_cart();
+}
+
+function get_cart_items(?int $userId = null): array
+{
+    if ($userId === null) {
+        if (is_logged_in()) {
+            $userId = (int) current_user()['id'];
+        } else {
+            $guest = guest_cart_map();
+            if ($guest === []) {
+                return [];
+            }
+            $ids = array_keys($guest);
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = db()->prepare(
+                "SELECT p.id AS product_id, p.name, p.price, p.image_url, p.inventory
+                 FROM products p
+                 WHERE p.id IN ($placeholders) AND p.is_active = 1"
+            );
+            $stmt->execute($ids);
+            $rows = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $pid = (int) $row['product_id'];
+                $qty = (int) ($guest[$pid] ?? 0);
+                if ($qty < 1) {
+                    continue;
+                }
+                $row['quantity'] = min($qty, (int) $row['inventory']);
+                $rows[] = $row;
+            }
+
+            return $rows;
+        }
+    }
+
     $stmt = db()->prepare(
         'SELECT ci.*, p.name, p.price, p.image_url, p.inventory
          FROM cart_items ci
@@ -1187,7 +1292,7 @@ function get_cart_items(int $userId): array
     return $stmt->fetchAll();
 }
 
-function get_cart_totals(int $userId): array
+function get_cart_totals(?int $userId = null): array
 {
     $items = get_cart_items($userId);
     $subtotal = 0.0;
@@ -1200,12 +1305,17 @@ function get_cart_totals(int $userId): array
         'subtotal' => $subtotal,
         'tax' => $tax,
         'total' => $subtotal + $tax,
-        'count' => array_sum(array_column($items, 'quantity')),
+        'count' => array_sum(array_map(static fn ($item) => (int) $item['quantity'], $items)),
     ];
 }
 
-function get_cart_count(int $userId): int
+function get_cart_count(?int $userId = null): int
 {
+    if ($userId === null && !is_logged_in()) {
+        return (int) array_sum(guest_cart_map());
+    }
+
+    $userId = $userId ?? (int) current_user()['id'];
     $stmt = db()->prepare('SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = ?');
     $stmt->execute([$userId]);
     return (int) $stmt->fetchColumn();
