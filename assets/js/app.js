@@ -5,12 +5,39 @@
         const siteHeader = document.getElementById('siteHeader');
         if (siteHeader) {
             const topBar = siteHeader.querySelector('.site-header-top');
+            const navBar = siteHeader.querySelector('.site-header-nav-bar');
             let headerScrollTicking = false;
+            let isCompact = siteHeader.classList.contains('is-compact');
+
+            function measureHideOffset() {
+                const topH = topBar && !isCompact ? topBar.offsetHeight : (topBar ? topBar.scrollHeight : 0);
+                const navH = navBar && !isCompact ? navBar.offsetHeight : (navBar ? navBar.scrollHeight : 0);
+                // Collapse once the top bar is mostly scrolled past.
+                return Math.max(24, Math.round(topH * 0.6) || 24);
+            }
 
             function syncHeaderCompact() {
                 headerScrollTicking = false;
-                const threshold = Math.max(8, topBar ? topBar.scrollHeight : 24);
-                siteHeader.classList.toggle('is-compact', window.scrollY > threshold);
+                const y = window.scrollY || window.pageYOffset || 0;
+                // Hysteresis: enter compact after scrolling past the top bar,
+                // leave compact only when near the very top. Prevents blink
+                // when collapsing the sticky header changes layout/scroll.
+                const enterAt = measureHideOffset();
+                const exitAt = 8;
+                let nextCompact = isCompact;
+
+                if (isCompact) {
+                    nextCompact = y > exitAt;
+                } else {
+                    nextCompact = y >= enterAt;
+                }
+
+                if (nextCompact === isCompact) {
+                    return;
+                }
+
+                isCompact = nextCompact;
+                siteHeader.classList.toggle('is-compact', isCompact);
             }
 
             window.addEventListener('scroll', function () {
@@ -19,6 +46,12 @@
                 }
                 headerScrollTicking = true;
                 requestAnimationFrame(syncHeaderCompact);
+            }, { passive: true });
+
+            window.addEventListener('resize', function () {
+                if (!isCompact) {
+                    syncHeaderCompact();
+                }
             }, { passive: true });
 
             syncHeaderCompact();

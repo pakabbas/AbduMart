@@ -41,6 +41,7 @@ body {
     background: #fff;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
     transition: box-shadow 0.2s ease;
+    overflow-anchor: none;
 }
 
 .site-header.is-compact {
@@ -50,7 +51,8 @@ body {
 .site-header-top,
 .site-header-nav-bar {
     overflow: hidden;
-    transition: max-height 0.28s ease, opacity 0.2s ease, border-color 0.2s ease;
+    /* Instant hide/show avoids scroll-anchoring flicker while sticky. */
+    transition: none;
 }
 
 .site-header.is-compact .site-header-top {
