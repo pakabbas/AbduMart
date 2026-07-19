@@ -239,8 +239,19 @@
                         btn.classList.remove('btn-danger');
                         btn.classList.add('btn-success');
 
+                        // Auto-open the side cart only for the first item (empty → non-empty).
+                        const prevCount = parseInt(
+                            document.getElementById('floatingCart')?.dataset.count
+                            || document.querySelector('.js-floating-cart-open .cart-badge')?.textContent
+                            || '0',
+                            10
+                        ) || 0;
+                        const nextCount = parseInt(data.cart_count, 10) || 0;
                         document.dispatchEvent(new CustomEvent('cart:updated', {
-                            detail: { count: data.cart_count, openPanel: true },
+                            detail: {
+                                count: nextCount,
+                                openPanel: prevCount === 0 && nextCount > 0,
+                            },
                         }));
 
                         setTimeout(function () {
