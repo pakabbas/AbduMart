@@ -25,8 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'auto_images') {
         $updated = auto_assign_missing_category_images();
         flash('success', $updated > 0
-            ? ("Assigned random supermarket photos for {$updated} categories.")
+            ? ("Assigned relevant photos for {$updated} categories.")
             : 'All categories already have images.');
+        redirect('categories.php');
+    }
+
+    if ($action === 'reassign_images') {
+        $updated = reassign_all_category_images();
+        flash('success', $updated > 0
+            ? ("Updated relevant photos for {$updated} categories.")
+            : 'No categories found.');
         redirect('categories.php');
     }
 
@@ -217,7 +225,14 @@ if ($editing):
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="auto_images">
         <button type="submit" class="admin-btn admin-btn-outline">
-            <i class="bi bi-image"></i> Auto-assign random supermarket photos
+            <i class="bi bi-image"></i> Fill missing with relevant photos
+        </button>
+    </form>
+    <form method="post" class="d-inline" onsubmit="return confirm('Replace ALL category images with name-relevant photos?');">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="reassign_images">
+        <button type="submit" class="admin-btn admin-btn-outline">
+            <i class="bi bi-arrow-repeat"></i> Reassign relevant photos to all
         </button>
     </form>
     <form method="post" class="d-inline" onsubmit="return confirm('Remove images from ALL categories?');">

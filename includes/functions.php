@@ -438,33 +438,65 @@ function catalog_has_image(?string $url): bool
 
 function category_supermarket_image_sources(): array
 {
-    // Curated grocery/supermarket photos (Unsplash). At least 20 for random assignment.
+    // Curated grocery/supermarket photos (Unsplash). Used as fallback pool.
     return [
-        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80', // produce aisle
-        'https://images.unsplash.com/photo-1488459716781-31db52582b45?auto=format&fit=crop&w=900&q=80', // fresh vegetables
+        'https://images.unsplash.com/photo-1685930117878-4b6e76e1de42?auto=format&fit=crop&w=900&q=80', // produce aisle
         'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=900&q=80', // fruit display
-        'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=900&q=80', // cheese / dairy
+        'https://images.unsplash.com/photo-1642463028853-706f378f2323?auto=format&fit=crop&w=900&q=80', // eggs + milk
         'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=80', // milk bottles
-        'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=900&q=80', // dairy fridge
+        'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=900&q=80', // cheese
         'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80', // bakery bread
         'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=80', // pastries
-        'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=900&q=80', // croissants
-        'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=900&q=80', // meat counter
-        'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=900&q=80', // fresh seafood
-        'https://images.unsplash.com/photo-1621939514649-c8cce24cde85?auto=format&fit=crop&w=900&q=80', // packaged snacks
-        'https://images.unsplash.com/photo-1599490659213-e2b9259e2fe8?auto=format&fit=crop&w=900&q=80', // chips snacks
+        'https://images.unsplash.com/photo-1646154949919-e8f589c17b18?auto=format&fit=crop&w=900&q=80', // meat case
+        'https://images.unsplash.com/photo-1560008581-09826d1de69e?auto=format&fit=crop&w=900&q=80', // ice cream
+        'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=80', // pasta
+        'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=900&q=80', // snacks / chips
         'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?auto=format&fit=crop&w=900&q=80', // soft drinks
-        'https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=900&q=80', // water bottles
-        'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=900&q=80', // coffee / beverages shelf
-        'https://images.unsplash.com/photo-1584473457406-6240486418e9?auto=format&fit=crop&w=900&q=80', // frozen foods
-        'https://images.unsplash.com/photo-1582735689369-4fe89db7119c?auto=format&fit=crop&w=900&q=80', // pantry canned goods
-        'https://images.unsplash.com/photo-1584305574647-0cc949a2bb4f?auto=format&fit=crop&w=900&q=80', // household cleaning
-        'https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=900&q=80', // supermarket aisle
-        'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=900&q=80', // grocery shelves
-        'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&w=900&q=80', // grocery cart aisle
+        'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=900&q=80', // cleaning
+        'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=900&q=80', // cereal aisle
+        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=900&q=80', // spices / sauces
+        'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=900&q=80', // personal care
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=900&q=80', // baby & kids
         'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=80', // spice racks
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80', // supermarket produce
         'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&w=900&q=80', // market baskets
     ];
+}
+
+/**
+ * Map category names to a relevant Unsplash photo (by keyword match).
+ */
+function category_relevant_image_url(string $name): string
+{
+    $n = strtolower(trim($name));
+    $u = static fn (string $id): string => 'https://images.unsplash.com/' . $id . '?auto=format&fit=crop&w=900&q=80';
+
+    $rules = [
+        [['baby', 'kid', 'infant', 'toddler', 'children'], $u('photo-1515488042361-ee00e0ddd4e4')],
+        [['personal care', 'beauty', 'hygiene', 'toiletr', 'soap', 'shampoo', 'skincare'], $u('photo-1556228578-0d85b1a4d571')],
+        [['condiment', 'sauce', 'dressing', 'ketchup', 'mustard', 'spice'], $u('photo-1596040033229-a9821ebd058d')],
+        [['breakfast', 'cereal', 'oatmeal', 'granola'], $u('photo-1578916171728-46686eac8d58')],
+        [['household', 'cleaning', 'laundry', 'essential', 'paper'], $u('photo-1585421514284-efb74c2b69ba')],
+        [['bakery', 'bread', 'pastry', 'bagel', 'muffin'], $u('photo-1509440159596-0249088772ff')],
+        [['frozen', 'ice cream', 'freezer'], $u('photo-1560008581-09826d1de69e')],
+        [['meat', 'seafood', 'fish', 'poultry', 'chicken', 'beef'], $u('photo-1646154949919-e8f589c17b18')],
+        [['pantry', 'staple', 'pasta', 'rice', 'flour', 'canned'], $u('photo-1621996346565-e3dbc646d9a9')],
+        [['snack', 'beverage', 'drink', 'chip', 'soda', 'juice'], $u('photo-1566478989037-eec170784d0b')],
+        [['dairy', 'egg', 'milk', 'cheese', 'yogurt', 'butter'], $u('photo-1642463028853-706f378f2323')],
+        [['produce', 'fruit', 'vegetable', 'fresh'], $u('photo-1685930117878-4b6e76e1de42')],
+    ];
+
+    foreach ($rules as [$keywords, $url]) {
+        foreach ($keywords as $keyword) {
+            if (str_contains($n, $keyword)) {
+                return $url;
+            }
+        }
+    }
+
+    $sources = category_supermarket_image_sources();
+
+    return $sources[abs(crc32($n)) % count($sources)];
 }
 
 function category_stock_image_options(): array
@@ -492,6 +524,12 @@ function category_stock_image_options(): array
  */
 function assign_category_supermarket_image(int $categoryId, string $name, ?array &$preferredOrder = null): string
 {
+    $preferred = category_relevant_image_url($name);
+    $local = import_remote_image($preferred, 'category', $categoryId);
+    if ($local !== null) {
+        return $local;
+    }
+
     $sources = category_supermarket_image_sources();
     $count = count($sources);
     if ($count === 0) {
@@ -570,6 +608,26 @@ function auto_assign_missing_category_images(): int
         }
         $url = assign_category_supermarket_image((int) $c['id'], (string) $c['name'], $order);
         $stmt->execute([$url, (int) $c['id']]);
+        $updated++;
+    }
+
+    return $updated;
+}
+
+/**
+ * Force-assign a name-relevant image to every category.
+ */
+function reassign_all_category_images(): int
+{
+    $cats = get_categories(false);
+    $updated = 0;
+    $stmt = db()->prepare('UPDATE categories SET image_url = ? WHERE id = ?');
+
+    foreach ($cats as $c) {
+        $id = (int) $c['id'];
+        $name = (string) $c['name'];
+        $url = assign_category_supermarket_image($id, $name);
+        $stmt->execute([$url, $id]);
         $updated++;
     }
 
