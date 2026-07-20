@@ -168,26 +168,16 @@ body {
 }
 
 .site-header-logo {
-    display: none;
-    height: 36px;
+    display: block;
+    height: 40px;
     width: auto;
-    max-width: 180px;
+    max-width: min(240px, 58vw);
     object-fit: contain;
 }
 
 .site-header-wordmark {
-    font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
-    font-style: italic;
-    font-weight: 700;
-    font-size: clamp(1.15rem, 1.9vw, 1.55rem);
-    letter-spacing: 0.02em;
-    color: var(--am-brand-fill);
-    text-transform: uppercase;
-    line-height: 1;
-    white-space: nowrap;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
-    -webkit-text-stroke: 0.4px currentColor;
-    paint-order: stroke fill;
+    /* Logo image already contains the brand name */
+    display: none;
 }
 
 .site-header-search {
@@ -480,9 +470,9 @@ body {
 
 .footer-brand-logo {
     display: block;
-    height: 32px;
+    height: 36px;
     width: auto;
-    max-width: 200px;
+    max-width: 220px;
     object-fit: contain;
 }
 
@@ -610,8 +600,9 @@ body {
         display: none;
     }
 
-    .site-header-wordmark {
-        font-size: 1.05rem;
+    .site-header-logo {
+        height: 34px;
+        max-width: min(200px, 52vw);
     }
 
     .site-header-search-btn {

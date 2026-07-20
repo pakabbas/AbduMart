@@ -66,10 +66,10 @@ $isContact = $currentScript === 'contact.php';
             <a class="site-header-brand" href="index.php" aria-label="Abdu Market home">
                 <img
                     src="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>"
-                    alt=""
+                    alt="Abdu Market"
                     class="site-header-logo"
-                    width="200"
-                    height="36"
+                    width="240"
+                    height="40"
                 >
                 <span class="site-header-wordmark">Abdu Market</span>
             </a>
