@@ -86,7 +86,10 @@ $isContact = $currentScript === 'contact.php';
                     value="<?= e($headerSearch) ?>"
                     autocomplete="off"
                 >
-                <button type="submit" class="site-header-search-btn">Search</button>
+                <button type="submit" class="site-header-search-btn" aria-label="Search">
+                    <i class="bi bi-search site-header-search-btn-icon" aria-hidden="true"></i>
+                    <span class="site-header-search-btn-label">Search</span>
+                </button>
             </form>
 
             <div class="site-header-actions">
