@@ -69,8 +69,11 @@
                 }
 
                 e.preventDefault();
+                const headerOffset = parseFloat(
+                    getComputedStyle(document.documentElement).getPropertyValue('--site-header-sticky-height')
+                ) || 72;
                 const navHeight = categoryNav.offsetHeight + 12;
-                const top = section.getBoundingClientRect().top + window.scrollY - navHeight - 72;
+                const top = section.getBoundingClientRect().top + window.scrollY - navHeight - headerOffset;
                 window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
                 setActiveChip(targetId);
                 scrollChipIntoView(chip);
@@ -117,8 +120,11 @@
                 setActiveChip(activeFromServer);
                 scrollChipIntoView(targetChip);
                 window.setTimeout(function () {
+                    const headerOffset = parseFloat(
+                        getComputedStyle(document.documentElement).getPropertyValue('--site-header-sticky-height')
+                    ) || 72;
                     const navHeight = categoryNav.offsetHeight + 12;
-                    const top = targetSection.getBoundingClientRect().top + window.scrollY - navHeight - 72;
+                    const top = targetSection.getBoundingClientRect().top + window.scrollY - navHeight - headerOffset;
                     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
                 }, 120);
             }
