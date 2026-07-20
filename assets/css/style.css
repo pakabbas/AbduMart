@@ -230,6 +230,16 @@ body {
     padding: 0 1.35rem;
     white-space: nowrap;
     transition: background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.site-header-search-btn-icon {
+    display: none;
+    font-size: 1.05rem;
+    line-height: 1;
 }
 
 .site-header-search-btn:hover,
@@ -597,6 +607,68 @@ body {
         border-top: 1px solid rgba(255, 255, 255, 0.12);
         margin-top: 0.25rem;
     }
+
+    /* Sticky compact bar: search + cart + menu in one row (no logo). */
+    .site-header.is-compact .site-header-main-inner {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "search actions";
+        gap: 0.55rem;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+        align-items: center;
+    }
+
+    .site-header.is-compact .site-header-brand {
+        display: none;
+    }
+
+    .site-header.is-compact .site-header-search {
+        grid-area: search;
+        margin: 0;
+        min-width: 0;
+    }
+
+    .site-header.is-compact .site-header-search-icon {
+        display: none;
+    }
+
+    .site-header.is-compact .site-header-search-input {
+        padding: 0.55rem 0.7rem 0.55rem 0.85rem;
+        font-size: 0.9rem;
+    }
+
+    .site-header.is-compact .site-header-search-btn-label {
+        display: none;
+    }
+
+    .site-header.is-compact .site-header-search-btn-icon {
+        display: block;
+    }
+
+    .site-header.is-compact .site-header-search-btn {
+        width: 2.45rem;
+        min-width: 2.45rem;
+        padding: 0;
+        flex-shrink: 0;
+    }
+
+    .site-header.is-compact .site-header-actions {
+        grid-area: actions;
+        gap: 0.45rem;
+        justify-self: end;
+        flex-shrink: 0;
+    }
+
+    .site-header.is-compact .site-header-cart,
+    .site-header.is-compact .site-header-toggler {
+        width: 2.45rem;
+        height: 2.45rem;
+        justify-content: center;
+    }
+
+    .site-header.is-compact .site-header-cart {
+        gap: 0;
+    }
 }
 
 @media (max-width: 575.98px) {
@@ -611,6 +683,20 @@ body {
 
     .site-header-search-btn {
         padding: 0 0.9rem;
+    }
+
+    .site-header.is-compact .site-header-main-inner {
+        gap: 0.4rem;
+        padding-top: 0.45rem;
+        padding-bottom: 0.45rem;
+    }
+
+    .site-header.is-compact .site-header-search-btn,
+    .site-header.is-compact .site-header-cart,
+    .site-header.is-compact .site-header-toggler {
+        width: 2.3rem;
+        min-width: 2.3rem;
+        height: 2.3rem;
     }
 }
 
