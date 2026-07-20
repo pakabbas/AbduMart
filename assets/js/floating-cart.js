@@ -46,20 +46,26 @@
                 fabBadge.hidden = n <= 0;
             }
 
-            let navBadge = document.querySelector('.js-floating-cart-open .cart-badge');
-            const navBtn = document.querySelector('.js-floating-cart-open');
-            if (navBtn) {
+            document.querySelectorAll('.js-floating-cart-open').forEach(function (navBtn) {
+                let navBadge = navBtn.querySelector('.cart-badge');
                 if (!navBadge && n > 0) {
                     navBadge = document.createElement('span');
                     navBadge.className = 'cart-badge';
-                    const iconWrap = navBtn.querySelector('.site-header-cart-icon-wrap');
+                    const iconWrap = navBtn.querySelector('.site-header-cart-icon-wrap, .mobile-bottom-nav-cart-wrap');
                     (iconWrap || navBtn).appendChild(navBadge);
                 }
                 if (navBadge) {
-                    navBadge.textContent = n;
+                    navBadge.textContent = String(n);
+                    navBadge.classList.toggle('is-empty', n <= 0);
                     navBadge.style.display = n > 0 ? 'inline-flex' : 'none';
                 }
-            }
+
+                const bagIcon = navBtn.querySelector('.bi-bag, .bi-bag-fill');
+                if (bagIcon) {
+                    bagIcon.classList.toggle('bi-bag-fill', n > 0);
+                    bagIcon.classList.toggle('bi-bag', n <= 0);
+                }
+            });
         }
 
         updateHeaderTotal(subtotalLabel);

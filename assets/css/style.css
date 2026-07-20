@@ -2779,6 +2779,125 @@ body.has-store-closed-banner.has-active-order-banner .store-closed-banner {
     font-weight: 600;
 }
 
+/* Mobile bottom app nav */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .mobile-bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1045;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.15rem;
+        min-height: 60px;
+        padding: 0.35rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+        background: #fff;
+        border-top: 1px solid #ececec;
+        box-shadow: 0 -8px 24px rgba(17, 24, 39, 0.08);
+    }
+
+    .mobile-bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        min-width: 0;
+        padding: 0.35rem 0.2rem;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #6b7280;
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.1;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-bottom-nav-item i {
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .mobile-bottom-nav-item:hover,
+    .mobile-bottom-nav-item:focus-visible {
+        color: var(--am-brand-fill);
+        background: rgba(var(--am-red-rgb), 0.06);
+        outline: none;
+    }
+
+    .mobile-bottom-nav-item.is-active {
+        color: var(--am-brand-fill);
+    }
+
+    .mobile-bottom-nav-cart-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mobile-bottom-nav-badge,
+    .mobile-bottom-nav-item .cart-badge {
+        position: absolute;
+        top: -0.35rem;
+        right: -0.55rem;
+        min-width: 1rem;
+        height: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 999px;
+        background: var(--am-brand-fill);
+        color: #fff;
+        font-size: 0.62rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        border: 1.5px solid #fff;
+    }
+
+    .mobile-bottom-nav-item .cart-badge.is-empty {
+        display: none !important;
+    }
+
+    /* Make room for the bottom nav on mobile. */
+    body {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Cart is in the bottom nav — hide the floating FAB on mobile. */
+    .floating-cart-fab {
+        display: none !important;
+    }
+
+    /* Keep banners above the bottom nav. */
+    .active-order-banner,
+    .store-closed-banner {
+        bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.has-active-order-banner {
+        padding-bottom: calc(64px + 72px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.has-store-closed-banner {
+        padding-bottom: calc(64px + 58px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.has-store-closed-banner.has-active-order-banner {
+        padding-bottom: calc(64px + 72px + 58px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.has-store-closed-banner.has-active-order-banner .store-closed-banner {
+        bottom: calc(60px + 72px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 /* Footer */
 .site-footer {
     background: #fff;
