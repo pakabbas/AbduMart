@@ -78,24 +78,37 @@ require __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
-            <form method="get" class="shop-app-search" role="search">
+            <form method="get" class="shop-app-search js-product-search" role="search" data-suggest-panel="shopAppSearchSuggest">
                 <?php if ($sort !== 'name'): ?>
                 <input type="hidden" name="sort" value="<?= e($sort) ?>">
                 <?php endif; ?>
-                <i class="bi bi-search shop-app-search-icon" aria-hidden="true"></i>
-                <input
-                    type="search"
-                    name="q"
-                    class="shop-app-search-input"
-                    placeholder="Search dishes, drinks, snacks..."
-                    value="<?= e($search) ?>"
-                    autocomplete="off"
-                >
-                <?php if ($search !== ''): ?>
-                <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-app-search-clear" aria-label="Clear search">
-                    <i class="bi bi-x-lg"></i>
-                </a>
-                <?php endif; ?>
+                <div class="shop-app-search-row">
+                    <i class="bi bi-search shop-app-search-icon" aria-hidden="true"></i>
+                    <input
+                        type="search"
+                        name="q"
+                        id="shopAppSearch"
+                        class="shop-app-search-input js-product-search-input"
+                        placeholder="Search dishes, drinks, snacks..."
+                        value="<?= e($search) ?>"
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-controls="shopAppSearchSuggest"
+                        aria-expanded="false"
+                    >
+                    <?php if ($search !== ''): ?>
+                    <a href="shop.php<?= $sort !== 'name' ? '?sort=' . rawurlencode($sort) : '' ?>" class="shop-app-search-clear" aria-label="Clear search">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <div
+                    id="shopAppSearchSuggest"
+                    class="search-suggest"
+                    role="listbox"
+                    aria-label="Product suggestions"
+                    hidden
+                ></div>
             </form>
 
             <div class="shop-app-toolbar">

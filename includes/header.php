@@ -28,6 +28,7 @@ $isContact = $currentScript === 'contact.php';
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <meta name="pickup-here-url" content="<?= e(asset_url('pickup-here.php')) ?>">
     <meta name="mart-line-url" content="<?= e(asset_url('mart-line.php')) ?>">
+    <meta name="search-suggest-url" content="<?= e(asset_url('api/search-suggest.php')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
@@ -74,22 +75,34 @@ $isContact = $currentScript === 'contact.php';
                 <span class="site-header-wordmark">Abdu Market</span>
             </a>
 
-            <form class="site-header-search" action="shop.php" method="get" role="search">
-                <label class="visually-hidden" for="siteHeaderSearch">Search products</label>
-                <i class="bi bi-search site-header-search-icon" aria-hidden="true"></i>
-                <input
-                    id="siteHeaderSearch"
-                    type="search"
-                    name="q"
-                    class="site-header-search-input"
-                    placeholder="Search"
-                    value="<?= e($headerSearch) ?>"
-                    autocomplete="off"
-                >
-                <button type="submit" class="site-header-search-btn" aria-label="Search">
-                    <i class="bi bi-search site-header-search-btn-icon" aria-hidden="true"></i>
-                    <span class="site-header-search-btn-label">Search</span>
-                </button>
+            <form class="site-header-search js-product-search" action="shop.php" method="get" role="search" data-suggest-panel="siteHeaderSearchSuggest">
+                <div class="site-header-search-row">
+                    <label class="visually-hidden" for="siteHeaderSearch">Search products</label>
+                    <i class="bi bi-search site-header-search-icon" aria-hidden="true"></i>
+                    <input
+                        id="siteHeaderSearch"
+                        type="search"
+                        name="q"
+                        class="site-header-search-input js-product-search-input"
+                        placeholder="Search"
+                        value="<?= e($headerSearch) ?>"
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-controls="siteHeaderSearchSuggest"
+                        aria-expanded="false"
+                    >
+                    <button type="submit" class="site-header-search-btn" aria-label="Search">
+                        <i class="bi bi-search site-header-search-btn-icon" aria-hidden="true"></i>
+                        <span class="site-header-search-btn-label">Search</span>
+                    </button>
+                </div>
+                <div
+                    id="siteHeaderSearchSuggest"
+                    class="search-suggest"
+                    role="listbox"
+                    aria-label="Product suggestions"
+                    hidden
+                ></div>
             </form>
 
             <div class="site-header-actions">
