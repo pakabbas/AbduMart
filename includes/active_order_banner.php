@@ -8,7 +8,7 @@ $orderUrl = 'orders.php?order=' . (int) $activePickupOrder['id'];
 $checkedIn = !empty($activePickupOrder['customer_here_at']);
 $callMart = call_mart_button(true, 'active-order-banner-call');
 ?>
-<div class="active-order-banner" id="activeOrderBanner">
+<div class="active-order-banner" id="activeOrderBanner" data-order-id="<?= (int) $activePickupOrder['id'] ?>">
     <div class="active-order-banner-inner container">
         <a href="<?= e($orderUrl) ?>" class="active-order-banner-main" aria-label="View active order <?= e($activePickupOrder['order_number']) ?>">
             <div class="active-order-banner-icon" aria-hidden="true">
@@ -26,19 +26,28 @@ $callMart = call_mart_button(true, 'active-order-banner-call');
                     <?php else: ?>
                     <?= (int) $activePickupOrder['item_count'] ?> item<?= (int) $activePickupOrder['item_count'] === 1 ? '' : 's' ?>
                     · <?= format_money($activePickupOrder['total']) ?>
-                    · Tap to open order or notify the mart
+                    · Tap to open order
                     <?php endif; ?>
                 </span>
             </div>
-            <span class="active-order-banner-action" aria-hidden="true">
-                <?php if ($checkedIn): ?>
-                View
-                <?php else: ?>
-                I'm Here
-                <?php endif; ?>
-                <i class="bi bi-chevron-right"></i>
-            </span>
         </a>
+        <?php if ($checkedIn): ?>
+        <a href="<?= e($orderUrl) ?>" class="active-order-banner-action" aria-label="View order details">
+            View
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </a>
+        <?php else: ?>
+        <button
+            type="button"
+            class="active-order-banner-action js-banner-im-here-btn"
+            data-order-id="<?= (int) $activePickupOrder['id'] ?>"
+            data-order-url="<?= e($orderUrl) ?>"
+            aria-label="Notify Abdu Market that you have arrived"
+        >
+            I'm Here
+            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+        </button>
+        <?php endif; ?>
         <?php if ($callMart !== ''): ?>
         <?= $callMart ?>
         <?php endif; ?>

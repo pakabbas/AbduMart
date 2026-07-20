@@ -584,16 +584,7 @@
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Notifying mart...';
 
                 try {
-                    const pickupUrl = document.querySelector('meta[name="pickup-here-url"]')?.content || 'pickup-here.php';
-                    const res = await fetch(pickupUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': csrfToken || '',
-                        },
-                        body: JSON.stringify({ order_id: orderId, csrf_token: csrfToken }),
-                    });
-                    const data = await res.json();
+                    const data = await submitPickupHere(orderId);
                     if (data.success) {
                         panel.innerHTML = '<div class="text-center"><i class="bi bi-geo-alt-fill text-danger fs-1"></i>' +
                             '<h3 class="h5 mt-2">We\'re on our way!</h3>' +
@@ -610,6 +601,129 @@
                 }
             });
         });
+
+        document.querySelectorAll('.js-banner-im-here-btn').forEach(function (btn) {
+            btn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const orderId = btn.dataset.orderId;
+                const orderUrl = btn.dataset.orderUrl || 'orders.php';
+                const banner = document.getElementById('activeOrderBanner');
+                const brandColor = themeBrandColor();
+
+                let confirmed = false;
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Notify Abdu Market?',
+                        html: '<p class="mb-0">Let us know you\'ve arrived for curbside pickup. Please stay in your vehicle.</p>',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, I\'m Here',
+                        cancelButtonText: 'Not yet',
+                        confirmButtonColor: brandColor,
+                        cancelButtonColor: '#6b7280',
+                        reverseButtons: true,
+                        focusCancel: true,
+                    });
+                    confirmed = result.isConfirmed;
+                } else {
+                    confirmed = window.confirm('Notify Abdu Market that you\'ve arrived?');
+                }
+
+                if (!confirmed) {
+                    return;
+                }
+
+                const original = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+                try {
+                    const data = await submitPickupHere(orderId);
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({
+                                title: 'We\'re on our way!',
+                                text: data.message || 'Please stay in your vehicle.',
+                                icon: 'success',
+                                confirmButtonColor: brandColor,
+                            });
+                        }
+                        updateActiveOrderBannerAfterCheckIn(banner, orderUrl);
+                    } else if (typeof Swal !== 'undefined') {
+                        await Swal.fire({
+                            title: 'Check-in failed',
+                            text: data.error || 'Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: brandColor,
+                        });
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                    } else {
+                        alert(data.error || 'Check-in failed');
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                    }
+                } catch (err) {
+                    if (typeof Swal !== 'undefined') {
+                        await Swal.fire({
+                            title: 'Network error',
+                            text: 'Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: brandColor,
+                        });
+                    } else {
+                        alert('Network error. Please try again.');
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            });
+        });
+
+        function themeBrandColor() {
+            return getComputedStyle(document.documentElement).getPropertyValue('--am-brand-fill').trim() || '#c8102e';
+        }
+
+        async function submitPickupHere(orderId) {
+            const pickupUrl = document.querySelector('meta[name="pickup-here-url"]')?.content || 'pickup-here.php';
+            const res = await fetch(pickupUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken || '',
+                },
+                body: JSON.stringify({ order_id: orderId, csrf_token: csrfToken }),
+            });
+            return res.json();
+        }
+
+        function updateActiveOrderBannerAfterCheckIn(banner, orderUrl) {
+            if (!banner) {
+                return;
+            }
+
+            const icon = banner.querySelector('.active-order-banner-icon i');
+            if (icon) {
+                icon.className = 'bi bi-geo-alt-fill';
+            }
+
+            const meta = banner.querySelector('.active-order-banner-meta');
+            if (meta) {
+                meta.textContent = 'Checked in — tap for details';
+            }
+
+            const actionBtn = banner.querySelector('.js-banner-im-here-btn');
+            if (actionBtn) {
+                const viewLink = document.createElement('a');
+                viewLink.href = orderUrl;
+                viewLink.className = 'active-order-banner-action';
+                viewLink.setAttribute('aria-label', 'View order details');
+                viewLink.innerHTML = 'View <i class="bi bi-chevron-right" aria-hidden="true"></i>';
+                actionBtn.replaceWith(viewLink);
+            }
+        }
 
         document.querySelectorAll('.catalog-tile-img').forEach(function (img) {
             function showInitials() {

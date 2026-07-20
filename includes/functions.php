@@ -225,6 +225,16 @@ function theme_inline_css(): string
         . '}';
 }
 
+function mart_google_maps_url(?string $address = null): string
+{
+    $address = trim($address ?? (string) setting('mart.address', config('mart.address')));
+    if ($address === '') {
+        return 'https://www.google.com/maps';
+    }
+
+    return 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($address);
+}
+
 function flash(string $type, string $message): void
 {
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
