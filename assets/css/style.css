@@ -1403,7 +1403,8 @@ body.shop-app-page {
 
 .shop-category-carousel-wrap {
     position: sticky;
-    top: 72px;
+    /* Kept flush under the sticky header (synced via --site-header-sticky-height). */
+    top: var(--site-header-sticky-height, 72px);
     z-index: 1020;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(10px);
@@ -1713,10 +1714,6 @@ body.shop-app-page {
 }
 
 @media (max-width: 576px) {
-    .shop-category-carousel-wrap {
-        top: 64px;
-    }
-
     .shop-category-carousel-btn {
         width: 30px;
         height: 30px;

@@ -8,6 +8,31 @@
             let isCompact = siteHeader.classList.contains('is-compact');
             let lastScrollY = window.scrollY || window.pageYOffset || 0;
             let lockUntil = 0;
+            let stickyOffsetTimer = 0;
+
+            function updateHeaderStickyOffset() {
+                // When compact (and the mobile menu is closed), only the main bar is
+                // visible — measure that so sticky content sits flush with no gap.
+                let height = siteHeader.offsetHeight;
+                if (siteHeader.classList.contains('is-compact')) {
+                    const navOpen = siteHeader.querySelector('#siteHeaderNav.show');
+                    const main = siteHeader.querySelector('.site-header-main');
+                    if (!navOpen && main) {
+                        height = Math.ceil(main.getBoundingClientRect().height);
+                    }
+                }
+                document.documentElement.style.setProperty(
+                    '--site-header-sticky-height',
+                    Math.max(0, height) + 'px'
+                );
+            }
+
+            function scheduleHeaderStickyOffset() {
+                updateHeaderStickyOffset();
+                window.clearTimeout(stickyOffsetTimer);
+                // Remeasure after collapse transitions finish.
+                stickyOffsetTimer = window.setTimeout(updateHeaderStickyOffset, 260);
+            }
 
             function syncHeaderCompact(force) {
                 headerScrollTicking = false;
@@ -38,6 +63,9 @@
                 }
 
                 if (nextCompact === isCompact) {
+                    if (force) {
+                        scheduleHeaderStickyOffset();
+                    }
                     return;
                 }
 
@@ -56,6 +84,7 @@
                     lastScrollY = window.scrollY || window.pageYOffset || 0;
                 }
 
+                scheduleHeaderStickyOffset();
                 lockUntil = performance.now() + 350;
             }
 
@@ -74,7 +103,14 @@
                 syncHeaderCompact(true);
             }, { passive: true });
 
+            const mobileNav = document.getElementById('siteHeaderNav');
+            if (mobileNav) {
+                mobileNav.addEventListener('shown.bs.collapse', scheduleHeaderStickyOffset);
+                mobileNav.addEventListener('hidden.bs.collapse', scheduleHeaderStickyOffset);
+            }
+
             syncHeaderCompact(true);
+            scheduleHeaderStickyOffset();
         }
 
         (function initProductSearchSuggest() {
