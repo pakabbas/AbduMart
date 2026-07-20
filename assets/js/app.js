@@ -4,40 +4,59 @@
     document.addEventListener('DOMContentLoaded', function () {
         const siteHeader = document.getElementById('siteHeader');
         if (siteHeader) {
-            const topBar = siteHeader.querySelector('.site-header-top');
-            const navBar = siteHeader.querySelector('.site-header-nav-bar');
             let headerScrollTicking = false;
             let isCompact = siteHeader.classList.contains('is-compact');
+            let lastScrollY = window.scrollY || window.pageYOffset || 0;
+            let lockUntil = 0;
 
-            function measureHideOffset() {
-                const topH = topBar && !isCompact ? topBar.offsetHeight : (topBar ? topBar.scrollHeight : 0);
-                const navH = navBar && !isCompact ? navBar.offsetHeight : (navBar ? navBar.scrollHeight : 0);
-                // Collapse once the top bar is mostly scrolled past.
-                return Math.max(24, Math.round(topH * 0.6) || 24);
-            }
-
-            function syncHeaderCompact() {
+            function syncHeaderCompact(force) {
                 headerScrollTicking = false;
+                const now = performance.now();
                 const y = window.scrollY || window.pageYOffset || 0;
-                // Hysteresis: enter compact after scrolling past the top bar,
-                // leave compact only when near the very top. Prevents blink
-                // when collapsing the sticky header changes layout/scroll.
-                const enterAt = measureHideOffset();
-                const exitAt = 8;
+                const dy = y - lastScrollY;
+                lastScrollY = y;
+
+                // After a compact toggle the header height changes and the browser
+                // adjusts scrollY. Ignore those synthetic jumps so we don't flap.
+                if (!force && now < lockUntil) {
+                    return;
+                }
+
+                // Fixed thresholds (do not measure collapsing bars — that feeds flicker).
+                const enterAt = 56;
+                const exitAt = 10;
                 let nextCompact = isCompact;
 
                 if (isCompact) {
-                    nextCompact = y > exitAt;
-                } else {
-                    nextCompact = y >= enterAt;
+                    // Only expand when truly near the top (and preferably scrolling up).
+                    nextCompact = !(y <= exitAt && dy <= 0);
+                    if (y <= 2) {
+                        nextCompact = false;
+                    }
+                } else if (y >= enterAt && dy >= 0) {
+                    nextCompact = true;
                 }
 
                 if (nextCompact === isCompact) {
                     return;
                 }
 
+                const heightBefore = siteHeader.offsetHeight;
                 isCompact = nextCompact;
                 siteHeader.classList.toggle('is-compact', isCompact);
+                const heightAfter = siteHeader.offsetHeight;
+                const delta = heightBefore - heightAfter;
+
+                // Keep page content from jumping when sticky header height changes.
+                if (delta !== 0) {
+                    const adjusted = Math.max(0, (window.scrollY || 0) - delta);
+                    if (Math.abs(adjusted - (window.scrollY || 0)) > 0.5) {
+                        window.scrollTo(0, adjusted);
+                    }
+                    lastScrollY = window.scrollY || window.pageYOffset || 0;
+                }
+
+                lockUntil = performance.now() + 350;
             }
 
             window.addEventListener('scroll', function () {
@@ -45,16 +64,17 @@
                     return;
                 }
                 headerScrollTicking = true;
-                requestAnimationFrame(syncHeaderCompact);
+                requestAnimationFrame(function () {
+                    syncHeaderCompact(false);
+                });
             }, { passive: true });
 
             window.addEventListener('resize', function () {
-                if (!isCompact) {
-                    syncHeaderCompact();
-                }
+                lockUntil = 0;
+                syncHeaderCompact(true);
             }, { passive: true });
 
-            syncHeaderCompact();
+            syncHeaderCompact(true);
         }
 
         (function initProductSearchSuggest() {
