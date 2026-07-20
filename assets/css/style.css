@@ -169,9 +169,9 @@ body {
 
 .site-header-logo {
     display: block;
-    height: 40px;
+    height: 34px;
     width: auto;
-    max-width: min(240px, 58vw);
+    max-width: min(200px, 52vw);
     object-fit: contain;
 }
 
@@ -601,8 +601,8 @@ body {
     }
 
     .site-header-logo {
-        height: 34px;
-        max-width: min(200px, 52vw);
+        height: 28px;
+        max-width: min(170px, 48vw);
     }
 
     .site-header-search-btn {

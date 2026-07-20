@@ -68,8 +68,8 @@ $isContact = $currentScript === 'contact.php';
                     src="<?= e(asset_url('assets/images/abdu-market-logo.png')) ?>"
                     alt="Abdu Market"
                     class="site-header-logo"
-                    width="240"
-                    height="40"
+                    width="200"
+                    height="34"
                 >
                 <span class="site-header-wordmark">Abdu Market</span>
             </a>
