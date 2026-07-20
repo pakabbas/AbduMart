@@ -45,6 +45,7 @@ if ($activePickupOrder) {
     require __DIR__ . '/active_order_banner.php';
 }
 ?>
+<?php require __DIR__ . '/mobile_bottom_nav.php'; ?>
 <?php require __DIR__ . '/floating_cart.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?= e(asset_url('assets/js/floating-cart.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/floating-cart.js') ?>"></script>
