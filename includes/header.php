@@ -41,10 +41,16 @@ $isContact = $currentScript === 'contact.php';
 <header class="site-header sticky-top" id="siteHeader">
     <div class="site-header-top">
         <div class="container site-header-top-inner">
-            <p class="site-header-location mb-0">
+            <a
+                href="<?= e(mart_google_maps_url($martAddress)) ?>"
+                class="site-header-location mb-0"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open store address in Google Maps"
+            >
                 <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
                 <span><?= e($martAddress) ?></span>
-            </p>
+            </a>
             <div class="site-header-top-meta">
                 <span class="site-header-meta-item" title="Language">Eng <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
                 <span class="site-header-meta-item" title="Currency">USD <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>

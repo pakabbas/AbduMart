@@ -114,6 +114,14 @@ body {
     gap: 0.4rem;
     min-width: 0;
     line-height: 1.3;
+    text-decoration: none;
+    color: inherit;
+}
+
+.site-header-location:hover,
+.site-header-location:focus-visible {
+    color: var(--am-brand-fill);
+    outline: none;
 }
 
 .site-header-location i {
@@ -2652,6 +2660,22 @@ body.floating-cart-open {
     background: var(--am-brand-fill);
     padding: 0.35rem 0.65rem;
     border-radius: 999px;
+    border: 0;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1.2;
+}
+
+.active-order-banner-action:hover,
+.active-order-banner-action:focus-visible {
+    color: #fff;
+    background: var(--am-brand-fill-hover);
+    outline: none;
+}
+
+.active-order-banner-action:disabled {
+    opacity: 0.75;
+    cursor: wait;
 }
 
 .active-order-banner-call {
