@@ -269,14 +269,14 @@ body {
     gap: 0.85rem;
 }
 
-.site-header-wishlist {
+.site-header-shop-link {
     color: #333;
     font-size: 1.35rem;
     line-height: 1;
     text-decoration: none;
 }
 
-.site-header-wishlist:hover {
+.site-header-shop-link:hover {
     color: var(--am-brand-fill);
 }
 
@@ -573,7 +573,7 @@ body {
         display: none;
     }
 
-    .site-header-wishlist {
+    .site-header-shop-link {
         display: none;
     }
 
