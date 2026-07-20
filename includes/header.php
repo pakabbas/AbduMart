@@ -42,7 +42,7 @@ $isContact = $currentScript === 'contact.php';
         <div class="container site-header-top-inner">
             <p class="site-header-location mb-0">
                 <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                <span>Store Location: <?= e($martAddress) ?></span>
+                <span><?= e($martAddress) ?></span>
             </p>
             <div class="site-header-top-meta">
                 <span class="site-header-meta-item" title="Language">Eng <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
