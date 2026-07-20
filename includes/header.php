@@ -106,8 +106,8 @@ $isContact = $currentScript === 'contact.php';
             </form>
 
             <div class="site-header-actions">
-                <a href="<?= is_logged_in() ? 'orders.php' : 'login.php' ?>" class="site-header-wishlist" aria-label="<?= is_logged_in() ? 'My orders' : 'Sign in' ?>">
-                    <i class="bi bi-heart" aria-hidden="true"></i>
+                <a href="<?= e(asset_url('shop.php')) ?>" class="site-header-shop-link" aria-label="Shop">
+                    <i class="bi bi-shop" aria-hidden="true"></i>
                 </a>
                 <span class="site-header-actions-divider" aria-hidden="true"></span>
                 <a href="#" class="site-header-cart js-floating-cart-open" role="button" aria-label="Open shopping cart">
