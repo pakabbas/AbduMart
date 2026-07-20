@@ -38,8 +38,9 @@ body {
     --site-header-nav-bg: #222222;
     --site-header-top-bg: #f4f4f4;
     z-index: 1030;
-    background: #fff;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    /* Match nav bar so no white seam peeks under the black strip */
+    background: var(--site-header-nav-bg);
+    box-shadow: none;
     transition: box-shadow 0.2s ease;
     overflow-anchor: none;
 }
@@ -330,6 +331,9 @@ body {
 .site-header-nav-bar {
     background: var(--site-header-nav-bg);
     max-height: 24rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
 .site-header-nav {
@@ -709,6 +713,13 @@ body {
     color: #fff;
     position: relative;
     overflow: hidden;
+    margin: 0;
+}
+
+/* Keep green flush against the black nav (no body/#fafafa seam). */
+.page-main > .hero-section:first-child {
+    margin-top: -1px;
+    padding-top: calc(3.5rem + 1px);
 }
 
 .hero-section::before {
