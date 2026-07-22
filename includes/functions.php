@@ -1026,6 +1026,7 @@ function get_active_pickup_order(int $userId): ?array
          FROM orders o
          WHERE o.user_id = ?
            AND o.status IN ('paid', 'preparing', 'ready')
+           AND o.created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
          ORDER BY o.created_at DESC
          LIMIT 1"
     );
