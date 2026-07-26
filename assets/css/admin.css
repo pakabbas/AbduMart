@@ -1339,3 +1339,17 @@ body.admin-app {
     color: var(--admin-brand-fill, var(--admin-red));
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+
+.admin-tabbar--dashboard {
+    padding: 0.55rem;
+}
+
+.admin-tabbar--dashboard .admin-tabbar-item {
+    min-height: 4.35rem;
+}
+
+.admin-tabbar--dashboard .admin-tabbar-count {
+    min-width: 2.35rem;
+    height: 2.35rem;
+    font-size: 0.95rem;
+}
