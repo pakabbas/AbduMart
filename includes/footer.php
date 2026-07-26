@@ -38,11 +38,18 @@ if (!$storeStatus['open']) {
     require __DIR__ . '/store_closed_banner.php';
 }
 $activePickupOrder = null;
+$activeDeliveryOrder = null;
 if (is_logged_in()) {
-    $activePickupOrder = get_active_pickup_order((int) current_user()['id']);
+    $userId = (int) current_user()['id'];
+    $activePickupOrder = get_active_pickup_order($userId);
+    if (!$activePickupOrder) {
+        $activeDeliveryOrder = get_active_delivery_order($userId);
+    }
 }
 if ($activePickupOrder) {
     require __DIR__ . '/active_order_banner.php';
+} elseif ($activeDeliveryOrder) {
+    require __DIR__ . '/active_delivery_banner.php';
 }
 ?>
 <?php require __DIR__ . '/mobile_bottom_nav.php'; ?>

@@ -1180,6 +1180,29 @@ function get_active_pickup_order(int $userId): ?array
     return $order ?: null;
 }
 
+function get_active_delivery_order(int $userId): ?array
+{
+    if (!db_has_column('orders', 'fulfillment_type')) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        "SELECT o.*,
+            (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
+         FROM orders o
+         WHERE o.user_id = ?
+           AND o.fulfillment_type = 'delivery'
+           AND o.status IN ('processing', 'out_for_delivery')
+           AND o.created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
+         ORDER BY o.created_at DESC
+         LIMIT 1"
+    );
+    $stmt->execute([$userId]);
+    $order = $stmt->fetch();
+
+    return $order ?: null;
+}
+
 /**
  * @param array{user_id:int,order_number:string,subtotal:float|int|string,tax:float|int|string,total:float|int|string,status:string,pickup_notes:?string,vehicle_description:?string,payment_method?:string,fulfillment_type?:string,delivery_fee?:float|int|string,delivery_address_line1?:?string,delivery_address_line2?:?string,delivery_city?:?string,delivery_state?:?string,delivery_zip?:?string} $data
  * @return array{0:string,1:array<int,mixed>}
