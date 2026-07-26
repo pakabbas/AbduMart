@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 $cookieNoticeSeen = !empty($_COOKIE['am_cookie_notice']);
-$fulfillmentBlocking = delivery_enabled() && !fulfillment_mode_chosen();
-$hideCookieBanner = $cookieNoticeSeen || $fulfillmentBlocking;
 ?>
 <div
     class="cookie-consent-banner"
@@ -12,7 +10,7 @@ $hideCookieBanner = $cookieNoticeSeen || $fulfillmentBlocking;
     role="status"
     aria-live="polite"
     aria-label="Cookie notice"
-    <?= $hideCookieBanner ? 'hidden' : '' ?>
+    <?= $cookieNoticeSeen ? 'hidden' : '' ?>
     data-seen="<?= $cookieNoticeSeen ? '1' : '0' ?>"
 >
     <div class="cookie-consent-inner">

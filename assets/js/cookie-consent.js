@@ -4,7 +4,7 @@
     const COOKIE_NAME = 'am_cookie_notice';
     const STORAGE_KEY = 'am_cookie_notice';
     const MAX_AGE_DAYS = 365;
-    const AUTO_HIDE_MS = 10000;
+    const AUTO_HIDE_MS = 30000;
 
     function readCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
@@ -23,6 +23,10 @@
     }
 
     function hasSeen() {
+        const banner = document.getElementById('cookieConsentBanner');
+        if (banner && banner.dataset.seen === '1') {
+            return true;
+        }
         if (readCookie(COOKIE_NAME) === '1') {
             return true;
         }
@@ -36,16 +40,11 @@
         return false;
     }
 
-    function fulfillmentModalOpen() {
-        const modal = document.getElementById('fulfillmentModal');
-        return !!(modal && !modal.hidden);
-    }
-
     let autoHideTimer = null;
 
     function showBanner() {
         const banner = document.getElementById('cookieConsentBanner');
-        if (!banner || hasSeen() || fulfillmentModalOpen()) {
+        if (!banner || hasSeen()) {
             return;
         }
         banner.hidden = false;
@@ -91,28 +90,8 @@
             return;
         }
 
+        // First visit: show immediately (even over the pickup/delivery chooser).
         showBanner();
-
-        const modal = document.getElementById('fulfillmentModal');
-        if (modal) {
-            const observer = new MutationObserver(function () {
-                if (!fulfillmentModalOpen()) {
-                    showBanner();
-                } else {
-                    banner.hidden = true;
-                    document.body.classList.remove('has-cookie-consent-banner');
-                    if (autoHideTimer) {
-                        window.clearTimeout(autoHideTimer);
-                        autoHideTimer = null;
-                    }
-                }
-            });
-            observer.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
-        }
-
-        document.addEventListener('fulfillment:changed', function () {
-            window.setTimeout(showBanner, 150);
-        });
     }
 
     if (document.readyState === 'loading') {

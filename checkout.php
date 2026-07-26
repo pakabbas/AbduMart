@@ -70,6 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Invalid request.';
     } elseif ($storeClosed) {
         $error = $storeStatus['banner_message'];
+    } elseif (empty($_POST['accept_terms'])) {
+        $error = 'Please agree to the Terms and Conditions to continue.';
     } else {
         $fulfillment = (($_POST['fulfillment_type'] ?? $fulfillment) === 'delivery') ? 'delivery' : 'pickup';
         if (!$deliveryEnabled) {
@@ -459,6 +461,22 @@ require __DIR__ . '/includes/header.php';
                                 <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Gate code, leave at door, etc."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
                             </div>
                             <?php endif; ?>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="accept_terms"
+                                value="1"
+                                id="acceptTerms"
+                                required
+                                <?= !empty($_POST['accept_terms']) ? 'checked' : '' ?>
+                            >
+                            <label class="form-check-label" for="acceptTerms">
+                                I agree to the
+                                <a href="<?= e(asset_url('TnC.html')) ?>" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
+                            </label>
                         </div>
 
                         <button type="submit" class="btn btn-danger btn-lg w-100"<?= ($storeClosed || ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum'])) ? ' disabled' : '' ?>>
