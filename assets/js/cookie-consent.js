@@ -1,16 +1,17 @@
 (function () {
     'use strict';
 
-    const COOKIE_NAME = 'am_cookie_consent';
-    const STORAGE_KEY = 'am_cookie_consent';
+    const COOKIE_NAME = 'am_cookie_notice';
+    const STORAGE_KEY = 'am_cookie_notice';
     const MAX_AGE_DAYS = 365;
+    const AUTO_HIDE_MS = 10000;
 
     function readCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
         return match ? decodeURIComponent(match[1]) : '';
     }
 
-    function writeConsentCookie() {
+    function markSeen() {
         const maxAge = MAX_AGE_DAYS * 24 * 60 * 60;
         const secure = window.location.protocol === 'https:' ? '; Secure' : '';
         document.cookie = COOKIE_NAME + '=1; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
@@ -21,7 +22,7 @@
         }
     }
 
-    function hasConsent() {
+    function hasSeen() {
         if (readCookie(COOKIE_NAME) === '1') {
             return true;
         }
@@ -40,13 +41,19 @@
         return !!(modal && !modal.hidden);
     }
 
+    let autoHideTimer = null;
+
     function showBanner() {
         const banner = document.getElementById('cookieConsentBanner');
-        if (!banner || hasConsent() || fulfillmentModalOpen()) {
+        if (!banner || hasSeen() || fulfillmentModalOpen()) {
             return;
         }
         banner.hidden = false;
         document.body.classList.add('has-cookie-consent-banner');
+        if (autoHideTimer) {
+            window.clearTimeout(autoHideTimer);
+        }
+        autoHideTimer = window.setTimeout(dismissBanner, AUTO_HIDE_MS);
     }
 
     function hideBanner() {
@@ -55,12 +62,16 @@
             return;
         }
         banner.hidden = true;
-        banner.dataset.consent = '1';
+        banner.dataset.seen = '1';
         document.body.classList.remove('has-cookie-consent-banner');
+        if (autoHideTimer) {
+            window.clearTimeout(autoHideTimer);
+            autoHideTimer = null;
+        }
     }
 
-    function acceptConsent() {
-        writeConsentCookie();
+    function dismissBanner() {
+        markSeen();
         hideBanner();
     }
 
@@ -70,17 +81,16 @@
             return;
         }
 
-        const acceptBtn = document.getElementById('cookieConsentAccept');
-        if (acceptBtn) {
-            acceptBtn.addEventListener('click', acceptConsent);
+        const dismissBtn = document.getElementById('cookieConsentDismiss');
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', dismissBanner);
         }
 
-        if (hasConsent()) {
+        if (hasSeen()) {
             hideBanner();
             return;
         }
 
-        // Wait until pickup/delivery chooser is closed so both aren't competing.
         showBanner();
 
         const modal = document.getElementById('fulfillmentModal');
@@ -91,6 +101,10 @@
                 } else {
                     banner.hidden = true;
                     document.body.classList.remove('has-cookie-consent-banner');
+                    if (autoHideTimer) {
+                        window.clearTimeout(autoHideTimer);
+                        autoHideTimer = null;
+                    }
                 }
             });
             observer.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
