@@ -3251,23 +3251,26 @@ body.fulfillment-modal-open {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    padding: 0.95rem 1rem;
+    padding: 1rem 1.05rem;
     border-radius: 16px;
-    background: var(--am-brand-fill);
-    color: #fff;
-    box-shadow: 0 16px 40px rgba(var(--am-red-rgb), 0.35);
+    background: #fff;
+    color: #1f2937;
+    border: 2px solid var(--am-brand-fill);
+    box-shadow:
+        0 12px 32px rgba(17, 24, 39, 0.12),
+        0 0 0 4px rgba(var(--am-red-rgb), 0.08);
 }
 
 .cookie-consent-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
-    font-size: 1.15rem;
+    background: var(--am-red-light);
+    color: var(--am-brand-fill);
+    font-size: 1.2rem;
     flex-shrink: 0;
 }
 
@@ -3278,17 +3281,17 @@ body.fulfillment-modal-open {
 
 .cookie-consent-copy strong {
     display: block;
-    font-size: 0.95rem;
+    font-size: 0.98rem;
     font-weight: 800;
     margin-bottom: 0.15rem;
-    color: #fff;
+    color: var(--am-brand-fill);
 }
 
 .cookie-consent-copy p {
     margin: 0;
-    font-size: 0.82rem;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: #4b5563;
 }
 
 .cookie-consent-dismiss {
@@ -3298,17 +3301,19 @@ body.fulfillment-modal-open {
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    border: 0;
+    border: 1px solid rgba(var(--am-red-rgb), 0.22);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
+    background: var(--am-red-light);
+    color: var(--am-brand-fill);
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .cookie-consent-dismiss:hover,
 .cookie-consent-dismiss:focus-visible {
-    background: rgba(255, 255, 255, 0.28);
+    background: var(--am-brand-fill);
+    border-color: var(--am-brand-fill);
+    color: #fff;
     outline: none;
 }
 
