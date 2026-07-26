@@ -127,6 +127,16 @@ $isContact = $currentScript === 'contact.php';
                     <i class="bi bi-shop" aria-hidden="true"></i>
                 </a>
                 <span class="site-header-actions-divider" aria-hidden="true"></span>
+                <div class="fulfillment-toggle fulfillment-toggle-header js-fulfillment-toggle" role="group" aria-label="Order type">
+                    <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
+                        <i class="bi bi-shop-window" aria-hidden="true"></i>
+                        <span>Pickup</span>
+                    </button>
+                    <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'delivery' ? ' is-active' : '' ?>" data-mode="delivery" aria-pressed="<?= fulfillment_mode() === 'delivery' ? 'true' : 'false' ?>">
+                        <i class="bi bi-truck" aria-hidden="true"></i>
+                        <span>Delivery</span>
+                    </button>
+                </div>
                 <a href="#" class="site-header-cart js-floating-cart-open" role="button" aria-label="Open shopping cart">
                     <span class="site-header-cart-icon-wrap">
                         <i class="bi bi-bag" aria-hidden="true"></i>
