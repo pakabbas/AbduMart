@@ -12,6 +12,10 @@ cd "$DEPLOY_PATH"
 
 echo "==> Pulling latest code..."
 git fetch origin "$BRANCH"
+# uploads/ may be owned by the web user; avoid hard-reset failures on tracked files there
+if [ -d "$DEPLOY_PATH/assets/uploads" ]; then
+    sudo chown -R "$(id -u):$(id -g)" "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
+fi
 git reset --hard "origin/$BRANCH"
 
 echo "==> Installing Composer dependencies..."
