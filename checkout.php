@@ -11,8 +11,12 @@ use App\StripeService;
 $user = current_user();
 $userId = (int) $user['id'];
 $fulfillment = fulfillment_mode();
+if (!delivery_enabled()) {
+    $fulfillment = 'pickup';
+    set_fulfillment_mode('pickup');
+}
 if (isset($_POST['fulfillment_type']) && in_array($_POST['fulfillment_type'], ['pickup', 'delivery'], true)) {
-    $fulfillment = $_POST['fulfillment_type'];
+    $fulfillment = delivery_enabled() ? $_POST['fulfillment_type'] : 'pickup';
     set_fulfillment_mode($fulfillment);
 }
 $cart = get_cart_totals($userId, $fulfillment);
@@ -29,6 +33,8 @@ $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
 $deliveryFee = (float) $cart['delivery_fee'];
 $deliveryMin = (float) $cart['delivery_min_order'];
+$deliveryRemaining = max(0.0, round($deliveryMin - (float) $cart['subtotal'], 2));
+$deliveryEnabled = delivery_enabled();
 
 $addr1Value = trim((string) ($_POST['delivery_address_line1'] ?? ''));
 $addr2Value = trim((string) ($_POST['delivery_address_line2'] ?? ''));
@@ -66,9 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = $storeStatus['banner_message'];
     } else {
         $fulfillment = (($_POST['fulfillment_type'] ?? $fulfillment) === 'delivery') ? 'delivery' : 'pickup';
+        if (!$deliveryEnabled) {
+            $fulfillment = 'pickup';
+        }
         set_fulfillment_mode($fulfillment);
         $cart = get_cart_totals($userId, $fulfillment);
         $deliveryFee = (float) $cart['delivery_fee'];
+        $deliveryRemaining = max(0.0, round((float) $cart['delivery_min_order'] - (float) $cart['subtotal'], 2));
 
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicleMake = trim((string) ($_POST['vehicle_make'] ?? ''));
@@ -94,8 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $zipValue = $zip;
 
         if ($error === '' && $fulfillment === 'delivery') {
-            if ($cart['subtotal'] < $cart['delivery_min_order']) {
-                $error = 'Delivery requires a minimum subtotal of ' . format_money($cart['delivery_min_order']) . '.';
+            if (!$deliveryEnabled) {
+                $error = 'Delivery is currently unavailable. Please choose Pickup.';
+            } elseif ($cart['subtotal'] < $cart['delivery_min_order']) {
+                $error = 'Add ' . format_money($deliveryRemaining) . ' more to meet the delivery minimum of ' . format_money($cart['delivery_min_order']) . '.';
             } elseif ($addr1 === '') {
                 $error = 'Enter a delivery street address.';
             } elseif ($city === '') {
@@ -287,6 +299,7 @@ require __DIR__ . '/includes/header.php';
                 <div class="card-body p-4">
                     <div class="checkout-fulfillment-panel">
                         <label class="form-label fw-semibold">Order type</label>
+                        <?php if ($deliveryEnabled): ?>
                         <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
                             <button type="button" class="fulfillment-toggle-btn<?= $fulfillment === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" data-reload aria-pressed="<?= $fulfillment === 'pickup' ? 'true' : 'false' ?>">
                                 <i class="bi bi-shop-window" aria-hidden="true"></i>
@@ -297,6 +310,9 @@ require __DIR__ . '/includes/header.php';
                                 <span>Delivery</span>
                             </button>
                         </div>
+                        <?php else: ?>
+                        <div class="alert alert-light border mb-0 py-2">Pickup only</div>
+                        <?php endif; ?>
                     </div>
 
                     <?php if ($fulfillment === 'delivery'): ?>
@@ -318,8 +334,13 @@ require __DIR__ . '/includes/header.php';
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>
                     <?php if ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum']): ?>
-                    <div class="alert alert-warning">
-                        Add <?= e(format_money(max(0, $deliveryMin - (float) $cart['subtotal']))) ?> more to meet the delivery minimum of <?= e(format_money($deliveryMin)) ?>.
+                    <div class="alert alert-warning checkout-delivery-minimum">
+                        <div class="fw-bold mb-1">
+                            Add <?= e(format_money($deliveryRemaining)) ?> more to unlock delivery checkout
+                        </div>
+                        <div class="small mb-0">
+                            Current subtotal <?= e(format_money((float) $cart['subtotal'])) ?> · Delivery minimum <?= e(format_money($deliveryMin)) ?>
+                        </div>
                     </div>
                     <?php endif; ?>
                     <form method="post"<?= $storeClosed ? ' class="pe-none opacity-75"' : '' ?>>
@@ -477,6 +498,12 @@ require __DIR__ . '/includes/header.php';
                         <span>Total</span>
                         <span class="text-danger"><?= format_money($cart['total']) ?></span>
                     </div>
+                    <?php if ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum']): ?>
+                    <div class="alert alert-warning small mt-3 mb-0 py-2">
+                        <strong>Need <?= e(format_money($deliveryRemaining)) ?> more</strong>
+                        to reach the <?= e(format_money($deliveryMin)) ?> delivery minimum.
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

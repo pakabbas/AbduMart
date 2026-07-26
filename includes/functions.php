@@ -1068,8 +1068,18 @@ function delivery_min_order_amount(): float
     return max(0.0, round($min, 2));
 }
 
+function delivery_enabled(): bool
+{
+    $value = setting('allow_delivery', '1');
+    return $value === '1' || $value === 1 || $value === true;
+}
+
 function fulfillment_mode(): string
 {
+    if (!delivery_enabled()) {
+        return 'pickup';
+    }
+
     $allowed = ['pickup', 'delivery'];
     $cookie = (string) ($_COOKIE['am_fulfillment'] ?? '');
     if (in_array($cookie, $allowed, true)) {
@@ -1091,6 +1101,9 @@ function fulfillment_mode_chosen(): bool
 
 function set_fulfillment_mode(string $mode): void
 {
+    if (!delivery_enabled()) {
+        $mode = 'pickup';
+    }
     $mode = $mode === 'delivery' ? 'delivery' : 'pickup';
     $_SESSION['fulfillment_mode'] = $mode;
     $_SESSION['fulfillment_chosen'] = '1';

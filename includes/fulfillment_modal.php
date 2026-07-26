@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if (!delivery_enabled()) {
+    return;
+}
+
 $currentFulfillment = fulfillment_mode();
 $fulfillmentChosen = fulfillment_mode_chosen();
 $deliveryFeeLabel = format_money(delivery_fee_amount());

@@ -43,6 +43,9 @@
         if (mode !== 'pickup' && mode !== 'delivery') {
             return null;
         }
+        if (mode === 'delivery' && document.body?.dataset?.deliveryEnabled === '0') {
+            throw new Error('Delivery is currently unavailable');
+        }
 
         const res = await fetch(apiUrl, {
             method: 'POST',

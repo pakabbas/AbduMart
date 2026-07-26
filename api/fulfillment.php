@@ -18,6 +18,10 @@ if (!in_array($mode, ['pickup', 'delivery'], true)) {
     json_response(['error' => 'Invalid fulfillment mode'], 422);
 }
 
+if ($mode === 'delivery' && !delivery_enabled()) {
+    json_response(['error' => 'Delivery is currently unavailable.'], 422);
+}
+
 set_fulfillment_mode($mode);
 
 $userId = is_logged_in() ? (int) current_user()['id'] : null;

@@ -20,6 +20,7 @@ $storeClosed = !$storeStatus['open'];
             </button>
         </div>
         <div class="floating-cart-fulfillment">
+            <?php if (delivery_enabled()): ?>
             <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
                 <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
                     <i class="bi bi-shop-window" aria-hidden="true"></i>
@@ -30,6 +31,7 @@ $storeClosed = !$storeStatus['open'];
                     <span>Delivery</span>
                 </button>
             </div>
+            <?php endif; ?>
         </div>
         <div class="floating-cart-panel-body" id="floatingCartBody">
             <div class="floating-cart-loading text-center py-5 text-muted">

@@ -38,7 +38,7 @@ $isContact = $currentScript === 'contact.php';
     <link href="<?= e(asset_url('assets/css/style.css')) ?>" rel="stylesheet">
     <style><?= theme_inline_css() ?></style>
 </head>
-<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?> data-fulfillment="<?= e(fulfillment_mode()) ?>">
+<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?> data-fulfillment="<?= e(fulfillment_mode()) ?>" data-delivery-enabled="<?= delivery_enabled() ? '1' : '0' ?>">
 <header class="site-header sticky-top" id="siteHeader">
     <div class="site-header-top">
         <div class="container site-header-top-inner">
@@ -53,6 +53,7 @@ $isContact = $currentScript === 'contact.php';
                 <span><?= e($martAddress) ?></span>
             </a>
             <div class="site-header-top-meta">
+                <?php if (delivery_enabled()): ?>
                 <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
                     <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
                         <i class="bi bi-shop-window" aria-hidden="true"></i>
@@ -63,6 +64,7 @@ $isContact = $currentScript === 'contact.php';
                         <span>Delivery</span>
                     </button>
                 </div>
+                <?php endif; ?>
                 <span class="site-header-meta-item" title="Language">Eng <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
                 <span class="site-header-meta-item" title="Currency">USD <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
                 <?php if (is_logged_in()): ?>
@@ -127,6 +129,7 @@ $isContact = $currentScript === 'contact.php';
                     <i class="bi bi-shop" aria-hidden="true"></i>
                 </a>
                 <span class="site-header-actions-divider" aria-hidden="true"></span>
+                <?php if (delivery_enabled()): ?>
                 <div class="fulfillment-toggle fulfillment-toggle-header js-fulfillment-toggle" role="group" aria-label="Order type">
                     <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
                         <i class="bi bi-shop-window" aria-hidden="true"></i>
@@ -137,6 +140,7 @@ $isContact = $currentScript === 'contact.php';
                         <span>Delivery</span>
                     </button>
                 </div>
+                <?php endif; ?>
                 <a href="#" class="site-header-cart js-floating-cart-open" role="button" aria-label="Open shopping cart">
                     <span class="site-header-cart-icon-wrap">
                         <i class="bi bi-bag" aria-hidden="true"></i>

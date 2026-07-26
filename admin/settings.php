@@ -20,7 +20,7 @@ $fields = [
     'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
-    'delivery_fee', 'delivery_min_order',
+    'delivery_fee', 'delivery_min_order', 'allow_delivery',
     'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
     'allow_stripe_payment',
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     && trim($_POST[$field] ?? '') === '') continue;
                 if ($field === 'allow_pay_on_arrival') {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '';
-                } elseif (in_array($field, ['allow_stripe_payment', 'allow_clover_payment'], true)) {
+                } elseif (in_array($field, ['allow_stripe_payment', 'allow_clover_payment', 'allow_delivery'], true)) {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '0';
                 } elseif (str_starts_with($field, 'admin_notify_email_')) {
                     $updates[$field] = strtolower(trim($_POST[$field] ?? ''));
@@ -407,6 +407,17 @@ if ($error): ?>
                     <p>Pickup location shown to customers.</p>
                 </div>
                 <div class="settings-section-body">
+                    <div class="admin-callout mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <strong>Enable delivery</strong>
+                                <div class="hint mb-0">If enabled, customers can choose Delivery (Canton only) alongside Pickup.</div>
+                            </div>
+                            <label class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="allow_delivery" value="1" <?= (($values['allow_delivery'] ?? '1') === '1') ? 'checked' : '' ?>>
+                            </label>
+                        </div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="admin-field">
