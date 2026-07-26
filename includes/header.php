@@ -16,6 +16,15 @@ $isHome = $currentScript === 'index.php';
 $isShop = in_array($currentScript, ['shop.php', 'product.php'], true);
 $isAbout = $currentScript === 'about.php';
 $isContact = $currentScript === 'contact.php';
+$bodyClasses = [];
+if (!empty($bodyClass)) {
+    $bodyClasses[] = (string) $bodyClass;
+}
+$showFulfillmentModal = delivery_enabled() && !fulfillment_mode_chosen();
+if ($showFulfillmentModal) {
+    $bodyClasses[] = 'fulfillment-modal-open';
+}
+$bodyClassAttr = $bodyClasses !== [] ? ' class="' . e(implode(' ', $bodyClasses)) . '"' : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +47,7 @@ $isContact = $currentScript === 'contact.php';
     <link href="<?= e(asset_url('assets/css/style.css')) ?>" rel="stylesheet">
     <style><?= theme_inline_css() ?></style>
 </head>
-<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?> data-fulfillment="<?= e(fulfillment_mode()) ?>" data-delivery-enabled="<?= delivery_enabled() ? '1' : '0' ?>">
+<body<?= $bodyClassAttr ?> data-fulfillment="<?= e(fulfillment_mode()) ?>" data-delivery-enabled="<?= delivery_enabled() ? '1' : '0' ?>">
 <header class="site-header sticky-top" id="siteHeader">
     <div class="site-header-top">
         <div class="container site-header-top-inner">

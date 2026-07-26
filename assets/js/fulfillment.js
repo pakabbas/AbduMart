@@ -75,6 +75,11 @@
             // ignore storage failures
         }
 
+        const modal = document.getElementById('fulfillmentModal');
+        if (modal) {
+            modal.dataset.chosen = '1';
+        }
+
         syncUi(mode);
 
         if (opts.reload) {
@@ -107,27 +112,23 @@
         if (!modal) {
             return false;
         }
-        if (modal.dataset.chosen === '1') {
-            return false;
-        }
-        try {
-            if (localStorage.getItem(STORAGE_KEY) === '1') {
-                return false;
-            }
-        } catch (e) {
-            // ignore
-        }
-        return true;
+        // Cookie/session from the server is the source of truth.
+        return modal.dataset.chosen !== '1';
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function bindUi() {
         syncUi(currentMode());
 
         document.querySelectorAll('.js-fulfillment-toggle [data-mode]').forEach(function (btn) {
+            if (btn.dataset.fulfillmentBound === '1') {
+                return;
+            }
+            btn.dataset.fulfillmentBound = '1';
             btn.addEventListener('click', async function () {
                 const mode = btn.getAttribute('data-mode');
                 try {
                     await setMode(mode, { reload: btn.hasAttribute('data-reload') });
+                    closeModal();
                 } catch (err) {
                     alert(err.message || 'Could not update preference');
                 }
@@ -135,6 +136,10 @@
         });
 
         document.querySelectorAll('.js-fulfillment-pick').forEach(function (btn) {
+            if (btn.dataset.fulfillmentBound === '1') {
+                return;
+            }
+            btn.dataset.fulfillmentBound = '1';
             btn.addEventListener('click', async function () {
                 const mode = btn.getAttribute('data-mode');
                 try {
@@ -146,19 +151,16 @@
             });
         });
 
-        document.querySelectorAll('[data-fulfillment-dismiss]').forEach(function (el) {
-            el.addEventListener('click', function () {
-                // First visit requires a choice — do not dismiss without selecting.
-                if (!shouldForceModal()) {
-                    closeModal();
-                }
-            });
-        });
-
         if (shouldForceModal()) {
             openModal();
         }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindUi);
+    } else {
+        bindUi();
+    }
 
     window.AbduFulfillment = {
         getMode: currentMode,
