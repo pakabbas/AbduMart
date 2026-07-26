@@ -65,11 +65,18 @@ TABLE: orders
 - stripe_payment_intent VARCHAR(255) NULL
 - subtotal DECIMAL(10,2)
 - tax DECIMAL(10,2) DEFAULT 0
+- delivery_fee DECIMAL(10,2) DEFAULT 0
 - total DECIMAL(10,2)
-- status ENUM('pending','paid','preparing','ready','picked_up','cancelled') DEFAULT 'pending'
+- status ENUM('pending','paid','preparing','ready','picked_up','cancelled','processing','out_for_delivery','delivered','returned') DEFAULT 'pending'
+- fulfillment_type ENUM('pickup','delivery') DEFAULT 'pickup'
 - pickup_notes TEXT NULL
 - customer_here_at TIMESTAMP NULL
 - vehicle_description VARCHAR(255) NULL
+- delivery_address_line1 VARCHAR(255) NULL
+- delivery_address_line2 VARCHAR(255) NULL
+- delivery_city VARCHAR(100) NULL
+- delivery_state VARCHAR(50) NULL
+- delivery_zip VARCHAR(20) NULL
 - created_at TIMESTAMP
 - updated_at TIMESTAMP
 - confirmation_email_sent_at TIMESTAMP NULL

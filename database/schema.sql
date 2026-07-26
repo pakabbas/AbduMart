@@ -81,14 +81,32 @@ CREATE TABLE orders (
     clover_payment_id VARCHAR(64) DEFAULT NULL,
     subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     tax DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     total DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    status ENUM('pending', 'paid', 'preparing', 'ready', 'picked_up', 'cancelled') NOT NULL DEFAULT 'pending',
+    status ENUM(
+        'pending',
+        'paid',
+        'preparing',
+        'ready',
+        'picked_up',
+        'cancelled',
+        'processing',
+        'out_for_delivery',
+        'delivered',
+        'returned'
+    ) NOT NULL DEFAULT 'pending',
+    fulfillment_type ENUM('pickup', 'delivery') NOT NULL DEFAULT 'pickup',
     pickup_notes TEXT DEFAULT NULL,
     admin_notes TEXT DEFAULT NULL,
     customer_here_at TIMESTAMP NULL DEFAULT NULL,
     picked_up_at TIMESTAMP NULL DEFAULT NULL,
     picked_up_by INT UNSIGNED NULL DEFAULT NULL,
     vehicle_description VARCHAR(255) DEFAULT NULL,
+    delivery_address_line1 VARCHAR(255) DEFAULT NULL,
+    delivery_address_line2 VARCHAR(255) DEFAULT NULL,
+    delivery_city VARCHAR(100) DEFAULT NULL,
+    delivery_state VARCHAR(50) DEFAULT NULL,
+    delivery_zip VARCHAR(20) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     confirmation_email_sent_at TIMESTAMP NULL DEFAULT NULL,
@@ -137,3 +155,5 @@ CREATE INDEX idx_products_featured ON products(is_featured);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_customer_here ON orders(customer_here_at);
+CREATE INDEX idx_orders_fulfillment ON orders(fulfillment_type);
+CREATE INDEX idx_orders_fulfillment_status ON orders(fulfillment_type, status);

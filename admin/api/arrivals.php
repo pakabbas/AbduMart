@@ -5,12 +5,17 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 require_admin();
 
+$fulfillmentClause = db_has_column('orders', 'fulfillment_type')
+    ? " AND o.fulfillment_type = 'pickup'"
+    : '';
+
 $arrivals = db()->query(
     "SELECT o.id, o.order_number, o.customer_here_at, o.vehicle_description, o.status,
             u.first_name, u.last_name, u.phone
      FROM orders o
      JOIN users u ON u.id = o.user_id
      WHERE o.customer_here_at IS NOT NULL AND o.status IN ('paid','preparing','ready')
+     {$fulfillmentClause}
      ORDER BY o.customer_here_at DESC"
 )->fetchAll();
 

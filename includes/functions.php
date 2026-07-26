@@ -1014,18 +1014,149 @@ function order_status_display(string $status): array
         'ready' => ['label' => 'Ready for Pickup', 'class' => 'success'],
         'picked_up' => ['label' => 'Picked Up', 'class' => 'dark'],
         'cancelled' => ['label' => 'Cancelled', 'class' => 'danger'],
+        'processing' => ['label' => 'Processing', 'class' => 'warning'],
+        'out_for_delivery' => ['label' => 'Out for Delivery', 'class' => 'info'],
+        'delivered' => ['label' => 'Delivered', 'class' => 'success'],
+        'returned' => ['label' => 'Returned', 'class' => 'secondary'],
         default => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'secondary'],
     };
 }
 
+function pickup_order_statuses(): array
+{
+    return ['pending', 'paid', 'preparing', 'ready', 'picked_up', 'cancelled'];
+}
+
+function delivery_order_statuses(): array
+{
+    return ['pending', 'processing', 'out_for_delivery', 'delivered', 'cancelled', 'returned'];
+}
+
+function fulfillment_statuses_for(string $fulfillmentType): array
+{
+    return $fulfillmentType === 'delivery' ? delivery_order_statuses() : pickup_order_statuses();
+}
+
+function canton_delivery_zips(): array
+{
+    return ['48187', '48188'];
+}
+
+function normalize_us_zip(string $zip): string
+{
+    $digits = preg_replace('/\D/', '', $zip) ?? '';
+    return substr($digits, 0, 5);
+}
+
+function is_canton_delivery_zip(string $zip): bool
+{
+    $zip = normalize_us_zip($zip);
+    return $zip !== '' && in_array($zip, canton_delivery_zips(), true);
+}
+
+function delivery_fee_amount(): float
+{
+    $raw = setting('delivery_fee', '5.00');
+    $fee = is_numeric($raw) ? (float) $raw : 5.0;
+    return max(0.0, round($fee, 2));
+}
+
+function delivery_min_order_amount(): float
+{
+    $raw = setting('delivery_min_order', '25.00');
+    $min = is_numeric($raw) ? (float) $raw : 25.0;
+    return max(0.0, round($min, 2));
+}
+
+function fulfillment_mode(): string
+{
+    $allowed = ['pickup', 'delivery'];
+    $cookie = (string) ($_COOKIE['am_fulfillment'] ?? '');
+    if (in_array($cookie, $allowed, true)) {
+        $_SESSION['fulfillment_mode'] = $cookie;
+        return $cookie;
+    }
+    $session = (string) ($_SESSION['fulfillment_mode'] ?? '');
+    if (in_array($session, $allowed, true)) {
+        return $session;
+    }
+    return 'pickup';
+}
+
+function fulfillment_mode_chosen(): bool
+{
+    return !empty($_COOKIE['am_fulfillment_chosen'])
+        || !empty($_SESSION['fulfillment_chosen']);
+}
+
+function set_fulfillment_mode(string $mode): void
+{
+    $mode = $mode === 'delivery' ? 'delivery' : 'pickup';
+    $_SESSION['fulfillment_mode'] = $mode;
+    $_SESSION['fulfillment_chosen'] = '1';
+
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $expires = time() + (60 * 60 * 24 * 365);
+    setcookie('am_fulfillment', $mode, [
+        'expires' => $expires,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+    setcookie('am_fulfillment_chosen', '1', [
+        'expires' => $expires,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function order_status_after_payment(?string $fulfillmentType = null): string
+{
+    return $fulfillmentType === 'delivery' ? 'processing' : 'paid';
+}
+
+function resolve_paid_status_for_order(int $orderId): string
+{
+    if (!db_has_column('orders', 'fulfillment_type')) {
+        return 'paid';
+    }
+    $stmt = db()->prepare('SELECT fulfillment_type FROM orders WHERE id = ?');
+    $stmt->execute([$orderId]);
+    $type = (string) ($stmt->fetchColumn() ?: 'pickup');
+    return order_status_after_payment($type);
+}
+
+function format_delivery_address(array $order): string
+{
+    $parts = array_filter([
+        trim((string) ($order['delivery_address_line1'] ?? '')),
+        trim((string) ($order['delivery_address_line2'] ?? '')),
+        trim(implode(', ', array_filter([
+            trim((string) ($order['delivery_city'] ?? '')),
+            trim((string) ($order['delivery_state'] ?? '')),
+            trim((string) ($order['delivery_zip'] ?? '')),
+        ]))),
+    ], static fn ($p) => $p !== '');
+
+    return implode(', ', $parts);
+}
+
 function get_active_pickup_order(int $userId): ?array
 {
+    $fulfillmentClause = db_has_column('orders', 'fulfillment_type')
+        ? "AND o.fulfillment_type = 'pickup'"
+        : '';
+
     $stmt = db()->prepare(
         "SELECT o.*,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
          FROM orders o
          WHERE o.user_id = ?
            AND o.status IN ('paid', 'preparing', 'ready')
+           {$fulfillmentClause}
            AND o.created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
          ORDER BY o.created_at DESC
          LIMIT 1"
@@ -1037,7 +1168,7 @@ function get_active_pickup_order(int $userId): ?array
 }
 
 /**
- * @param array{user_id:int,order_number:string,subtotal:float|int|string,tax:float|int|string,total:float|int|string,status:string,pickup_notes:?string,vehicle_description:?string,payment_method?:string} $data
+ * @param array{user_id:int,order_number:string,subtotal:float|int|string,tax:float|int|string,total:float|int|string,status:string,pickup_notes:?string,vehicle_description:?string,payment_method?:string,fulfillment_type?:string,delivery_fee?:float|int|string,delivery_address_line1?:?string,delivery_address_line2?:?string,delivery_city?:?string,delivery_state?:?string,delivery_zip?:?string} $data
  * @return array{0:string,1:array<int,mixed>}
  */
 function build_order_insert(array $data): array
@@ -1066,6 +1197,23 @@ function build_order_insert(array $data): array
     if (db_has_column('orders', 'payment_method')) {
         $columns[] = 'payment_method';
         $values[] = $data['payment_method'] ?? 'stripe';
+    }
+
+    if (db_has_column('orders', 'fulfillment_type')) {
+        $columns[] = 'fulfillment_type';
+        $values[] = (($data['fulfillment_type'] ?? 'pickup') === 'delivery') ? 'delivery' : 'pickup';
+    }
+
+    if (db_has_column('orders', 'delivery_fee')) {
+        $columns[] = 'delivery_fee';
+        $values[] = (float) ($data['delivery_fee'] ?? 0);
+    }
+
+    foreach (['delivery_address_line1', 'delivery_address_line2', 'delivery_city', 'delivery_state', 'delivery_zip'] as $col) {
+        if (db_has_column('orders', $col)) {
+            $columns[] = $col;
+            $values[] = $data[$col] ?? null;
+        }
     }
 
     $placeholders = implode(', ', array_fill(0, count($columns), '?'));
@@ -1422,7 +1570,7 @@ function get_cart_items(?int $userId = null): array
     return $stmt->fetchAll();
 }
 
-function get_cart_totals(?int $userId = null): array
+function get_cart_totals(?int $userId = null, ?string $fulfillment = null): array
 {
     $items = get_cart_items($userId);
     $subtotal = 0.0;
@@ -1430,11 +1578,22 @@ function get_cart_totals(?int $userId = null): array
         $subtotal += (float) $item['price'] * (int) $item['quantity'];
     }
     $tax = round($subtotal * (float) config('tax_rate'), 2);
+    $mode = $fulfillment ?? fulfillment_mode();
+    if ($mode !== 'delivery') {
+        $mode = 'pickup';
+    }
+    $deliveryFee = ($mode === 'delivery') ? delivery_fee_amount() : 0.0;
+    $minOrder = delivery_min_order_amount();
+
     return [
         'items' => $items,
         'subtotal' => $subtotal,
         'tax' => $tax,
-        'total' => $subtotal + $tax,
+        'delivery_fee' => $deliveryFee,
+        'fulfillment' => $mode,
+        'delivery_min_order' => $minOrder,
+        'meets_delivery_minimum' => $subtotal >= $minOrder,
+        'total' => $subtotal + $tax + $deliveryFee,
         'count' => array_sum(array_map(static fn ($item) => (int) $item['quantity'], $items)),
     ];
 }

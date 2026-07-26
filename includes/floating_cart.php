@@ -19,6 +19,18 @@ $storeClosed = !$storeStatus['open'];
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
+        <div class="floating-cart-fulfillment">
+            <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
+                <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
+                    <i class="bi bi-shop-window" aria-hidden="true"></i>
+                    <span>Pickup</span>
+                </button>
+                <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'delivery' ? ' is-active' : '' ?>" data-mode="delivery" aria-pressed="<?= fulfillment_mode() === 'delivery' ? 'true' : 'false' ?>">
+                    <i class="bi bi-truck" aria-hidden="true"></i>
+                    <span>Delivery</span>
+                </button>
+            </div>
+        </div>
         <div class="floating-cart-panel-body" id="floatingCartBody">
             <div class="floating-cart-loading text-center py-5 text-muted">
                 <span class="spinner-border spinner-border-sm"></span> Loading…
@@ -30,13 +42,20 @@ $storeClosed = !$storeStatus['open'];
                     <span>Subtotal</span>
                     <span id="floatingCartSubtotal">$0.00</span>
                 </div>
+                <div class="d-flex justify-content-between small text-muted mb-1 floating-cart-delivery-fee">
+                    <span>Delivery</span>
+                    <span id="floatingCartDeliveryFee"><?= e(format_money(delivery_fee_amount())) ?></span>
+                </div>
                 <div class="d-flex justify-content-between small text-muted mb-2">
                     <span>Tax</span>
                     <span id="floatingCartTax">$0.00</span>
                 </div>
-                <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                <div class="d-flex justify-content-between fw-bold fs-5 mb-2">
                     <span>Total</span>
                     <span class="text-danger" id="floatingCartTotal">$0.00</span>
+                </div>
+                <div class="floating-cart-delivery-note small text-muted mb-3" id="floatingCartDeliveryNote">
+                    Canton delivery · <?= e(format_money(delivery_min_order_amount())) ?> minimum
                 </div>
             </div>
             <a href="<?= e(is_logged_in() ? asset_url('checkout.php') : asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn"><?= is_logged_in() ? 'Checkout' : 'Sign in to checkout' ?></a>
@@ -47,6 +66,10 @@ $storeClosed = !$storeStatus['open'];
                 <div class="d-flex justify-content-between small text-muted mb-1">
                     <span>Subtotal</span>
                     <span id="floatingCartSubtotalClosed">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-1 floating-cart-delivery-fee">
+                    <span>Delivery</span>
+                    <span id="floatingCartDeliveryFeeClosed"><?= e(format_money(delivery_fee_amount())) ?></span>
                 </div>
                 <div class="d-flex justify-content-between small text-muted mb-2">
                     <span>Tax</span>

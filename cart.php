@@ -74,6 +74,12 @@ require __DIR__ . '/includes/header.php';
                         <span>Subtotal</span>
                         <span><?= format_money($cart['subtotal']) ?></span>
                     </div>
+                    <?php if (($cart['fulfillment'] ?? 'pickup') === 'delivery'): ?>
+                    <div class="d-flex justify-content-between mb-2 text-muted">
+                        <span>Delivery</span>
+                        <span><?= format_money($cart['delivery_fee']) ?></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="d-flex justify-content-between mb-2 text-muted">
                         <span>Tax (6%)</span>
                         <span><?= format_money($cart['tax']) ?></span>
@@ -94,7 +100,9 @@ require __DIR__ . '/includes/header.php';
                     <?php else: ?>
                     <a href="checkout.php" class="btn btn-danger w-100 btn-lg">Proceed to Checkout</a>
                     <?php endif; ?>
-                    <p class="small text-muted mt-3 mb-0 text-center">Curbside pickup only</p>
+                    <p class="small text-muted mt-3 mb-0 text-center">
+                        <?= ($cart['fulfillment'] ?? 'pickup') === 'delivery' ? 'Canton delivery · ' . format_money($cart['delivery_min_order']) . ' minimum' : 'Curbside pickup available' ?>
+                    </p>
                 </div>
             </div>
         </div>

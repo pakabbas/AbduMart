@@ -6,6 +6,8 @@ require_once dirname(__DIR__) . '/includes/bootstrap.php';
 require_admin();
 
 $adminSection = 'dashboard';
+$hasFulfillment = db_has_column('orders', 'fulfillment_type');
+$tab = ($_GET['tab'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -26,41 +28,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Order marked as picked up.');
         }
     }
-    redirect('index.php');
+    redirect('index.php?tab=' . $tab);
 }
+
+$fulfillmentSql = $hasFulfillment ? " AND fulfillment_type = ?" : '';
+$pickupParams = $hasFulfillment ? ['pickup'] : [];
+$deliveryParams = $hasFulfillment ? ['delivery'] : [];
 
 $stats = [
     'orders_today' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'")->fetchColumn(),
-    'waiting' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE customer_here_at IS NOT NULL AND status IN ('paid','preparing','ready')")->fetchColumn(),
-    'ready' => (int) db()->query("SELECT COUNT(*) FROM orders WHERE status = 'ready'")->fetchColumn(),
+    'waiting' => (int) (function () use ($hasFulfillment) {
+        $sql = "SELECT COUNT(*) FROM orders WHERE customer_here_at IS NOT NULL AND status IN ('paid','preparing','ready')";
+        if ($hasFulfillment) {
+            $sql .= " AND fulfillment_type = 'pickup'";
+        }
+        return db()->query($sql)->fetchColumn();
+    })(),
+    'ready' => (int) (function () use ($hasFulfillment) {
+        $sql = "SELECT COUNT(*) FROM orders WHERE status = 'ready'";
+        if ($hasFulfillment) {
+            $sql .= " AND fulfillment_type = 'pickup'";
+        }
+        return db()->query($sql)->fetchColumn();
+    })(),
+    'delivery_active' => (int) (function () use ($hasFulfillment) {
+        if (!$hasFulfillment) {
+            return 0;
+        }
+        return db()->query("SELECT COUNT(*) FROM orders WHERE fulfillment_type = 'delivery' AND status IN ('processing','out_for_delivery')")->fetchColumn();
+    })(),
     'products' => (int) db()->query('SELECT COUNT(*) FROM products WHERE is_active = 1')->fetchColumn(),
 ];
 
-$arrivals = db()->query(
-    "SELECT o.*, u.first_name, u.last_name, u.phone
+$arrivalsSql = "SELECT o.*, u.first_name, u.last_name, u.phone
      FROM orders o JOIN users u ON u.id = o.user_id
-     WHERE o.customer_here_at IS NOT NULL AND o.status IN ('paid','preparing','ready')
-     ORDER BY o.customer_here_at DESC LIMIT 10"
-)->fetchAll();
+     WHERE o.customer_here_at IS NOT NULL AND o.status IN ('paid','preparing','ready')";
+if ($hasFulfillment) {
+    $arrivalsSql .= " AND o.fulfillment_type = 'pickup'";
+}
+$arrivalsSql .= ' ORDER BY o.customer_here_at DESC LIMIT 10';
+$arrivals = db()->query($arrivalsSql)->fetchAll();
 
-$recentOrders = db()->query(
-    "SELECT o.*, u.first_name, u.last_name, u.phone
-     FROM orders o JOIN users u ON u.id = o.user_id
-     ORDER BY o.created_at DESC LIMIT 8"
-)->fetchAll();
+$activeDeliveries = [];
+if ($hasFulfillment) {
+    $activeDeliveries = db()->query(
+        "SELECT o.*, u.first_name, u.last_name, u.phone
+         FROM orders o JOIN users u ON u.id = o.user_id
+         WHERE o.fulfillment_type = 'delivery'
+           AND o.status IN ('processing', 'out_for_delivery')
+         ORDER BY o.created_at DESC
+         LIMIT 10"
+    )->fetchAll();
+}
+
+$recentSql = 'SELECT o.*, u.first_name, u.last_name, u.phone
+     FROM orders o JOIN users u ON u.id = o.user_id WHERE 1=1';
+if ($hasFulfillment) {
+    $recentSql .= ' AND o.fulfillment_type = ?';
+}
+$recentSql .= ' ORDER BY o.created_at DESC LIMIT 8';
+$recentStmt = db()->prepare($recentSql);
+$recentStmt->execute($tab === 'delivery' ? $deliveryParams : $pickupParams);
+$recentOrders = $recentStmt->fetchAll();
 
 $pageTitle = 'Dashboard';
-$pageSubtitle = 'Canton curbside operations overview';
-$headerActions = '<a href="clover-sync.php" class="admin-btn admin-btn-outline admin-header-action-desktop"><i class="bi bi-arrow-repeat"></i> Clover Sync</a>';
+$pageSubtitle = $tab === 'delivery' ? 'Delivery operations overview' : 'Curbside pickup operations overview';
+$headerActions = '<a href="clover-sync.php" class="admin-btn admin-btn-outline"><i class="bi bi-arrow-repeat"></i> Clover Sync</a>';
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
+
+<div class="admin-tabs mb-4">
+    <a href="index.php?tab=pickup" class="admin-tab<?= $tab === 'pickup' ? ' is-active' : '' ?>"><i class="bi bi-shop-window"></i> Pickup</a>
+    <a href="index.php?tab=delivery" class="admin-tab<?= $tab === 'delivery' ? ' is-active' : '' ?>"><i class="bi bi-truck"></i> Delivery</a>
+</div>
 
 <div class="admin-stats">
     <div class="admin-stat">
         <div class="admin-stat-label">Orders today</div>
         <div class="admin-stat-value"><?= $stats['orders_today'] ?></div>
     </div>
+    <?php if ($tab === 'pickup'): ?>
     <div class="admin-stat highlight">
         <div class="admin-stat-label">Customers waiting</div>
         <div class="admin-stat-value" id="waiting-count"><?= $stats['waiting'] ?></div>
@@ -69,15 +117,28 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         <div class="admin-stat-label">Ready for pickup</div>
         <div class="admin-stat-value"><?= $stats['ready'] ?></div>
     </div>
+    <?php else: ?>
+    <div class="admin-stat highlight">
+        <div class="admin-stat-label">Active deliveries</div>
+        <div class="admin-stat-value"><?= $stats['delivery_active'] ?></div>
+    </div>
     <div class="admin-stat">
         <div class="admin-stat-label">Active products</div>
         <div class="admin-stat-value"><?= $stats['products'] ?></div>
     </div>
+    <?php endif; ?>
+    <?php if ($tab === 'pickup'): ?>
+    <div class="admin-stat">
+        <div class="admin-stat-label">Active products</div>
+        <div class="admin-stat-value"><?= $stats['products'] ?></div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <div class="row g-4">
     <div class="col-lg-5">
         <div class="admin-card h-100">
+            <?php if ($tab === 'pickup'): ?>
             <div class="admin-card-header red">
                 <h2><i class="bi bi-geo-alt-fill me-2"></i>Customers here now</h2>
                 <span class="admin-badge" style="background:#fff;color:var(--admin-red)" id="arrival-badge"><?= count($arrivals) ?></span>
@@ -99,32 +160,49 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         Arrived <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?>
                         <?php if ($order['vehicle_description']): ?> · <?= e($order['vehicle_description']) ?><?php endif; ?>
                     </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
-                        <form method="post" class="m-0">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="action" value="picked_up">
-                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
-                            <button type="submit" class="admin-btn admin-btn-outline admin-btn-sm">
-                                <i class="bi bi-bag-check"></i> Picked up
-                            </button>
-                        </form>
-                        <?= call_customer_button($order['phone'] ?? null) ?>
-                    </div>
+                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+            <?php else: ?>
+            <div class="admin-card-header red">
+                <h2><i class="bi bi-truck me-2"></i>Active deliveries</h2>
+                <span class="admin-badge" style="background:#fff;color:var(--admin-red)"><?= count($activeDeliveries) ?></span>
+            </div>
+            <div class="admin-card-body">
+                <?php if (empty($activeDeliveries)): ?>
+                <div class="admin-empty">
+                    <i class="bi bi-truck"></i>
+                    <p>No active delivery orders.</p>
+                </div>
+                <?php else: ?>
+                <?php foreach ($activeDeliveries as $order): ?>
+                <div class="arrival-row">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong><?= e($order['first_name'] . ' ' . $order['last_name']) ?></strong>
+                        <span class="admin-badge admin-badge-red"><?= e($order['order_number']) ?></span>
+                    </div>
+                    <div class="small text-muted mb-2">
+                        <?= e(order_status_display((string) $order['status'])['label']) ?>
+                        <?php if (!empty($order['delivery_zip'])): ?> · ZIP <?= e((string) $order['delivery_zip']) ?><?php endif; ?>
+                    </div>
+                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="col-lg-7">
         <div class="admin-card">
             <div class="admin-card-header">
-                <h2>Recent orders</h2>
-                <a href="orders.php" class="admin-btn admin-btn-outline admin-btn-sm">View all</a>
+                <h2>Recent <?= $tab === 'delivery' ? 'delivery' : 'pickup' ?> orders</h2>
+                <a href="orders.php?type=<?= e($tab) ?>" class="admin-btn admin-btn-outline admin-btn-sm">View all</a>
             </div>
             <div class="table-responsive">
-                <table class="admin-table admin-table-compact">
+                <table class="admin-table">
                     <thead>
                         <tr>
                             <th>Order</th>
@@ -135,23 +213,21 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($recentOrders)): ?>
+                        <tr><td colspan="5" class="text-center text-muted py-4">No <?= e($tab) ?> orders yet.</td></tr>
+                        <?php endif; ?>
                         <?php foreach ($recentOrders as $order): ?>
-                        <tr class="<?= $order['customer_here_at'] ? 'row-here' : '' ?>">
+                        <tr class="<?= !empty($order['customer_here_at']) ? 'row-here' : '' ?>">
                             <td><strong><?= e($order['order_number']) ?></strong></td>
                             <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
                             <td><?= format_money($order['total']) ?></td>
                             <td>
-                                <?= e(ucfirst(str_replace('_', ' ', $order['status']))) ?>
-                                <?php if ($order['customer_here_at']): ?>
+                                <?= e(order_status_display((string) $order['status'])['label']) ?>
+                                <?php if (!empty($order['customer_here_at']) && $tab === 'pickup'): ?>
                                 <span class="admin-badge admin-badge-red ms-1">HERE</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a>
-                                    <?= call_customer_button($order['phone'] ?? null, true) ?>
-                                </div>
-                            </td>
+                            <td><a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-outline admin-btn-sm">Open</a></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -161,6 +237,8 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     </div>
 </div>
 
+<?php if ($tab === 'pickup'): ?>
 <script>window.ADMIN_POLL_URL = 'api/arrivals.php';</script>
+<?php endif; ?>
 
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>

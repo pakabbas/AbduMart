@@ -32,7 +32,7 @@ class CloverCheckoutService
      * @param array{email?:string,first_name?:string,last_name?:string,phone?:string} $customer
      * @return array{checkoutSessionId:string,href:string,expirationTime?:string}
      */
-    public function createCheckoutSession(int $orderId, array $cartItems, float $tax, array $customer = []): array
+    public function createCheckoutSession(int $orderId, array $cartItems, float $tax, array $customer = [], float $deliveryFee = 0.0): array
     {
         if (!$this->isConfigured()) {
             throw new \RuntimeException('Clover payments are not configured.');
@@ -54,6 +54,14 @@ class CloverCheckoutService
             $lineItems[] = [
                 'name' => 'Sales Tax',
                 'price' => (int) round($tax * 100),
+                'unitQty' => 1,
+            ];
+        }
+
+        if ($deliveryFee > 0) {
+            $lineItems[] = [
+                'name' => 'Delivery Fee',
+                'price' => (int) round($deliveryFee * 100),
                 'unitQty' => 1,
             ];
         }
@@ -179,18 +187,20 @@ class CloverCheckoutService
             return;
         }
 
+        $paidStatus = order_status_after_payment((string) ($order['fulfillment_type'] ?? 'pickup'));
+
         if (db_has_column('orders', 'clover_payment_id')) {
             $stmt = db()->prepare(
                 'UPDATE orders
                  SET status = ?, clover_payment_id = COALESCE(?, clover_payment_id), updated_at = NOW()
                  WHERE id = ? AND status = ?'
             );
-            $stmt->execute(['paid', $paymentId, $orderId, 'pending']);
+            $stmt->execute([$paidStatus, $paymentId, $orderId, 'pending']);
         } else {
             $stmt = db()->prepare(
                 'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?'
             );
-            $stmt->execute(['paid', $orderId, 'pending']);
+            $stmt->execute([$paidStatus, $orderId, 'pending']);
         }
 
         if ($stmt->rowCount() > 0) {

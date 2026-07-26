@@ -47,8 +47,10 @@ if ($activePickupOrder) {
 ?>
 <?php require __DIR__ . '/mobile_bottom_nav.php'; ?>
 <?php require __DIR__ . '/floating_cart.php'; ?>
+<?php require __DIR__ . '/fulfillment_modal.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="<?= e(asset_url('assets/js/fulfillment.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/fulfillment.js') ?>"></script>
 <script src="<?= e(asset_url('assets/js/floating-cart.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/floating-cart.js') ?>"></script>
 <script src="<?= e(asset_url('assets/js/app.js')) ?>?v=<?= (int) @filemtime(dirname(__DIR__) . '/assets/js/app.js') ?>"></script>
 </body>

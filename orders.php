@@ -42,6 +42,10 @@ $statusLabels = [
     'ready' => order_status_display('ready'),
     'picked_up' => order_status_display('picked_up'),
     'cancelled' => order_status_display('cancelled'),
+    'processing' => order_status_display('processing'),
+    'out_for_delivery' => order_status_display('out_for_delivery'),
+    'delivered' => order_status_display('delivered'),
+    'returned' => order_status_display('returned'),
 ];
 ?>
 
@@ -64,6 +68,10 @@ $statusLabels = [
                         Order <?= e($activeOrder['order_number']) ?> - <?= (int) $activeItemUnits ?> Item<?= $activeItemUnits === 1 ? '' : 's' ?>
                     </h2>
                     <span class="badge bg-<?= e($st['class']) ?>"><?= e($st['label']) ?></span>
+                    <?php
+                    $activeFulfillment = (string) ($activeOrder['fulfillment_type'] ?? 'pickup');
+                    ?>
+                    <span class="badge bg-dark ms-1"><?= $activeFulfillment === 'delivery' ? 'Delivery' : 'Pickup' ?></span>
                 </div>
                 <div class="text-end">
                     <div class="fw-bold text-danger fs-4"><?= format_money($activeOrder['total']) ?></div>
@@ -90,6 +98,17 @@ $statusLabels = [
             <p class="mb-2"><i class="bi bi-car-front"></i> <strong>Vehicle:</strong> <?= e($activeOrder['vehicle_description']) ?></p>
             <?php endif; ?>
 
+            <?php
+            $activeDeliveryAddress = format_delivery_address($activeOrder);
+            if ($activeDeliveryAddress !== ''):
+            ?>
+            <p class="mb-2"><i class="bi bi-geo-alt"></i> <strong>Deliver to:</strong> <?= e($activeDeliveryAddress) ?></p>
+            <?php endif; ?>
+
+            <?php if (!empty($activeOrder['delivery_fee']) && (float) $activeOrder['delivery_fee'] > 0): ?>
+            <p class="mb-2"><i class="bi bi-truck"></i> <strong>Delivery fee:</strong> <?= format_money($activeOrder['delivery_fee']) ?></p>
+            <?php endif; ?>
+
             <?php if (!empty($activeOrder['picked_up_at'])): ?>
             <?php
             $puStmt = db()->prepare('SELECT first_name, last_name FROM users WHERE id = ?');
@@ -105,13 +124,20 @@ $statusLabels = [
             </p>
             <?php endif; ?>
 
+            <?php if (($activeOrder['fulfillment_type'] ?? 'pickup') !== 'delivery'): ?>
             <?php $order = $activeOrder; require __DIR__ . '/includes/im_here_panel.php'; ?>
+            <?php else: ?>
+            <div class="alert alert-info mt-4 mb-0">
+                <strong>Delivery status:</strong> <?= e($st['label']) ?>
+                <div class="small mt-1">We'll update this page as your order moves from processing to out for delivery and delivered.</div>
+            </div>
+            <?php endif; ?>
 
             <?php $callMart = call_mart_button(false, 'btn btn-outline-danger'); ?>
             <?php if ($callMart !== ''): ?>
             <div class="d-flex flex-wrap gap-2 align-items-center mt-4 p-3 rounded-3 border bg-white">
                 <div class="me-auto">
-                    <strong>Need help with pickup?</strong>
+                    <strong>Need help with your order?</strong>
                     <div class="small text-muted">Call Abdu Market at <?= e(mart_phone_number()) ?></div>
                 </div>
                 <?= $callMart ?>

@@ -35,7 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status = 'picked_up';
             }
 
-            if (in_array($status, ['paid', 'preparing', 'ready', 'picked_up', 'cancelled'], true)) {
+            $allowedStatuses = array_values(array_unique(array_merge(
+                pickup_order_statuses(),
+                delivery_order_statuses()
+            )));
+
+            if (in_array($status, $allowedStatuses, true)) {
                 if ($status === 'picked_up') {
                     if ($hasPickedUpColumns) {
                         db()->prepare(
@@ -154,9 +159,17 @@ if ($orderId) {
                     </table>
                 </div>
             </div>
-            <?php if ($order['vehicle_description'] || $order['pickup_notes']): ?>
+            <?php
+            $orderFulfillment = (string) ($order['fulfillment_type'] ?? 'pickup');
+            $isDeliveryOrder = $orderFulfillment === 'delivery';
+            $deliveryAddress = format_delivery_address($order);
+            ?>
+            <?php if ($order['vehicle_description'] || $order['pickup_notes'] || $deliveryAddress !== ''): ?>
             <div class="admin-card mt-4">
                 <div class="admin-card-body padded">
+                    <p class="mb-2"><strong>Type:</strong> <?= $isDeliveryOrder ? 'Delivery' : 'Pickup' ?></p>
+                    <?php if ($deliveryAddress !== ''): ?><p class="mb-2"><strong>Deliver to:</strong> <?= e($deliveryAddress) ?></p><?php endif; ?>
+                    <?php if (!empty($order['delivery_fee']) && (float) $order['delivery_fee'] > 0): ?><p class="mb-2"><strong>Delivery fee:</strong> <?= format_money($order['delivery_fee']) ?></p><?php endif; ?>
                     <?php if ($order['vehicle_description']): ?><p class="mb-2"><strong>Vehicle:</strong> <?= e($order['vehicle_description']) ?></p><?php endif; ?>
                     <?php if ($order['pickup_notes']): ?><p class="mb-0"><strong>Notes:</strong> <?= e($order['pickup_notes']) ?></p><?php endif; ?>
                 </div>
@@ -173,8 +186,9 @@ if ($orderId) {
                         <div class="admin-field">
                             <label>Status</label>
                             <select name="status" class="admin-input">
-                                <?php foreach (['paid','preparing','ready','picked_up','cancelled'] as $s): ?>
-                                <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $s)) ?></option>
+                                <?php foreach (fulfillment_statuses_for($isDeliveryOrder ? 'delivery' : 'pickup') as $s): ?>
+                                <?php if ($s === 'pending') continue; ?>
+                                <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= e(order_status_display($s)['label']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -250,8 +264,14 @@ if ($orderId) {
 }
 
 $statusFilter = $_GET['status'] ?? '';
+$typeFilter = $_GET['type'] ?? '';
+$hasFulfillmentCol = db_has_column('orders', 'fulfillment_type');
 $sql = 'SELECT o.*, u.first_name, u.last_name, u.phone FROM orders o JOIN users u ON u.id = o.user_id WHERE 1=1';
 $params = [];
+if ($hasFulfillmentCol && in_array($typeFilter, ['pickup', 'delivery'], true)) {
+    $sql .= ' AND o.fulfillment_type = ?';
+    $params[] = $typeFilter;
+}
 if ($statusFilter !== '') {
     $sql .= ' AND o.status = ?';
     $params[] = $statusFilter;
@@ -261,16 +281,28 @@ $stmt = db()->prepare($sql);
 $stmt->execute($params);
 $orders = $stmt->fetchAll();
 
+$statusOptions = $typeFilter === 'delivery'
+    ? delivery_order_statuses()
+    : ($typeFilter === 'pickup' ? pickup_order_statuses() : array_values(array_unique(array_merge(pickup_order_statuses(), delivery_order_statuses()))));
+
 $pageTitle = 'Orders';
-$pageSubtitle = 'Manage curbside orders';
+$pageSubtitle = 'Manage pickup and delivery orders';
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
 
-<form method="get" class="mb-4" style="max-width:220px">
-    <select name="status" class="admin-input" onchange="this.form.submit()">
+<form method="get" class="mb-4 d-flex flex-wrap gap-2" style="max-width:480px">
+    <?php if ($hasFulfillmentCol): ?>
+    <select name="type" class="admin-input" onchange="this.form.submit()" style="max-width:180px">
+        <option value="">All types</option>
+        <option value="pickup" <?= $typeFilter === 'pickup' ? 'selected' : '' ?>>Pickup</option>
+        <option value="delivery" <?= $typeFilter === 'delivery' ? 'selected' : '' ?>>Delivery</option>
+    </select>
+    <?php endif; ?>
+    <select name="status" class="admin-input" onchange="this.form.submit()" style="max-width:220px">
         <option value="">All statuses</option>
-        <?php foreach (['paid','preparing','ready','picked_up','cancelled'] as $s): ?>
-        <option value="<?= $s ?>" <?= $statusFilter === $s ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $s)) ?></option>
+        <?php foreach ($statusOptions as $s): ?>
+        <?php if ($s === 'pending') continue; ?>
+        <option value="<?= $s ?>" <?= $statusFilter === $s ? 'selected' : '' ?>><?= e(order_status_display($s)['label']) ?></option>
         <?php endforeach; ?>
     </select>
 </form>
@@ -281,6 +313,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
             <thead>
                 <tr>
                     <th>Order</th>
+                    <th>Type</th>
                     <th>Customer</th>
                     <th>Total</th>
                     <th>Status</th>
@@ -291,14 +324,16 @@ require dirname(__DIR__) . '/includes/admin_header.php';
             </thead>
             <tbody>
                 <?php if (empty($orders)): ?>
-                <tr><td colspan="7" class="text-center text-muted py-5">No orders found.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-5">No orders found.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($orders as $order): ?>
-                <tr class="<?= $order['customer_here_at'] && !in_array($order['status'], ['picked_up','cancelled'], true) ? 'row-here' : '' ?>">
+                <?php $rowType = (string) ($order['fulfillment_type'] ?? 'pickup'); ?>
+                <tr class="<?= $order['customer_here_at'] && !in_array($order['status'], ['picked_up','cancelled','delivered','returned'], true) ? 'row-here' : '' ?>">
                     <td><strong><?= e($order['order_number']) ?></strong></td>
+                    <td><?= $rowType === 'delivery' ? 'Delivery' : 'Pickup' ?></td>
                     <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
                     <td><?= format_money($order['total']) ?></td>
-                    <td><?= e(ucfirst(str_replace('_', ' ', $order['status']))) ?></td>
+                    <td><?= e(order_status_display((string) $order['status'])['label']) ?></td>
                     <td><?= $order['customer_here_at'] ? '<span class="admin-badge admin-badge-red">HERE</span>' : '—' ?></td>
                     <td><?= e(date('M j, g:i A', strtotime($order['created_at']))) ?></td>
                     <td>

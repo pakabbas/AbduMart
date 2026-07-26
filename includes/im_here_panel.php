@@ -3,7 +3,8 @@
 declare(strict_types=1);
 
 /** @var array $order */
-$canCheckIn = in_array($order['status'], ['paid', 'preparing', 'ready'], true);
+$canCheckIn = in_array($order['status'], ['paid', 'preparing', 'ready'], true)
+    && (($order['fulfillment_type'] ?? 'pickup') !== 'delivery');
 ?>
 <?php if ($canCheckIn): ?>
 <div class="im-here-panel p-4 rounded-3 mt-4" data-order-id="<?= (int) $order['id'] ?>">

@@ -115,13 +115,25 @@
         if (useClosedFooter) {
             footerClosed.hidden = false;
             document.getElementById('floatingCartSubtotalClosed').textContent = data.subtotal_label;
+            const feeClosed = document.getElementById('floatingCartDeliveryFeeClosed');
+            if (feeClosed) {
+                feeClosed.textContent = data.delivery_fee_label || '$0.00';
+            }
             document.getElementById('floatingCartTaxClosed').textContent = data.tax_label;
             document.getElementById('floatingCartTotalClosed').textContent = data.total_label;
         } else {
             footer.hidden = false;
             document.getElementById('floatingCartSubtotal').textContent = data.subtotal_label;
+            const feeEl = document.getElementById('floatingCartDeliveryFee');
+            if (feeEl) {
+                feeEl.textContent = data.delivery_fee_label || '$0.00';
+            }
             document.getElementById('floatingCartTax').textContent = data.tax_label;
             document.getElementById('floatingCartTotal').textContent = data.total_label;
+            const note = document.getElementById('floatingCartDeliveryNote');
+            if (note && data.delivery_min_order_label) {
+                note.textContent = 'Canton delivery · ' + data.delivery_min_order_label + ' minimum';
+            }
         }
 
         body.innerHTML = data.items.map(function (item) {
@@ -256,6 +268,24 @@
             loadBasket();
         } else if (detail.subtotal_label === undefined && detail.count !== undefined) {
             // Refresh totals when add-to-cart didn't include a subtotal label.
+            fetch(basketUrl, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        updateBadges(data.count, data.subtotal_label);
+                    }
+                })
+                .catch(function () { /* ignore */ });
+        }
+    });
+
+    document.addEventListener('fulfillment:changed', function () {
+        if (isOpen) {
+            loadBasket();
+        } else {
             fetch(basketUrl, {
                 credentials: 'same-origin',
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },

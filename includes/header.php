@@ -29,6 +29,7 @@ $isContact = $currentScript === 'contact.php';
     <meta name="pickup-here-url" content="<?= e(asset_url('pickup-here.php')) ?>">
     <meta name="mart-line-url" content="<?= e(asset_url('mart-line.php')) ?>">
     <meta name="search-suggest-url" content="<?= e(asset_url('api/search-suggest.php')) ?>">
+    <meta name="fulfillment-url" content="<?= e(asset_url('api/fulfillment.php')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
@@ -37,7 +38,7 @@ $isContact = $currentScript === 'contact.php';
     <link href="<?= e(asset_url('assets/css/style.css')) ?>" rel="stylesheet">
     <style><?= theme_inline_css() ?></style>
 </head>
-<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
+<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?> data-fulfillment="<?= e(fulfillment_mode()) ?>">
 <header class="site-header sticky-top" id="siteHeader">
     <div class="site-header-top">
         <div class="container site-header-top-inner">
@@ -52,6 +53,16 @@ $isContact = $currentScript === 'contact.php';
                 <span><?= e($martAddress) ?></span>
             </a>
             <div class="site-header-top-meta">
+                <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
+                    <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" aria-pressed="<?= fulfillment_mode() === 'pickup' ? 'true' : 'false' ?>">
+                        <i class="bi bi-shop-window" aria-hidden="true"></i>
+                        <span>Pickup</span>
+                    </button>
+                    <button type="button" class="fulfillment-toggle-btn<?= fulfillment_mode() === 'delivery' ? ' is-active' : '' ?>" data-mode="delivery" aria-pressed="<?= fulfillment_mode() === 'delivery' ? 'true' : 'false' ?>">
+                        <i class="bi bi-truck" aria-hidden="true"></i>
+                        <span>Delivery</span>
+                    </button>
+                </div>
                 <span class="site-header-meta-item" title="Language">Eng <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
                 <span class="site-header-meta-item" title="Currency">USD <i class="bi bi-caret-down-fill" aria-hidden="true"></i></span>
                 <?php if (is_logged_in()): ?>

@@ -52,11 +52,12 @@ class StripeService
             $session = $event->data->object;
             $orderId = (int) ($session->metadata->order_id ?? 0);
             if ($orderId > 0) {
+                $paidStatus = resolve_paid_status_for_order($orderId);
                 $stmt = db()->prepare(
                     'UPDATE orders SET status = ?, stripe_payment_intent = ?, stripe_session_id = ?, updated_at = NOW()
                      WHERE id = ? AND status = ?'
                 );
-                $stmt->execute(['paid', $session->payment_intent ?? null, $session->id, $orderId, 'pending']);
+                $stmt->execute([$paidStatus, $session->payment_intent ?? null, $session->id, $orderId, 'pending']);
                 send_order_confirmation_email($orderId);
                 notify_admins_new_order($orderId);
             }
@@ -75,11 +76,12 @@ class StripeService
             return null;
         }
 
+        $paidStatus = resolve_paid_status_for_order($orderId);
         $stmt = db()->prepare(
             'UPDATE orders SET status = ?, stripe_payment_intent = ?, stripe_session_id = ?, updated_at = NOW()
              WHERE id = ? AND status IN (?, ?)'
         );
-        $stmt->execute(['paid', $session->payment_intent, $session->id, $orderId, 'pending', 'paid']);
+        $stmt->execute([$paidStatus, $session->payment_intent, $session->id, $orderId, 'pending', $paidStatus]);
 
         send_order_confirmation_email($orderId);
         notify_admins_new_order($orderId);

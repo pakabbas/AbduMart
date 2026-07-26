@@ -20,6 +20,7 @@ $fields = [
     'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
+    'delivery_fee', 'delivery_min_order',
     'store_timezone', 'store_location', 'store_hours_json', 'store_holidays_json',
     'allow_pay_on_arrival',
     'allow_stripe_payment',
@@ -423,6 +424,20 @@ if ($error): ?>
                             <div class="admin-field mb-0">
                                 <label>Pickup instructions</label>
                                 <textarea name="mart_pickup_instructions" class="admin-input" rows="3"><?= e($values['mart_pickup_instructions']) ?></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label>Delivery fee (flat)</label>
+                                <input type="number" step="0.01" min="0" name="delivery_fee" class="admin-input" value="<?= e($values['delivery_fee'] !== '' ? $values['delivery_fee'] : '5.00') ?>">
+                                <div class="hint">Added to delivery order totals. Canton ZIPs only: 48187 / 48188.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label>Delivery minimum order</label>
+                                <input type="number" step="0.01" min="0" name="delivery_min_order" class="admin-input" value="<?= e($values['delivery_min_order'] !== '' ? $values['delivery_min_order'] : '25.00') ?>">
+                                <div class="hint">Minimum cart subtotal required before checkout for delivery.</div>
                             </div>
                         </div>
                     </div>

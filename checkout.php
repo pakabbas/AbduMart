@@ -10,7 +10,12 @@ use App\StripeService;
 
 $user = current_user();
 $userId = (int) $user['id'];
-$cart = get_cart_totals($userId);
+$fulfillment = fulfillment_mode();
+if (isset($_POST['fulfillment_type']) && in_array($_POST['fulfillment_type'], ['pickup', 'delivery'], true)) {
+    $fulfillment = $_POST['fulfillment_type'];
+    set_fulfillment_mode($fulfillment);
+}
+$cart = get_cart_totals($userId, $fulfillment);
 $error = '';
 $phoneValue = trim($_POST['phone'] ?? (string) ($user['phone'] ?? ''));
 $needsPhone = trim((string) ($user['phone'] ?? '')) === '';
@@ -22,6 +27,14 @@ $stripeConfigured = stripe_payments_enabled();
 $defaultPayment = $cloverConfigured ? 'clover' : ($stripeConfigured ? 'stripe' : ($allowPayOnArrival ? 'arrival' : 'clover'));
 $storeStatus = store_status();
 $storeClosed = !$storeStatus['open'];
+$deliveryFee = (float) $cart['delivery_fee'];
+$deliveryMin = (float) $cart['delivery_min_order'];
+
+$addr1Value = trim((string) ($_POST['delivery_address_line1'] ?? ''));
+$addr2Value = trim((string) ($_POST['delivery_address_line2'] ?? ''));
+$cityValue = trim((string) ($_POST['delivery_city'] ?? 'Canton'));
+$stateValue = trim((string) ($_POST['delivery_state'] ?? 'MI'));
+$zipValue = trim((string) ($_POST['delivery_zip'] ?? ''));
 
 $lastVehicle = '';
 $lastVehicleStmt = db()->prepare(
@@ -52,6 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($storeClosed) {
         $error = $storeStatus['banner_message'];
     } else {
+        $fulfillment = (($_POST['fulfillment_type'] ?? $fulfillment) === 'delivery') ? 'delivery' : 'pickup';
+        set_fulfillment_mode($fulfillment);
+        $cart = get_cart_totals($userId, $fulfillment);
+        $deliveryFee = (float) $cart['delivery_fee'];
+
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicleMake = trim((string) ($_POST['vehicle_make'] ?? ''));
         $vehicleModel = trim((string) ($_POST['vehicle_model'] ?? ''));
@@ -63,6 +81,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($phoneError !== null) {
             $error = $phoneError;
         }
+
+        $addr1 = trim((string) ($_POST['delivery_address_line1'] ?? ''));
+        $addr2 = trim((string) ($_POST['delivery_address_line2'] ?? ''));
+        $city = trim((string) ($_POST['delivery_city'] ?? ''));
+        $state = trim((string) ($_POST['delivery_state'] ?? ''));
+        $zip = normalize_us_zip((string) ($_POST['delivery_zip'] ?? ''));
+        $addr1Value = $addr1;
+        $addr2Value = $addr2;
+        $cityValue = $city !== '' ? $city : 'Canton';
+        $stateValue = $state !== '' ? $state : 'MI';
+        $zipValue = $zip;
+
+        if ($error === '' && $fulfillment === 'delivery') {
+            if ($cart['subtotal'] < $cart['delivery_min_order']) {
+                $error = 'Delivery requires a minimum subtotal of ' . format_money($cart['delivery_min_order']) . '.';
+            } elseif ($addr1 === '') {
+                $error = 'Enter a delivery street address.';
+            } elseif ($city === '') {
+                $error = 'Enter a delivery city.';
+            } elseif ($state === '') {
+                $error = 'Enter a delivery state.';
+            } elseif ($zip === '') {
+                $error = 'Enter a delivery ZIP code.';
+            } elseif (!is_canton_delivery_zip($zip)) {
+                $error = 'Delivery is only available in Canton (ZIPs ' . implode(' / ', canton_delivery_zips()) . ').';
+            }
+        }
+
         $allowedPayments = [];
         if ($cloverConfigured) {
             $allowedPayments[] = 'clover';
@@ -96,17 +142,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $orderNumber = generate_order_number();
-            $status = ($paymentChoice === 'arrival') ? 'preparing' : 'pending';
+            if ($paymentChoice === 'arrival') {
+                $status = $fulfillment === 'delivery' ? 'processing' : 'preparing';
+            } else {
+                $status = 'pending';
+            }
+
             [$orderSql, $orderValues] = build_order_insert([
                 'user_id' => $userId,
                 'order_number' => $orderNumber,
                 'subtotal' => $cart['subtotal'],
                 'tax' => $cart['tax'],
+                'delivery_fee' => $deliveryFee,
                 'total' => $cart['total'],
                 'status' => $status,
                 'pickup_notes' => $pickupNotes ?: null,
-                'vehicle_description' => $vehicle ?: null,
+                'vehicle_description' => $fulfillment === 'pickup' ? ($vehicle ?: null) : null,
                 'payment_method' => $paymentChoice,
+                'fulfillment_type' => $fulfillment,
+                'delivery_address_line1' => $fulfillment === 'delivery' ? $addr1 : null,
+                'delivery_address_line2' => $fulfillment === 'delivery' ? ($addr2 ?: null) : null,
+                'delivery_city' => $fulfillment === 'delivery' ? $city : null,
+                'delivery_state' => $fulfillment === 'delivery' ? $state : null,
+                'delivery_zip' => $fulfillment === 'delivery' ? $zip : null,
             ]);
             $stmt = $pdo->prepare($orderSql);
             $stmt->execute($orderValues);
@@ -157,7 +215,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'first_name' => (string) ($user['first_name'] ?? ''),
                         'last_name' => (string) ($user['last_name'] ?? ''),
                         'phone' => (string) $phone,
-                    ]
+                    ],
+                    $deliveryFee
                 );
                 $pdo->commit();
                 header('Location: ' . $session['href']);
@@ -191,6 +250,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'quantity' => 1,
                 ];
             }
+            if ($deliveryFee > 0) {
+                $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'usd',
+                        'product_data' => ['name' => 'Delivery Fee'],
+                        'unit_amount' => (int) round($deliveryFee * 100),
+                    ],
+                    'quantity' => 1,
+                ];
+            }
 
             $session = $stripePay->createCheckoutSession($orderId, $lineItems, $cart['total'], $user['email']);
             $pdo->prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?')->execute([$session->id, $orderId]);
@@ -216,9 +285,29 @@ require __DIR__ . '/includes/header.php';
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
+                    <div class="checkout-fulfillment-panel">
+                        <label class="form-label fw-semibold">Order type</label>
+                        <div class="fulfillment-toggle js-fulfillment-toggle" role="group" aria-label="Order type">
+                            <button type="button" class="fulfillment-toggle-btn<?= $fulfillment === 'pickup' ? ' is-active' : '' ?>" data-mode="pickup" data-reload aria-pressed="<?= $fulfillment === 'pickup' ? 'true' : 'false' ?>">
+                                <i class="bi bi-shop-window" aria-hidden="true"></i>
+                                <span>Pickup</span>
+                            </button>
+                            <button type="button" class="fulfillment-toggle-btn<?= $fulfillment === 'delivery' ? ' is-active' : '' ?>" data-mode="delivery" data-reload aria-pressed="<?= $fulfillment === 'delivery' ? 'true' : 'false' ?>">
+                                <i class="bi bi-truck" aria-hidden="true"></i>
+                                <span>Delivery</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <?php if ($fulfillment === 'delivery'): ?>
+                    <h2 class="h5 mb-3"><i class="bi bi-truck text-danger"></i> Delivery Details</h2>
+                    <p class="text-muted">Canton delivery only (ZIP <?= e(implode(' / ', canton_delivery_zips())) ?>). Fee <?= e(format_money($deliveryFee)) ?> · <?= e(format_money($deliveryMin)) ?> minimum.</p>
+                    <?php else: ?>
                     <h2 class="h5 mb-3"><i class="bi bi-car-front text-danger"></i> Curbside Pickup Details</h2>
                     <p class="text-muted"><?= e(setting('mart.pickup_instructions', config('mart.pickup_instructions'))) ?></p>
                     <p class="small"><strong>Pickup at:</strong> <?= e(setting('mart.address', config('mart.address'))) ?></p>
+                    <?php endif; ?>
+
                     <?php if ($storeClosed): ?>
                     <div class="alert alert-warning">
                         <i class="bi bi-clock-history me-1"></i>
@@ -228,19 +317,24 @@ require __DIR__ . '/includes/header.php';
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>
+                    <?php if ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum']): ?>
+                    <div class="alert alert-warning">
+                        Add <?= e(format_money(max(0, $deliveryMin - (float) $cart['subtotal']))) ?> more to meet the delivery minimum of <?= e(format_money($deliveryMin)) ?>.
+                    </div>
+                    <?php endif; ?>
                     <form method="post"<?= $storeClosed ? ' class="pe-none opacity-75"' : '' ?>>
                         <?= csrf_field() ?>
+                        <input type="hidden" name="fulfillment_type" value="<?= e($fulfillment) ?>">
                         <fieldset<?= $storeClosed ? ' disabled' : '' ?>>
                         <?php if ($needsPhone): ?>
                         <div class="alert alert-info">
                             <i class="bi bi-telephone me-1"></i>
-                            Please add your phone number so we can reach you at curbside pickup.
+                            Please add your phone number so we can reach you about your order.
                         </div>
                         <?php endif; ?>
                         <div class="mb-3">
-                            <label class="form-label">Phone number <span class="text-muted">(for pickup contact)</span></label>
+                            <label class="form-label">Phone number <span class="text-muted">(required)</span></label>
                             <input type="tel" name="phone" class="form-control" required placeholder="(248) 555-0100" value="<?= e($phoneValue) ?>">
-                            <div class="form-text">You can update this anytime before placing your order.</div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Payment method</label>
@@ -265,7 +359,7 @@ require __DIR__ . '/includes/header.php';
                                 <label class="form-check border rounded-3 p-3">
                                     <input class="form-check-input" type="radio" name="payment_method" value="arrival" <?= $selectedPayment === 'arrival' ? 'checked' : '' ?>>
                                     <span class="ms-2"><strong>Pay on Arrival</strong></span>
-                                    <div class="small text-muted ms-4">Place the order now and pay when you arrive.</div>
+                                    <div class="small text-muted ms-4"><?= $fulfillment === 'delivery' ? 'Place the order now and pay when it arrives.' : 'Place the order now and pay when you arrive.' ?></div>
                                 </label>
                                 <?php endif; ?>
                                 <?php if (!$cloverConfigured && !$stripeConfigured && !$allowPayOnArrival): ?>
@@ -273,48 +367,81 @@ require __DIR__ . '/includes/header.php';
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label mb-1">Vehicle details <span class="text-muted">(optional)</span></label>
-                            <div class="form-text mb-2">Helpful for curbside pickup — select a make/model or type anything manually.</div>
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-6">
-                                    <label class="form-label small text-muted mb-1" for="vehicle_make">Make</label>
-                                    <select id="vehicle_make" name="vehicle_make" class="form-select">
-                                        <option value="">Select make (optional)</option>
-                                        <?php if ($vehicleMakeValue !== ''): ?>
-                                        <option value="<?= e($vehicleMakeValue) ?>" selected><?= e($vehicleMakeValue) ?></option>
-                                        <?php endif; ?>
-                                    </select>
+
+                        <div class="checkout-mode-fields">
+                            <?php if ($fulfillment === 'pickup'): ?>
+                            <div class="mb-3">
+                                <label class="form-label mb-1">Vehicle details <span class="text-muted">(optional)</span></label>
+                                <div class="form-text mb-2">Helpful for curbside pickup — select a make/model or type anything manually.</div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted mb-1" for="vehicle_make">Make</label>
+                                        <select id="vehicle_make" name="vehicle_make" class="form-select">
+                                            <option value="">Select make (optional)</option>
+                                            <?php if ($vehicleMakeValue !== ''): ?>
+                                            <option value="<?= e($vehicleMakeValue) ?>" selected><?= e($vehicleMakeValue) ?></option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted mb-1" for="vehicle_model">Model</label>
+                                        <select id="vehicle_model" name="vehicle_model" class="form-select" <?= $vehicleMakeValue === '' ? 'disabled' : '' ?>>
+                                            <option value="">Select model (optional)</option>
+                                            <?php if ($vehicleModelValue !== ''): ?>
+                                            <option value="<?= e($vehicleModelValue) ?>" selected><?= e($vehicleModelValue) ?></option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small text-muted mb-1" for="vehicle_model">Model</label>
-                                    <select id="vehicle_model" name="vehicle_model" class="form-select" <?= $vehicleMakeValue === '' ? 'disabled' : '' ?>>
-                                        <option value="">Select model (optional)</option>
-                                        <?php if ($vehicleModelValue !== ''): ?>
-                                        <option value="<?= e($vehicleModelValue) ?>" selected><?= e($vehicleModelValue) ?></option>
-                                        <?php endif; ?>
-                                    </select>
+                                <label class="form-label small text-muted mb-1" for="vehicle_details">Color, plate, or other notes</label>
+                                <input
+                                    type="text"
+                                    id="vehicle_details"
+                                    name="vehicle_details"
+                                    class="form-control"
+                                    placeholder="e.g. Red · ABC 1234 · parked near entrance"
+                                    value="<?= e($vehicleDetailsValue) ?>"
+                                >
+                                <?php if ($lastVehicle !== '' && !isset($_POST['vehicle_details'])): ?>
+                                <div class="form-text">Notes prefilled from your last order. You can change anything.</div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Pickup notes <span class="text-muted">(optional)</span></label>
+                                <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Any special instructions..."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
+                            </div>
+                            <?php else: ?>
+                            <div class="mb-3">
+                                <label class="form-label">Street address</label>
+                                <input type="text" name="delivery_address_line1" class="form-control" required placeholder="123 Main St" value="<?= e($addr1Value) ?>">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Apt / suite <span class="text-muted">(optional)</span></label>
+                                <input type="text" name="delivery_address_line2" class="form-control" placeholder="Apt 2B" value="<?= e($addr2Value) ?>">
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">City</label>
+                                    <input type="text" name="delivery_city" class="form-control" required value="<?= e($cityValue) ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">State</label>
+                                    <input type="text" name="delivery_state" class="form-control" required value="<?= e($stateValue) ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">ZIP</label>
+                                    <input type="text" name="delivery_zip" class="form-control" required placeholder="48187 or 48188" value="<?= e($zipValue) ?>">
                                 </div>
                             </div>
-                            <label class="form-label small text-muted mb-1" for="vehicle_details">Color, plate, or other notes</label>
-                            <input
-                                type="text"
-                                id="vehicle_details"
-                                name="vehicle_details"
-                                class="form-control"
-                                placeholder="e.g. Red · ABC 1234 · parked near entrance"
-                                value="<?= e($vehicleDetailsValue) ?>"
-                            >
-                            <?php if ($lastVehicle !== '' && !isset($_POST['vehicle_details'])): ?>
-                            <div class="form-text">Notes prefilled from your last order. You can change anything.</div>
+                            <div class="mb-4">
+                                <label class="form-label">Delivery notes <span class="text-muted">(optional)</span></label>
+                                <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Gate code, leave at door, etc."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
+                            </div>
                             <?php endif; ?>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Pickup notes <span class="text-muted">(optional)</span></label>
-                            <textarea name="pickup_notes" class="form-control" rows="3" placeholder="Any special instructions..."><?= e($_POST['pickup_notes'] ?? '') ?></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-danger btn-lg w-100"<?= $storeClosed ? ' disabled' : '' ?>>
-                            <i class="bi bi-lock"></i> Continue
+
+                        <button type="submit" class="btn btn-danger btn-lg w-100"<?= ($storeClosed || ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum'])) ? ' disabled' : '' ?>>
+                            <i class="bi bi-lock"></i> Continue · <?= e(format_money($cart['total'])) ?>
                         </button>
                         </fieldset>
                     </form>
@@ -332,6 +459,20 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <?php endforeach; ?>
                     <hr>
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Subtotal</span>
+                        <span><?= format_money($cart['subtotal']) ?></span>
+                    </div>
+                    <?php if ($fulfillment === 'delivery'): ?>
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Delivery</span>
+                        <span><?= format_money($cart['delivery_fee']) ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>Tax</span>
+                        <span><?= format_money($cart['tax']) ?></span>
+                    </div>
                     <div class="d-flex justify-content-between fw-bold">
                         <span>Total</span>
                         <span class="text-danger"><?= format_money($cart['total']) ?></span>
