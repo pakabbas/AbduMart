@@ -3332,6 +3332,7 @@ body.fulfillment-modal-open {
         flex-wrap: nowrap;
         gap: 0.4rem;
         white-space: nowrap;
+        overflow: hidden;
     }
 
     .cookie-consent-copy strong {
@@ -3348,6 +3349,16 @@ body.fulfillment-modal-open {
     .cookie-consent-copy p {
         display: inline;
         white-space: nowrap;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1099.98px) {
+    .cookie-consent-copy strong {
+        font-size: 0.88rem;
+    }
+
+    .cookie-consent-copy p {
+        font-size: 0.78rem;
     }
 }
 
