@@ -19,9 +19,7 @@ $cookieNoticeSeen = !empty($_COOKIE['am_cookie_notice']);
         </div>
         <div class="cookie-consent-copy">
             <strong>Cookies notice</strong>
-            <p id="cookieConsentText">
-                This site uses cookies to keep you signed in, remember pickup or delivery, and keep your cart working.
-            </p>
+            <p id="cookieConsentText">This site uses cookies to keep you signed in, remember pickup or delivery, and keep your cart working.</p>
         </div>
         <button type="button" class="cookie-consent-dismiss" id="cookieConsentDismiss" aria-label="Dismiss cookie notice">
             <i class="bi bi-x-lg" aria-hidden="true"></i>
