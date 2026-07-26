@@ -24,6 +24,9 @@ $showFulfillmentModal = delivery_enabled() && !fulfillment_mode_chosen();
 if ($showFulfillmentModal) {
     $bodyClasses[] = 'fulfillment-modal-open';
 }
+if (empty($_COOKIE['am_cookie_notice'])) {
+    $bodyClasses[] = 'has-cookie-consent-banner';
+}
 $bodyClassAttr = $bodyClasses !== [] ? ' class="' . e(implode(' ', $bodyClasses)) . '"' : '';
 ?>
 <!DOCTYPE html>
