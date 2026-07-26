@@ -35,6 +35,9 @@ jobs:
             cd "$DEPLOY_PATH"
             echo "==> Syncing latest main before deploy..."
             git fetch origin main
+            if [ -d "$DEPLOY_PATH/assets/uploads" ]; then
+              sudo chown -R "$(id -u):$(id -g)" "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
+            fi
             git reset --hard origin/main
             bash deploy/deploy.sh
 
