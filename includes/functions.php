@@ -1074,6 +1074,16 @@ function delivery_enabled(): bool
     return $value === '1' || $value === 1 || $value === true;
 }
 
+/** Colored admin badge for pickup vs delivery. */
+function fulfillment_type_badge(string $type): string
+{
+    if ($type === 'delivery') {
+        return '<span class="admin-badge admin-badge-delivery">Delivery</span>';
+    }
+
+    return '<span class="admin-badge admin-badge-pickup">Pickup</span>';
+}
+
 function fulfillment_mode(): string
 {
     if (!delivery_enabled()) {

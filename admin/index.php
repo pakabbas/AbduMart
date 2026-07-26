@@ -325,7 +325,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         <tr class="<?= !empty($order['customer_here_at']) ? 'row-here' : '' ?>">
                             <td><strong><?= e($order['order_number']) ?></strong></td>
                             <?php if ($tab === 'all' && $hasFulfillment): ?>
-                            <td><?= $rowType === 'delivery' ? 'Delivery' : 'Pickup' ?></td>
+                            <td><?= fulfillment_type_badge($rowType) ?></td>
                             <?php endif; ?>
                             <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
                             <td><?= format_money($order['total']) ?></td>

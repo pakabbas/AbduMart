@@ -5,6 +5,130 @@ declare(strict_types=1);
 use App\GoogleAuthService;
 use App\MailService;
 
+function remember_cookie_name(): string
+{
+    return 'am_remember';
+}
+
+function remember_lifetime_seconds(): int
+{
+    return 60 * 60 * 24 * 30;
+}
+
+function remember_cookie_options(int $expires): array
+{
+    return [
+        'expires' => $expires,
+        'path' => '/',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
+function remember_tokens_table_ready(): bool
+{
+    static $ready = null;
+    if ($ready !== null) {
+        return $ready;
+    }
+    try {
+        $ready = db_has_table('remember_tokens');
+    } catch (Throwable) {
+        $ready = false;
+    }
+    return $ready;
+}
+
+function clear_remember_cookie(): void
+{
+    setcookie(remember_cookie_name(), '', remember_cookie_options(time() - 42000));
+    unset($_COOKIE[remember_cookie_name()]);
+}
+
+function issue_remember_token(int $userId): void
+{
+    if (!remember_tokens_table_ready() || $userId <= 0) {
+        return;
+    }
+
+    $selector = bin2hex(random_bytes(16));
+    $validator = bin2hex(random_bytes(32));
+    $expiresAt = date('Y-m-d H:i:s', time() + remember_lifetime_seconds());
+
+    db()->prepare(
+        'INSERT INTO remember_tokens (user_id, selector, token_hash, expires_at) VALUES (?, ?, ?, ?)'
+    )->execute([$userId, $selector, hash('sha256', $validator), $expiresAt]);
+
+    setcookie(
+        remember_cookie_name(),
+        $selector . ':' . $validator,
+        remember_cookie_options(time() + remember_lifetime_seconds())
+    );
+    $_COOKIE[remember_cookie_name()] = $selector . ':' . $validator;
+}
+
+function revoke_remember_token_from_cookie(): void
+{
+    if (!remember_tokens_table_ready()) {
+        clear_remember_cookie();
+        return;
+    }
+
+    $raw = (string) ($_COOKIE[remember_cookie_name()] ?? '');
+    if ($raw !== '' && str_contains($raw, ':')) {
+        [$selector] = explode(':', $raw, 2);
+        if ($selector !== '') {
+            db()->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$selector]);
+        }
+    }
+    clear_remember_cookie();
+}
+
+/**
+ * Restore a PHP session from a long-lived remember-me cookie when needed.
+ */
+function resume_remembered_login(): void
+{
+    if (!empty($_SESSION['user_id']) || !remember_tokens_table_ready()) {
+        return;
+    }
+
+    $raw = (string) ($_COOKIE[remember_cookie_name()] ?? '');
+    if ($raw === '' || !str_contains($raw, ':')) {
+        return;
+    }
+
+    [$selector, $validator] = explode(':', $raw, 2);
+    if ($selector === '' || $validator === '') {
+        clear_remember_cookie();
+        return;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT rt.id, rt.user_id, rt.token_hash, u.id AS uid, u.email, u.first_name, u.last_name, u.phone, u.role, u.google_id, u.email_verified_at
+         FROM remember_tokens rt
+         JOIN users u ON u.id = rt.user_id
+         WHERE rt.selector = ? AND rt.expires_at > NOW()
+         LIMIT 1'
+    );
+    $stmt->execute([$selector]);
+    $row = $stmt->fetch();
+    if (!$row || !hash_equals((string) $row['token_hash'], hash('sha256', $validator))) {
+        if ($row) {
+            db()->prepare('DELETE FROM remember_tokens WHERE id = ?')->execute([(int) $row['id']]);
+        }
+        clear_remember_cookie();
+        return;
+    }
+
+    // Rotate token on use.
+    db()->prepare('DELETE FROM remember_tokens WHERE id = ?')->execute([(int) $row['id']]);
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int) $row['user_id'];
+    issue_remember_token((int) $row['user_id']);
+}
+
 function current_user(): ?array
 {
     if (empty($_SESSION['user_id'])) {
@@ -17,6 +141,7 @@ function current_user(): ?array
         $user = $stmt->fetch() ?: null;
         if (!$user) {
             unset($_SESSION['user_id']);
+            revoke_remember_token_from_cookie();
         }
     }
     return $user;
@@ -62,10 +187,12 @@ function login_user(array $user): void
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) $user['id'];
     merge_guest_cart_into_user((int) $user['id']);
+    issue_remember_token((int) $user['id']);
 }
 
 function logout_user(): void
 {
+    revoke_remember_token_from_cookie();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $p = session_get_cookie_params();

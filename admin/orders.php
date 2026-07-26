@@ -167,7 +167,7 @@ if ($orderId) {
             <?php if ($order['vehicle_description'] || $order['pickup_notes'] || $deliveryAddress !== ''): ?>
             <div class="admin-card mt-4">
                 <div class="admin-card-body padded">
-                    <p class="mb-2"><strong>Type:</strong> <?= $isDeliveryOrder ? 'Delivery' : 'Pickup' ?></p>
+                    <p class="mb-2"><strong>Type:</strong> <?= fulfillment_type_badge($orderFulfillment) ?></p>
                     <?php if ($deliveryAddress !== ''): ?><p class="mb-2"><strong>Deliver to:</strong> <?= e($deliveryAddress) ?></p><?php endif; ?>
                     <?php if (!empty($order['delivery_fee']) && (float) $order['delivery_fee'] > 0): ?><p class="mb-2"><strong>Delivery fee:</strong> <?= format_money($order['delivery_fee']) ?></p><?php endif; ?>
                     <?php if ($order['vehicle_description']): ?><p class="mb-2"><strong>Vehicle:</strong> <?= e($order['vehicle_description']) ?></p><?php endif; ?>
@@ -330,7 +330,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                 <?php $rowType = (string) ($order['fulfillment_type'] ?? 'pickup'); ?>
                 <tr class="<?= $order['customer_here_at'] && !in_array($order['status'], ['picked_up','cancelled','delivered','returned'], true) ? 'row-here' : '' ?>">
                     <td><strong><?= e($order['order_number']) ?></strong></td>
-                    <td><?= $rowType === 'delivery' ? 'Delivery' : 'Pickup' ?></td>
+                    <td><?= fulfillment_type_badge($rowType) ?></td>
                     <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
                     <td><?= format_money($order['total']) ?></td>
                     <td><?= e(order_status_display((string) $order['status'])['label']) ?></td>

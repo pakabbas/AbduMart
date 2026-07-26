@@ -743,6 +743,8 @@ body.admin-app {
 .admin-badge-red { background: var(--admin-red-soft); color: var(--admin-red); }
 .admin-badge-green { background: #ecfdf3; color: #039855; }
 .admin-badge-gray { background: #f3f4f6; color: #6b7280; }
+.admin-badge-pickup { background: #e0f2fe; color: #0369a1; }
+.admin-badge-delivery { background: #ffedd5; color: #c2410c; }
 
 .admin-overlay {
     display: none;
