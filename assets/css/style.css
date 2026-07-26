@@ -3253,9 +3253,9 @@ body.fulfillment-modal-open {
     gap: 0.85rem;
     padding: 0.95rem 1rem;
     border-radius: 16px;
-    background: #111827;
-    color: #f9fafb;
-    box-shadow: 0 16px 40px rgba(17, 24, 39, 0.28);
+    background: var(--am-brand-fill);
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(var(--am-red-rgb), 0.35);
 }
 
 .cookie-consent-icon {
@@ -3265,7 +3265,7 @@ body.fulfillment-modal-open {
     width: 2.4rem;
     height: 2.4rem;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.18);
     color: #fff;
     font-size: 1.15rem;
     flex-shrink: 0;
@@ -3281,13 +3281,14 @@ body.fulfillment-modal-open {
     font-size: 0.95rem;
     font-weight: 800;
     margin-bottom: 0.15rem;
+    color: #fff;
 }
 
 .cookie-consent-copy p {
     margin: 0;
     font-size: 0.82rem;
     line-height: 1.4;
-    color: #d1d5db;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .cookie-consent-dismiss {
@@ -3299,15 +3300,15 @@ body.fulfillment-modal-open {
     height: 2rem;
     border: 0;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: #f9fafb;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
     cursor: pointer;
     transition: background 0.15s ease;
 }
 
 .cookie-consent-dismiss:hover,
 .cookie-consent-dismiss:focus-visible {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.28);
     outline: none;
 }
 
