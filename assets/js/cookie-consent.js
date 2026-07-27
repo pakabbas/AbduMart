@@ -40,11 +40,16 @@
         return false;
     }
 
+    function fulfillmentModalOpen() {
+        const modal = document.getElementById('fulfillmentModal');
+        return !!(modal && !modal.hidden);
+    }
+
     let autoHideTimer = null;
 
     function showBanner() {
         const banner = document.getElementById('cookieConsentBanner');
-        if (!banner || hasSeen()) {
+        if (!banner || hasSeen() || fulfillmentModalOpen()) {
             return;
         }
         banner.hidden = false;
@@ -90,8 +95,30 @@
             return;
         }
 
-        // First visit: show immediately (even over the pickup/delivery chooser).
-        showBanner();
+        if (!fulfillmentModalOpen()) {
+            showBanner();
+        }
+
+        const modal = document.getElementById('fulfillmentModal');
+        if (modal) {
+            const observer = new MutationObserver(function () {
+                if (fulfillmentModalOpen()) {
+                    banner.hidden = true;
+                    document.body.classList.remove('has-cookie-consent-banner');
+                    if (autoHideTimer) {
+                        window.clearTimeout(autoHideTimer);
+                        autoHideTimer = null;
+                    }
+                    return;
+                }
+                showBanner();
+            });
+            observer.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+        }
+
+        document.addEventListener('fulfillment:changed', function () {
+            window.setTimeout(showBanner, 120);
+        });
     }
 
     if (document.readyState === 'loading') {
