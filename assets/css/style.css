@@ -1291,6 +1291,11 @@ body.shop-app-page {
     padding: 0.35rem 0;
 }
 
+.site-header-search .search-suggest {
+    width: 100%;
+    min-width: 100%;
+}
+
 .search-suggest[hidden] {
     display: none !important;
 }
