@@ -10,11 +10,11 @@
             let lockUntil = 0;
             let stickyOffsetTimer = 0;
             let compactToggleTimer = 0;
-            const compactEnterAt = 72;
+            const compactEnterAt = 56;
             const compactExitAt = 18;
-            const minToggleDelta = 8;
-            const compactToggleDelayMs = 90;
-            const compactTransitionCooldownMs = 460;
+            const minToggleDelta = 4;
+            const compactToggleDelayMs = 24;
+            const compactTransitionCooldownMs = 340;
 
             function updateHeaderStickyOffset() {
                 // When compact (and the mobile menu is closed), only the main bar is
@@ -76,7 +76,7 @@
                     } else if (y <= compactExitAt && dy <= -minToggleDelta) {
                         nextCompact = false;
                     }
-                } else if (y >= compactEnterAt && dy >= minToggleDelta) {
+                } else if ((y >= compactEnterAt && dy >= minToggleDelta) || (y >= compactEnterAt + 18 && dy > 0)) {
                     nextCompact = true;
                 }
 
