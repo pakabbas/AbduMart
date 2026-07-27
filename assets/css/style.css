@@ -176,6 +176,7 @@ body {
     gap: 1.25rem;
     padding-top: 0.85rem;
     padding-bottom: 0.85rem;
+    transition: gap 0.24s ease, padding-top 0.24s ease, padding-bottom 0.24s ease;
 }
 
 .site-header-brand {
@@ -204,6 +205,7 @@ body {
     width: 100%;
     max-width: 640px;
     margin: 0 auto;
+    transition: margin 0.24s ease;
 }
 
 .site-header-search-row {
@@ -214,6 +216,7 @@ body {
     border-radius: 6px;
     overflow: hidden;
     background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .site-header-search:focus-within .site-header-search-row {
@@ -238,6 +241,7 @@ body {
     font-size: 0.95rem;
     background: transparent;
     color: var(--am-dark);
+    transition: padding 0.24s ease, font-size 0.24s ease;
 }
 
 .site-header-search-input::placeholder {
@@ -257,6 +261,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
+    transition: background 0.15s ease, width 0.24s ease, min-width 0.24s ease, padding 0.24s ease;
 }
 
 .site-header-search-btn-icon {
@@ -275,6 +280,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.85rem;
+    transition: gap 0.24s ease;
 }
 
 .site-header-shop-link {
@@ -679,6 +685,7 @@ body {
         width: 2.45rem;
         height: 2.45rem;
         justify-content: center;
+        transition: width 0.24s ease, height 0.24s ease;
     }
 
     .site-header.is-compact .site-header-cart {

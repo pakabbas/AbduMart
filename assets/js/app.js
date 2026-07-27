@@ -9,6 +9,9 @@
             let lastScrollY = window.scrollY || window.pageYOffset || 0;
             let lockUntil = 0;
             let stickyOffsetTimer = 0;
+            const compactEnterAt = 72;
+            const compactExitAt = 18;
+            const minToggleDelta = 8;
 
             function updateHeaderStickyOffset() {
                 // When compact (and the mobile menu is closed), only the main bar is
@@ -40,6 +43,8 @@
                 const y = window.scrollY || window.pageYOffset || 0;
                 const dy = y - lastScrollY;
                 lastScrollY = y;
+                const mobileNav = document.getElementById('siteHeaderNav');
+                const navOpen = !!(mobileNav && mobileNav.classList.contains('show'));
 
                 // After a compact toggle the header height changes and the browser
                 // adjusts scrollY. Ignore those synthetic jumps so we don't flap.
@@ -47,18 +52,18 @@
                     return;
                 }
 
-                // Fixed thresholds (do not measure collapsing bars — that feeds flicker).
-                const enterAt = 56;
-                const exitAt = 10;
                 let nextCompact = isCompact;
 
-                if (isCompact) {
-                    // Only expand when truly near the top (and preferably scrolling up).
-                    nextCompact = !(y <= exitAt && dy <= 0);
+                if (navOpen) {
+                    nextCompact = y > compactExitAt;
+                } else if (isCompact) {
+                    // Only expand when clearly moving up near the top.
                     if (y <= 2) {
                         nextCompact = false;
+                    } else if (y <= compactExitAt && dy <= -minToggleDelta) {
+                        nextCompact = false;
                     }
-                } else if (y >= enterAt && dy >= 0) {
+                } else if (y >= compactEnterAt && dy >= minToggleDelta) {
                     nextCompact = true;
                 }
 
@@ -69,23 +74,10 @@
                     return;
                 }
 
-                const heightBefore = siteHeader.offsetHeight;
                 isCompact = nextCompact;
                 siteHeader.classList.toggle('is-compact', isCompact);
-                const heightAfter = siteHeader.offsetHeight;
-                const delta = heightBefore - heightAfter;
-
-                // Keep page content from jumping when sticky header height changes.
-                if (delta !== 0) {
-                    const adjusted = Math.max(0, (window.scrollY || 0) - delta);
-                    if (Math.abs(adjusted - (window.scrollY || 0)) > 0.5) {
-                        window.scrollTo(0, adjusted);
-                    }
-                    lastScrollY = window.scrollY || window.pageYOffset || 0;
-                }
-
                 scheduleHeaderStickyOffset();
-                lockUntil = performance.now() + 350;
+                lockUntil = performance.now() + 220;
             }
 
             window.addEventListener('scroll', function () {
