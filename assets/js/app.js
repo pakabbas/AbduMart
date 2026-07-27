@@ -9,9 +9,12 @@
             let lastScrollY = window.scrollY || window.pageYOffset || 0;
             let lockUntil = 0;
             let stickyOffsetTimer = 0;
+            let compactToggleTimer = 0;
             const compactEnterAt = 72;
             const compactExitAt = 18;
             const minToggleDelta = 8;
+            const compactToggleDelayMs = 90;
+            const compactTransitionCooldownMs = 460;
 
             function updateHeaderStickyOffset() {
                 // When compact (and the mobile menu is closed), only the main bar is
@@ -34,7 +37,17 @@
                 updateHeaderStickyOffset();
                 window.clearTimeout(stickyOffsetTimer);
                 // Remeasure after collapse transitions finish.
-                stickyOffsetTimer = window.setTimeout(updateHeaderStickyOffset, 260);
+                stickyOffsetTimer = window.setTimeout(updateHeaderStickyOffset, 380);
+            }
+
+            function applyCompactState(nextCompact) {
+                if (nextCompact === isCompact) {
+                    return;
+                }
+                isCompact = nextCompact;
+                siteHeader.classList.toggle('is-compact', isCompact);
+                scheduleHeaderStickyOffset();
+                lockUntil = performance.now() + compactTransitionCooldownMs;
             }
 
             function syncHeaderCompact(force) {
@@ -68,16 +81,23 @@
                 }
 
                 if (nextCompact === isCompact) {
+                    window.clearTimeout(compactToggleTimer);
                     if (force) {
                         scheduleHeaderStickyOffset();
                     }
                     return;
                 }
 
-                isCompact = nextCompact;
-                siteHeader.classList.toggle('is-compact', isCompact);
-                scheduleHeaderStickyOffset();
-                lockUntil = performance.now() + 220;
+                window.clearTimeout(compactToggleTimer);
+                if (force) {
+                    applyCompactState(nextCompact);
+                    return;
+                }
+
+                compactToggleTimer = window.setTimeout(function () {
+                    compactToggleTimer = 0;
+                    applyCompactState(nextCompact);
+                }, compactToggleDelayMs);
             }
 
             window.addEventListener('scroll', function () {

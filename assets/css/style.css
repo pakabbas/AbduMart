@@ -41,7 +41,7 @@ body {
     /* Match nav bar so no white seam peeks under the black strip */
     background: var(--site-header-nav-bg);
     box-shadow: none;
-    transition: box-shadow 0.2s ease;
+    transition: box-shadow 0.34s ease;
     overflow-anchor: none;
 }
 
@@ -52,7 +52,7 @@ body {
 .site-header-top,
 .site-header-nav-bar {
     overflow: hidden;
-    transition: max-height 0.22s ease, opacity 0.18s ease, border-color 0.18s ease;
+    transition: max-height 0.34s ease, opacity 0.28s ease, border-color 0.28s ease;
     will-change: max-height, opacity;
 }
 
@@ -176,7 +176,7 @@ body {
     gap: 1.25rem;
     padding-top: 0.85rem;
     padding-bottom: 0.85rem;
-    transition: gap 0.24s ease, padding-top 0.24s ease, padding-bottom 0.24s ease;
+    transition: gap 0.34s ease, padding-top 0.34s ease, padding-bottom 0.34s ease;
 }
 
 .site-header-brand {
@@ -205,7 +205,7 @@ body {
     width: 100%;
     max-width: 640px;
     margin: 0 auto;
-    transition: margin 0.24s ease;
+    transition: margin 0.34s ease;
 }
 
 .site-header-search-row {
@@ -216,7 +216,7 @@ body {
     border-radius: 6px;
     overflow: hidden;
     background: #fff;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.24s ease, box-shadow 0.24s ease;
 }
 
 .site-header-search:focus-within .site-header-search-row {
@@ -241,7 +241,7 @@ body {
     font-size: 0.95rem;
     background: transparent;
     color: var(--am-dark);
-    transition: padding 0.24s ease, font-size 0.24s ease;
+    transition: padding 0.34s ease, font-size 0.34s ease;
 }
 
 .site-header-search-input::placeholder {
@@ -261,7 +261,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    transition: background 0.15s ease, width 0.24s ease, min-width 0.24s ease, padding 0.24s ease;
+    transition: background 0.15s ease, width 0.34s ease, min-width 0.34s ease, padding 0.34s ease;
 }
 
 .site-header-search-btn-icon {
@@ -280,7 +280,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    transition: gap 0.24s ease;
+    transition: gap 0.34s ease;
 }
 
 .site-header-shop-link {
@@ -685,7 +685,7 @@ body {
         width: 2.45rem;
         height: 2.45rem;
         justify-content: center;
-        transition: width 0.24s ease, height 0.24s ease;
+        transition: width 0.34s ease, height 0.34s ease;
     }
 
     .site-header.is-compact .site-header-cart {
