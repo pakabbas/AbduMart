@@ -19,17 +19,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $orderId = (int) ($_POST['order_id'] ?? 0);
         $action = $_POST['action'] ?? '';
-        if ($action === 'picked_up' && $orderId > 0) {
-            $stmt = db()->prepare('SELECT status FROM orders WHERE id = ?');
-            $stmt->execute([$orderId]);
-            $old = $stmt->fetchColumn();
+        $stmt = db()->prepare('SELECT status FROM orders WHERE id = ?');
+        $stmt->execute([$orderId]);
+        $old = $stmt->fetchColumn();
 
+        if ($action === 'picked_up' && $orderId > 0) {
             db()->prepare(
                 'UPDATE orders SET status = ?, picked_up_at = IFNULL(picked_up_at, NOW()), picked_up_by = ?, updated_at = NOW() WHERE id = ?'
             )->execute(['picked_up', (int) current_user()['id'], $orderId]);
             log_order_status_change($orderId, is_string($old) ? $old : null, 'picked_up', (int) current_user()['id'], 'Picked up (quick action)');
-
             flash('success', 'Order marked as picked up.');
+        } elseif ($action === 'out_for_delivery' && $orderId > 0 && $old === 'processing') {
+            db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')
+                ->execute(['out_for_delivery', $orderId]);
+            log_order_status_change($orderId, 'processing', 'out_for_delivery', (int) current_user()['id'], 'Out for delivery (quick action)');
+            flash('success', 'Order marked as out for delivery.');
+        } elseif ($action === 'delivered' && $orderId > 0 && $old === 'out_for_delivery') {
+            db()->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?')
+                ->execute(['delivered', $orderId]);
+            log_order_status_change($orderId, 'out_for_delivery', 'delivered', (int) current_user()['id'], 'Delivered (quick action)');
+            flash('success', 'Order marked as delivered.');
         }
     }
     redirect('index.php?tab=' . $tab);
@@ -215,7 +224,24 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         <?= e(order_status_display((string) $order['status'])['label']) ?>
                         <?php if (!empty($order['delivery_zip'])): ?> · ZIP <?= e((string) $order['delivery_zip']) ?><?php endif; ?>
                     </div>
-                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                        <?php if ($order['status'] === 'processing'): ?>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="out_for_delivery">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#0284c7;color:#fff;border-color:#0284c7"><i class="bi bi-truck"></i> Out for Delivery</button>
+                        </form>
+                        <?php elseif ($order['status'] === 'out_for_delivery'): ?>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="delivered">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a"><i class="bi bi-check2-circle"></i> Delivered</button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -242,7 +268,15 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         Arrived <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?>
                         <?php if ($order['vehicle_description']): ?> · <?= e($order['vehicle_description']) ?><?php endif; ?>
                     </div>
-                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="picked_up">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a"><i class="bi bi-bag-check-fill"></i> Picked Up</button>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php foreach ($activeDeliveries as $order): ?>
@@ -255,7 +289,24 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         <?= e(order_status_display((string) $order['status'])['label']) ?>
                         <?php if (!empty($order['delivery_zip'])): ?> · ZIP <?= e((string) $order['delivery_zip']) ?><?php endif; ?>
                     </div>
-                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                        <?php if ($order['status'] === 'processing'): ?>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="out_for_delivery">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#0284c7;color:#fff;border-color:#0284c7"><i class="bi bi-truck"></i> Out for Delivery</button>
+                        </form>
+                        <?php elseif ($order['status'] === 'out_for_delivery'): ?>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="delivered">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a"><i class="bi bi-check2-circle"></i> Delivered</button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -282,7 +333,15 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         Arrived <?= e(date('g:i A', strtotime($order['customer_here_at']))) ?>
                         <?php if ($order['vehicle_description']): ?> · <?= e($order['vehicle_description']) ?><?php endif; ?>
                     </div>
-                    <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="orders.php?id=<?= (int) $order['id'] ?>" class="admin-btn admin-btn-primary admin-btn-sm">Manage order</a>
+                        <form method="post" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                            <input type="hidden" name="action" value="picked_up">
+                            <button type="submit" class="admin-btn admin-btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a"><i class="bi bi-bag-check-fill"></i> Picked Up</button>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
