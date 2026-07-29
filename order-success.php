@@ -48,8 +48,86 @@ if ($sessionId !== '') {
 }
 
 if (!$order) {
-    flash('warning', 'Payment verification pending. Check your orders shortly.');
-    redirect('orders.php');
+    if ($sessionId === '') {
+        flash('warning', 'Payment verification pending. Check your orders shortly.');
+        redirect('orders.php');
+    }
+    $pageTitle = 'Verifying Payment';
+    require __DIR__ . '/includes/header.php';
+    ?>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <div id="verify-screen">
+                    <div class="mb-4">
+                        <div class="spinner-border text-danger" role="status" style="width:3rem;height:3rem">
+                            <span class="visually-hidden">Verifying…</span>
+                        </div>
+                    </div>
+                    <h1 class="h4 mb-2">Verifying your payment</h1>
+                    <p class="text-muted mb-0">Please wait while we confirm your payment. This usually takes a few seconds.</p>
+                </div>
+                <div id="verify-fail" style="display:none">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem"></i>
+                    </div>
+                    <h1 class="h4 mb-2">Payment could not be verified</h1>
+                    <p class="text-muted mb-3" id="verify-fail-msg">Something went wrong. Please check your orders or try again.</p>
+                    <a href="orders.php" class="btn btn-outline-danger">View my orders</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var pollUrl = <?= json_encode('api/payment-status.php?session_id=' . urlencode($sessionId) . '&provider=' . urlencode($provider)) ?>;
+        var maxAttempts = 20;
+        var interval = 2000;
+        var attempt = 0;
+
+        function poll() {
+            attempt++;
+            fetch(pollUrl, { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status === 'paid') {
+                        window.location.href = 'order-success.php?session_id=' + <?= json_encode(urlencode($sessionId)) ?> + '&provider=' + <?= json_encode(urlencode($provider)) ?>;
+                        return;
+                    }
+                    if (data.status === 'error' || data.status === 'failed') {
+                        showFail(data.message || 'Payment was not completed.');
+                        return;
+                    }
+                    if (attempt >= maxAttempts) {
+                        showFail('Verification timed out. Your payment may still be processing — please check your orders.');
+                        return;
+                    }
+                    setTimeout(poll, interval);
+                })
+                .catch(function () {
+                    if (attempt >= maxAttempts) {
+                        showFail('Could not reach the server. Please check your orders.');
+                        return;
+                    }
+                    setTimeout(poll, interval);
+                });
+        }
+
+        function showFail(msg) {
+            document.getElementById('verify-screen').style.display = 'none';
+            var fail = document.getElementById('verify-fail');
+            fail.style.display = '';
+            if (msg) {
+                document.getElementById('verify-fail-msg').textContent = msg;
+            }
+        }
+
+        poll();
+    })();
+    </script>
+    <?php
+    require __DIR__ . '/includes/footer.php';
+    exit;
 }
 
 $mapEmbed = config('mart.map_embed_url');
