@@ -3066,8 +3066,13 @@ body.has-store-closed-banner.has-active-order-banner .store-closed-banner {
 .floating-cart-fulfillment .fulfillment-toggle-btn {
     flex: 1;
     justify-content: center;
+    gap: 0.35rem;
     font-size: 0.78rem;
     padding: 0.5rem 0.65rem;
+}
+
+.floating-cart-fulfillment .fulfillment-toggle-btn span {
+    display: inline;
 }
 
 .floating-cart-delivery-fee,
@@ -3248,12 +3253,27 @@ body.fulfillment-modal-open {
         padding: 0.4rem 0.55rem;
     }
 
+    /* Icon-only in header/checkout compact toggles — keep labels in floating cart */
     .fulfillment-toggle-btn span {
         display: none;
     }
 
+    .floating-cart-fulfillment .fulfillment-toggle-btn span {
+        display: inline;
+    }
+
     .fulfillment-toggle-btn {
         padding: 0.4rem 0.55rem;
+    }
+
+    .floating-cart-fulfillment .fulfillment-toggle-btn {
+        gap: 0.28rem;
+        font-size: 0.68rem;
+        padding: 0.42rem 0.45rem;
+    }
+
+    .floating-cart-fulfillment .fulfillment-toggle-btn i {
+        font-size: 0.78rem;
     }
 }
 
