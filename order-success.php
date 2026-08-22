@@ -8,50 +8,54 @@ require_login();
 use App\CloverCheckoutService;
 use App\StripeService;
 
+$userId = (int) current_user()['id'];
 $sessionId = trim((string) ($_GET['session_id'] ?? $_GET['checkoutSessionId'] ?? $_GET['checkout_session_id'] ?? ''));
 $provider = strtolower(trim((string) ($_GET['provider'] ?? '')));
+$orderIdParam = (int) ($_GET['order_id'] ?? 0);
 $order = null;
 
-if ($sessionId !== '') {
+if ($orderIdParam > 0) {
+    $stmt = db()->prepare('SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1');
+    $stmt->execute([$orderIdParam, $userId]);
+    $candidate = $stmt->fetch() ?: null;
+    if ($candidate && !in_array((string) ($candidate['status'] ?? ''), ['pending', 'cancelled'], true)) {
+        $order = $candidate;
+    }
+}
+
+if (!$order && $sessionId !== '') {
     try {
         $looksLikeStripe = str_starts_with($sessionId, 'cs_');
-        if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe)) {
-            $order = (new CloverCheckoutService())->fulfillSession($sessionId);
+        if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe && !CloverCheckoutService::isUnresolvedSessionId($sessionId))) {
+            $order = (new CloverCheckoutService())->fulfillReturnForUser($userId, $sessionId);
         }
-        if (!$order && ($provider === 'stripe' || $looksLikeStripe || $provider === '')) {
+        if (!$order && ($provider === 'stripe' || $looksLikeStripe || ($provider === '' && !CloverCheckoutService::isUnresolvedSessionId($sessionId)))) {
             $order = (new StripeService())->fulfillSession($sessionId);
         }
     } catch (Throwable $e) {
         flash('danger', 'Could not verify payment: ' . $e->getMessage());
         redirect('orders.php');
     }
-} elseif ($provider === 'clover') {
-    // Dashboard redirect may omit session id; use the shopper's latest pending/paid Clover order.
-    $userId = (int) current_user()['id'];
-    $stmt = db()->prepare(
-        "SELECT * FROM orders
-         WHERE user_id = ? AND payment_method = 'clover'
-         ORDER BY created_at DESC
-         LIMIT 1"
-    );
-    $stmt->execute([$userId]);
-    $latest = $stmt->fetch() ?: null;
-    if ($latest && in_array(($latest['status'] ?? ''), ['paid', 'preparing', 'ready'], true)) {
-        $order = $latest;
-    } elseif ($latest && ($latest['status'] ?? '') === 'pending' && !empty($latest['clover_checkout_session_id'])) {
-        try {
-            $order = (new CloverCheckoutService())->fulfillSession((string) $latest['clover_checkout_session_id']);
-        } catch (Throwable) {
-            $order = null;
-        }
+}
+
+if (!$order && ($provider === 'clover' || ($sessionId !== '' && CloverCheckoutService::isUnresolvedSessionId($sessionId)))) {
+    try {
+        $order = (new CloverCheckoutService())->fulfillReturnForUser($userId, $sessionId);
+    } catch (Throwable) {
+        $order = null;
     }
 }
 
 if (!$order) {
-    if ($sessionId === '') {
+    $needsVerify = $provider === 'clover'
+        || CloverCheckoutService::isUnresolvedSessionId($sessionId)
+        || ($sessionId !== '' && !str_starts_with($sessionId, 'cs_'));
+
+    if (!$needsVerify) {
         flash('warning', 'Payment verification pending. Check your orders shortly.');
         redirect('orders.php');
     }
+
     $pageTitle = 'Verifying Payment';
     require __DIR__ . '/includes/header.php';
     ?>
@@ -80,7 +84,7 @@ if (!$order) {
     </div>
     <script>
     (function () {
-        var pollUrl = <?= json_encode('api/payment-status.php?session_id=' . urlencode($sessionId) . '&provider=' . urlencode($provider)) ?>;
+        var pollUrl = <?= json_encode('api/payment-status.php?provider=clover') ?>;
         var maxAttempts = 20;
         var interval = 2000;
         var attempt = 0;
@@ -90,8 +94,8 @@ if (!$order) {
             fetch(pollUrl, { credentials: 'same-origin' })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.status === 'paid') {
-                        window.location.href = 'order-success.php?session_id=' + <?= json_encode(urlencode($sessionId)) ?> + '&provider=' + <?= json_encode(urlencode($provider)) ?>;
+                    if (data.status === 'paid' && data.order_id) {
+                        window.location.href = 'order-success.php?order_id=' + encodeURIComponent(String(data.order_id));
                         return;
                     }
                     if (data.status === 'error' || data.status === 'failed') {

@@ -10,22 +10,46 @@ use App\StripeService;
 
 header('Content-Type: application/json');
 
+$userId = (int) current_user()['id'];
 $sessionId = trim((string) ($_GET['session_id'] ?? ''));
 $provider = strtolower(trim((string) ($_GET['provider'] ?? '')));
+$orderIdParam = (int) ($_GET['order_id'] ?? 0);
 
-if ($sessionId === '') {
-    echo json_encode(['status' => 'error', 'message' => 'Missing session id.']);
-    exit;
+if ($orderIdParam > 0) {
+    $stmt = db()->prepare('SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1');
+    $stmt->execute([$orderIdParam, $userId]);
+    $order = $stmt->fetch() ?: null;
+    if ($order) {
+        $orderStatus = (string) ($order['status'] ?? '');
+        if ($orderStatus === 'pending') {
+            echo json_encode(['status' => 'pending']);
+            exit;
+        }
+        if ($orderStatus === 'cancelled') {
+            echo json_encode(['status' => 'failed', 'message' => 'Payment was not completed.']);
+            exit;
+        }
+        echo json_encode([
+            'status' => 'paid',
+            'order_id' => (int) $order['id'],
+            'order_number' => $order['order_number'],
+        ]);
+        exit;
+    }
 }
 
 $order = null;
-$looksLikeStripe = str_starts_with($sessionId, 'cs_');
+$looksLikeStripe = $sessionId !== '' && str_starts_with($sessionId, 'cs_');
 
 try {
     if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe)) {
-        $order = (new CloverCheckoutService())->fulfillSession($sessionId);
+        $order = (new CloverCheckoutService())->fulfillReturnForUser($userId, $sessionId);
     }
-    if (!$order && ($provider === 'stripe' || $looksLikeStripe || $provider === '')) {
+    if (!$order && ($provider === 'stripe' || $looksLikeStripe)) {
+        if ($sessionId === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Missing session id.']);
+            exit;
+        }
         $order = (new StripeService())->fulfillSession($sessionId);
     }
 } catch (Throwable $e) {
@@ -34,15 +58,6 @@ try {
 }
 
 if (!$order) {
-    // Also check if a Clover order exists but is still pending
-    if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe)) {
-        $svc = new CloverCheckoutService();
-        $pending = $svc->findOrderBySession($sessionId);
-        if ($pending && ($pending['status'] ?? '') === 'pending') {
-            echo json_encode(['status' => 'pending']);
-            exit;
-        }
-    }
     echo json_encode(['status' => 'pending']);
     exit;
 }
@@ -53,7 +68,7 @@ if ($orderStatus === 'pending') {
     exit;
 }
 
-if (in_array($orderStatus, ['cancelled'], true)) {
+if ($orderStatus === 'cancelled') {
     echo json_encode(['status' => 'failed', 'message' => 'Payment was not completed.']);
     exit;
 }
