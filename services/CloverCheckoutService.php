@@ -76,7 +76,7 @@ class CloverCheckoutService
                 'lineItems' => $lineItems,
             ],
             'redirectUrls' => [
-                'success' => $baseUrl . '/order-success.php?provider=clover&session_id={CHECKOUT_SESSION_ID}',
+                'success' => $baseUrl . '/order-success.php?provider=clover',
                 'failure' => $baseUrl . '/checkout.php?cancelled=1',
                 'cancel' => $baseUrl . '/checkout.php?cancelled=1',
             ],
@@ -144,7 +144,7 @@ class CloverCheckoutService
     public function fulfillSession(string $sessionId): ?array
     {
         $sessionId = trim($sessionId);
-        if ($sessionId === '') {
+        if ($sessionId === '' || self::isUnresolvedSessionId($sessionId)) {
             return null;
         }
 
@@ -160,6 +160,59 @@ class CloverCheckoutService
         }
 
         return $order;
+    }
+
+    public static function isUnresolvedSessionId(string $sessionId): bool
+    {
+        $sessionId = trim($sessionId);
+        if ($sessionId === '') {
+            return true;
+        }
+
+        return str_contains($sessionId, 'CHECKOUT_SESSION_ID');
+    }
+
+    /**
+     * Resolve a Clover return redirect when session_id is missing or not substituted.
+     */
+    public function fulfillReturnForUser(int $userId, string $sessionId = ''): ?array
+    {
+        $sessionId = trim($sessionId);
+        if ($sessionId !== '' && !self::isUnresolvedSessionId($sessionId)) {
+            $order = $this->fulfillSession($sessionId);
+            if ($order) {
+                return $order;
+            }
+        }
+
+        return $this->fulfillLatestPendingOrderForUser($userId);
+    }
+
+    public function fulfillLatestPendingOrderForUser(int $userId): ?array
+    {
+        $stmt = db()->prepare(
+            "SELECT * FROM orders
+             WHERE user_id = ? AND payment_method = 'clover'
+             ORDER BY created_at DESC
+             LIMIT 1"
+        );
+        $stmt->execute([$userId]);
+        $latest = $stmt->fetch() ?: null;
+        if (!$latest) {
+            return null;
+        }
+
+        $status = (string) ($latest['status'] ?? '');
+        if ($status !== 'pending') {
+            return in_array($status, ['cancelled'], true) ? null : $latest;
+        }
+
+        $storedSessionId = trim((string) ($latest['clover_checkout_session_id'] ?? ''));
+        if ($storedSessionId === '') {
+            return null;
+        }
+
+        return $this->fulfillSession($storedSessionId);
     }
 
     public function findOrderBySession(string $sessionId): ?array
