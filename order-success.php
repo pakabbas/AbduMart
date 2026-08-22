@@ -13,47 +13,45 @@ $sessionId = trim((string) ($_GET['session_id'] ?? $_GET['checkoutSessionId'] ??
 $provider = strtolower(trim((string) ($_GET['provider'] ?? '')));
 $orderIdParam = (int) ($_GET['order_id'] ?? 0);
 $order = null;
+$cloverPay = new CloverCheckoutService();
 
-if ($orderIdParam > 0) {
-    $stmt = db()->prepare('SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1');
-    $stmt->execute([$orderIdParam, $userId]);
-    $candidate = $stmt->fetch() ?: null;
-    if ($candidate && !in_array((string) ($candidate['status'] ?? ''), ['pending', 'cancelled'], true)) {
-        $order = $candidate;
-    }
-}
-
-if (!$order && $sessionId !== '') {
-    try {
+try {
+    if ($provider === 'clover' || CloverCheckoutService::isUnresolvedSessionId($sessionId)) {
+        $order = $cloverPay->fulfillReturnForUser($userId, $sessionId, $orderIdParam);
+    } elseif ($sessionId !== '') {
         $looksLikeStripe = str_starts_with($sessionId, 'cs_');
-        if ($provider === 'clover' || ($provider === '' && !$looksLikeStripe && !CloverCheckoutService::isUnresolvedSessionId($sessionId))) {
-            $order = (new CloverCheckoutService())->fulfillReturnForUser($userId, $sessionId);
-        }
-        if (!$order && ($provider === 'stripe' || $looksLikeStripe || ($provider === '' && !CloverCheckoutService::isUnresolvedSessionId($sessionId)))) {
+        if ($provider === 'stripe' || $looksLikeStripe) {
             $order = (new StripeService())->fulfillSession($sessionId);
         }
-    } catch (Throwable $e) {
-        flash('danger', 'Could not verify payment: ' . $e->getMessage());
-        redirect('orders.php');
+    } elseif ($orderIdParam > 0) {
+        $order = $cloverPay->fulfillOrderForUser($userId, $orderIdParam);
     }
-}
-
-if (!$order && ($provider === 'clover' || ($sessionId !== '' && CloverCheckoutService::isUnresolvedSessionId($sessionId)))) {
-    try {
-        $order = (new CloverCheckoutService())->fulfillReturnForUser($userId, $sessionId);
-    } catch (Throwable) {
-        $order = null;
-    }
+} catch (Throwable $e) {
+    flash('danger', 'Could not verify payment: ' . $e->getMessage());
+    redirect('orders.php');
 }
 
 if (!$order) {
     $needsVerify = $provider === 'clover'
+        || $orderIdParam > 0
         || CloverCheckoutService::isUnresolvedSessionId($sessionId)
         || ($sessionId !== '' && !str_starts_with($sessionId, 'cs_'));
 
     if (!$needsVerify) {
         flash('warning', 'Payment verification pending. Check your orders shortly.');
         redirect('orders.php');
+    }
+
+    $verifyOrderId = $orderIdParam;
+    if ($verifyOrderId <= 0 && $provider === 'clover') {
+        $pendingStmt = db()->prepare(
+            "SELECT id FROM orders
+             WHERE user_id = ? AND payment_method = 'clover' AND status = 'pending'
+             ORDER BY created_at DESC
+             LIMIT 1"
+        );
+        $pendingStmt->execute([$userId]);
+        $verifyOrderId = (int) ($pendingStmt->fetchColumn() ?: 0);
     }
 
     $pageTitle = 'Verifying Payment';
@@ -84,7 +82,10 @@ if (!$order) {
     </div>
     <script>
     (function () {
-        var pollUrl = <?= json_encode('api/payment-status.php?provider=clover') ?>;
+        var pollUrl = <?= json_encode(
+            'api/payment-status.php?provider=clover'
+            . ($verifyOrderId > 0 ? '&order_id=' . $verifyOrderId : '')
+        ) ?>;
         var maxAttempts = 20;
         var interval = 2000;
         var attempt = 0;
