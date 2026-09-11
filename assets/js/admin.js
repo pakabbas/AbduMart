@@ -112,4 +112,150 @@
 
         setInterval(poll, 8000);
     }
+
+    // Browser push notifications (admin)
+    (function initAdminPush() {
+        const statusEl = document.getElementById('adminPushStatus');
+        const enableBtn = document.getElementById('adminPushEnableBtn');
+        const disableBtn = document.getElementById('adminPushDisableBtn');
+        const apiMeta = document.querySelector('meta[name="admin-push-url"]');
+        const swMeta = document.querySelector('meta[name="admin-push-sw"]');
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!apiMeta || !swMeta || !csrfMeta) {
+            return;
+        }
+
+        const apiUrl = apiMeta.getAttribute('content');
+        const swUrl = swMeta.getAttribute('content');
+        const csrf = csrfMeta.getAttribute('content');
+
+        function setStatus(text) {
+            if (statusEl) statusEl.textContent = text;
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        async function getConfig() {
+            const res = await fetch(apiUrl, { credentials: 'same-origin' });
+            return res.json();
+        }
+
+        async function syncStatus() {
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+                setStatus('Browser push is not supported in this browser.');
+                return;
+            }
+            try {
+                const cfg = await getConfig();
+                if (!cfg.configured) {
+                    setStatus('Generate VAPID keys first, then enable on this device.');
+                    return;
+                }
+                const reg = await navigator.serviceWorker.getRegistration(swUrl);
+                const sub = reg ? await reg.pushManager.getSubscription() : null;
+                if (Notification.permission === 'granted' && sub) {
+                    setStatus('Enabled on this device.');
+                } else if (Notification.permission === 'denied') {
+                    setStatus('Blocked by the browser. Allow notifications for this site.');
+                } else {
+                    setStatus('Not enabled on this device yet.');
+                }
+            } catch (err) {
+                setStatus('Could not check notification status.');
+            }
+        }
+
+        async function enablePush() {
+            try {
+                const cfg = await getConfig();
+                if (!cfg.configured || !cfg.publicKey) {
+                    setStatus('Generate VAPID keys in Settings first.');
+                    return;
+                }
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    setStatus('Permission not granted.');
+                    return;
+                }
+                const reg = await navigator.serviceWorker.register(swUrl, { scope: '/' });
+                await navigator.serviceWorker.ready;
+                let sub = await reg.pushManager.getSubscription();
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(cfg.publicKey),
+                    });
+                }
+                const payload = sub.toJSON();
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'subscribe',
+                        csrf_token: csrf,
+                        endpoint: payload.endpoint,
+                        keys: payload.keys,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Subscribe failed');
+                }
+                setStatus('Enabled on this device.');
+            } catch (err) {
+                setStatus(err.message || 'Could not enable notifications.');
+            }
+        }
+
+        async function disablePush() {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration(swUrl);
+                const sub = reg ? await reg.pushManager.getSubscription() : null;
+                if (sub) {
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'unsubscribe',
+                            csrf_token: csrf,
+                            endpoint: sub.endpoint,
+                        }),
+                    });
+                    await sub.unsubscribe();
+                }
+                setStatus('Disabled on this device.');
+            } catch (err) {
+                setStatus('Could not disable notifications.');
+            }
+        }
+
+        enableBtn?.addEventListener('click', enablePush);
+        disableBtn?.addEventListener('click', disablePush);
+
+        const generateForm = document.getElementById('generate-vapid-form');
+        generateForm?.addEventListener('submit', function () {
+            const subject = document.querySelector('#webpush input[name="vapid_subject"]')?.value || '';
+            let input = generateForm.querySelector('input[name="vapid_subject"]');
+            if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'vapid_subject';
+                generateForm.appendChild(input);
+            }
+            input.value = subject;
+        });
+
+        syncStatus();
+    })();
 })();

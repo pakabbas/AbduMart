@@ -13,6 +13,7 @@ class SettingsService
         'clover_webhook_secret',
         'smtp_password',
         'google_client_secret',
+        'vapid_private_key',
     ];
 
     private static ?array $cache = null;
@@ -77,6 +78,7 @@ class SettingsService
             'clover' => self::get('clover_merchant_id') !== '' && self::get('clover_api_token') !== '',
             'smtp' => self::get('smtp_host') !== '' && self::get('smtp_username') !== '' && self::get('smtp_password') !== '',
             'google' => self::get('google_client_id') !== '' && self::get('google_client_secret') !== '',
+            'webpush' => self::get('vapid_public_key') !== '' && self::get('vapid_private_key') !== '',
             default => false,
         };
     }
@@ -124,6 +126,9 @@ class SettingsService
             'mart_address' => 'MART_ADDRESS',
             'mart_phone' => 'MART_PHONE',
             'mart_pickup_instructions' => 'MART_PICKUP_INSTRUCTIONS',
+            'vapid_public_key' => 'VAPID_PUBLIC_KEY',
+            'vapid_private_key' => 'VAPID_PRIVATE_KEY',
+            'vapid_subject' => 'VAPID_SUBJECT',
         ];
 
         $envKey = $map[$key] ?? null;

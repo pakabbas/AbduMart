@@ -17,6 +17,8 @@ $adminInitials = strtoupper(substr($adminUser['first_name'] ?? 'A', 0, 1) . subs
     <title><?= e($pageTitle) ?> · Abdu Market Admin</title>
     <link rel="icon" type="image/png" href="../assets/images/abdu-market-logo.png">
     <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+    <meta name="admin-push-url" content="<?= e(asset_url('admin/api/push-subscribe.php')) ?>">
+    <meta name="admin-push-sw" content="<?= e(asset_url('push-sw.js')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">

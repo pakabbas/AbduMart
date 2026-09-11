@@ -8,6 +8,7 @@ require_admin();
 use App\MailService;
 use App\SettingsService;
 use App\StoreHoursService;
+use App\WebPushService;
 
 $adminSection = 'settings';
 $message = null;
@@ -18,6 +19,7 @@ $fields = [
     'clover_merchant_id', 'clover_api_token', 'clover_env', 'clover_webhook_secret',
     'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name',
     'admin_notify_email_1', 'admin_notify_email_2', 'admin_notify_email_3',
+    'vapid_public_key', 'vapid_private_key', 'vapid_subject',
     'google_client_id', 'google_client_secret',
     'mart_address', 'mart_phone', 'mart_pickup_instructions',
     'delivery_fee', 'delivery_min_order', 'allow_delivery',
@@ -45,6 +47,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 (new MailService())->sendTestEmail($testEmail);
                 $message = 'Test email sent to ' . $testEmail;
+            } catch (Throwable $e) {
+                $error = $e->getMessage();
+            }
+        } elseif ($action === 'generate_vapid') {
+            try {
+                $subject = trim((string) ($_POST['vapid_subject'] ?? ''));
+                if ($subject !== '' && !str_starts_with($subject, 'mailto:')) {
+                    if (!filter_var($subject, FILTER_VALIDATE_EMAIL)) {
+                        throw new RuntimeException('VAPID subject must be a mailto: address or email.');
+                    }
+                    $subject = 'mailto:' . $subject;
+                }
+                (new WebPushService())->generateAndStoreKeys($subject !== '' ? $subject : null);
+                flash('success', 'VAPID keys generated and saved. Enable notifications on this device below.');
+                redirect('settings.php#webpush');
             } catch (Throwable $e) {
                 $error = $e->getMessage();
             }
@@ -100,9 +117,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$error) {
             foreach ($fields as $field) {
                 if ($field === 'smtp_password' && trim($_POST[$field] ?? '') === '') continue;
-                if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'clover_webhook_secret', 'google_client_secret'], true)
+                if (in_array($field, ['stripe_secret_key', 'stripe_webhook_secret', 'clover_api_token', 'clover_webhook_secret', 'google_client_secret', 'vapid_private_key'], true)
                     && trim($_POST[$field] ?? '') === '') continue;
-                if ($field === 'allow_pay_on_arrival') {
+                if ($field === 'vapid_subject') {
+                    $subject = trim($_POST[$field] ?? '');
+                    if ($subject !== '' && !str_starts_with($subject, 'mailto:') && filter_var($subject, FILTER_VALIDATE_EMAIL)) {
+                        $subject = 'mailto:' . $subject;
+                    }
+                    $updates[$field] = $subject;
+                } elseif ($field === 'allow_pay_on_arrival') {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '';
                 } elseif (in_array($field, ['allow_stripe_payment', 'allow_clover_payment', 'allow_delivery'], true)) {
                     $updates[$field] = !empty($_POST[$field]) ? '1' : '0';
@@ -145,6 +168,7 @@ $status = [
     ['key' => 'stripe', 'label' => 'Stripe', 'icon' => 'bi-credit-card', 'ok' => SettingsService::isGroupConfigured('stripe')],
     ['key' => 'clover', 'label' => 'Clover', 'icon' => 'bi-shop', 'ok' => SettingsService::isGroupConfigured('clover')],
     ['key' => 'smtp', 'label' => 'Email', 'icon' => 'bi-envelope', 'ok' => SettingsService::isGroupConfigured('smtp')],
+    ['key' => 'webpush', 'label' => 'Push', 'icon' => 'bi-bell', 'ok' => SettingsService::isGroupConfigured('webpush')],
     ['key' => 'google', 'label' => 'Google', 'icon' => 'bi-google', 'ok' => SettingsService::isGroupConfigured('google')],
 ];
 
@@ -182,6 +206,7 @@ if ($error): ?>
             <a href="#stripe" class="active"><i class="bi bi-credit-card"></i> Stripe</a>
             <a href="#clover"><i class="bi bi-shop"></i> Clover POS</a>
             <a href="#smtp"><i class="bi bi-envelope"></i> Email SMTP</a>
+            <a href="#webpush"><i class="bi bi-bell"></i> Browser push</a>
             <a href="#google"><i class="bi bi-google"></i> Google Auth</a>
             <a href="#store"><i class="bi bi-geo-alt"></i> Store info</a>
             <a href="#theme"><i class="bi bi-palette"></i> Theme</a>
@@ -377,6 +402,61 @@ if ($error): ?>
                                 <i class="bi bi-send"></i> Send test
                             </button>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-section" id="webpush">
+                <div class="settings-section-head">
+                    <h2><i class="bi bi-bell"></i> Browser push notifications</h2>
+                    <p>Notify signed-in admins in the browser for new orders and “I'm Here” arrivals.</p>
+                </div>
+                <div class="settings-section-body">
+                    <div class="admin-callout">
+                        Keys are stored encrypted in Settings. After generating keys, click <strong>Enable on this device</strong> while logged into admin (HTTPS required).
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <div class="admin-field">
+                                <label>VAPID subject (contact email)</label>
+                                <input
+                                    type="text"
+                                    name="vapid_subject"
+                                    class="admin-input"
+                                    value="<?= e($values['vapid_subject'] ?: '') ?>"
+                                    placeholder="mailto:you@example.com"
+                                >
+                                <div class="hint">Used to identify your app to browser push services.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" form="generate-vapid-form" class="admin-btn admin-btn-outline w-100 mb-3">
+                                <i class="bi bi-key"></i> Generate VAPID keys
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label>Public key</label>
+                                <input type="text" name="vapid_public_key" class="admin-input" value="<?= e($values['vapid_public_key'] ?? '') ?>" placeholder="Generated or paste">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="admin-field">
+                                <label>Private key</label>
+                                <input type="password" name="vapid_private_key" class="admin-input" placeholder="<?= ($values['vapid_private_key'] ?? '') !== '' ? 'Leave blank to keep existing' : 'Generated or paste' ?>" autocomplete="off">
+                                <div class="hint">Leave blank to keep the existing private key.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <button type="button" class="admin-btn admin-btn-primary" id="adminPushEnableBtn">
+                            <i class="bi bi-bell"></i> Enable on this device
+                        </button>
+                        <button type="button" class="admin-btn admin-btn-outline" id="adminPushDisableBtn">
+                            Disable on this device
+                        </button>
+                        <span class="hint mb-0" id="adminPushStatus">Checking notification status…</span>
                     </div>
                 </div>
             </section>
@@ -664,6 +744,10 @@ if ($error): ?>
 <form method="post" id="test-email-form" class="d-none">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="test_email">
+</form>
+<form method="post" id="generate-vapid-form" class="d-none">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="generate_vapid">
 </form>
 
 <script>
