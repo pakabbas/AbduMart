@@ -60,7 +60,12 @@ $storeClosed = !$storeStatus['open'];
                     Canton delivery · <?= e(format_money(delivery_min_order_amount())) ?> minimum
                 </div>
             </div>
-            <a href="<?= e(is_logged_in() ? asset_url('checkout.php') : asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn"><?= is_logged_in() ? 'Checkout' : 'Sign in to checkout' ?></a>
+            <a href="<?= e(asset_url('checkout.php')) ?>" class="btn btn-danger w-100 btn-lg" id="floatingCartCheckoutBtn"><?= is_logged_in() ? 'Checkout' : 'Checkout as guest' ?></a>
+            <?php if (!is_logged_in()): ?>
+            <p class="small text-muted text-center mt-2 mb-0">
+                Or <a href="<?= e(asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>">sign in</a>
+            </p>
+            <?php endif; ?>
             <a href="<?= e(asset_url('cart.php')) ?>" class="btn btn-link w-100 mt-2 small">View full cart</a>
         </div>
         <div class="floating-cart-panel-footer" id="floatingCartFooterClosed" hidden>

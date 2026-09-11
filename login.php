@@ -44,7 +44,7 @@ require __DIR__ . '/includes/header.php';
             <div class="auth-card card border-0 shadow">
                 <div class="card-body p-4 p-md-5">
                     <h1 class="h3 mb-1">Welcome back</h1>
-                    <p class="text-muted mb-4">Sign in to checkout and track your curbside orders.</p>
+                    <p class="text-muted mb-4">Sign in to track orders, or continue as a guest at checkout.</p>
                     <?php if ($error): ?>
                     <div class="alert alert-danger"><?= e($error) ?></div>
                     <?php endif; ?>
@@ -66,6 +66,9 @@ require __DIR__ . '/includes/header.php';
                     </form>
                     <p class="text-center mt-4 mb-0 small">
                         New to Abdu Market? <a href="register.php" class="text-danger">Create an account</a>
+                        <?php if (str_contains((string) $redirect, 'checkout.php')): ?>
+                        · <a href="checkout.php" class="text-danger">Checkout as guest</a>
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>

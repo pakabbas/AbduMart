@@ -95,8 +95,10 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <button type="button" class="btn btn-secondary w-100 btn-lg" disabled>Checkout unavailable</button>
                     <?php elseif (!is_logged_in()): ?>
-                    <a href="login.php?redirect=<?= urlencode('checkout.php') ?>" class="btn btn-danger w-100 btn-lg">Sign in to checkout</a>
-                    <p class="small text-muted mt-2 mb-0 text-center">Create an account or sign in to place your order.</p>
+                    <a href="checkout.php" class="btn btn-danger w-100 btn-lg">Checkout as guest</a>
+                    <p class="small text-muted mt-2 mb-0 text-center">
+                        Or <a href="login.php?redirect=<?= urlencode('checkout.php') ?>">sign in</a> if you already have an account.
+                    </p>
                     <?php else: ?>
                     <a href="checkout.php" class="btn btn-danger w-100 btn-lg">Proceed to Checkout</a>
                     <?php endif; ?>
