@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
-require_login();
 
 use App\CloverCheckoutService;
 use App\StripeService;
 
+$isGuest = !is_logged_in();
 $user = current_user();
-$userId = (int) $user['id'];
+$userId = $user ? (int) $user['id'] : null;
 $fulfillment = fulfillment_mode();
 if (!delivery_enabled()) {
     $fulfillment = 'pickup';
@@ -21,8 +21,11 @@ if (isset($_POST['fulfillment_type']) && in_array($_POST['fulfillment_type'], ['
 }
 $cart = get_cart_totals($userId, $fulfillment);
 $error = '';
+$guestEmailValue = trim((string) ($_POST['guest_email'] ?? ''));
+$guestFirstNameValue = trim((string) ($_POST['guest_first_name'] ?? ''));
+$guestLastNameValue = trim((string) ($_POST['guest_last_name'] ?? ''));
 $phoneValue = trim($_POST['phone'] ?? (string) ($user['phone'] ?? ''));
-$needsPhone = trim((string) ($user['phone'] ?? '')) === '';
+$needsPhone = !$isGuest && trim((string) ($user['phone'] ?? '')) === '';
 $allowPayOnArrival = pay_on_arrival_enabled();
 $cloverPay = new CloverCheckoutService();
 $stripePay = new StripeService();
@@ -43,18 +46,20 @@ $stateValue = trim((string) ($_POST['delivery_state'] ?? 'MI'));
 $zipValue = trim((string) ($_POST['delivery_zip'] ?? ''));
 
 $lastVehicle = '';
-$lastVehicleStmt = db()->prepare(
-    "SELECT vehicle_description
-     FROM orders
-     WHERE user_id = ?
-       AND vehicle_description IS NOT NULL
-       AND TRIM(vehicle_description) != ''
-       AND status != 'cancelled'
-     ORDER BY created_at DESC
-     LIMIT 1"
-);
-$lastVehicleStmt->execute([$userId]);
-$lastVehicle = trim((string) ($lastVehicleStmt->fetchColumn() ?: ''));
+if ($userId) {
+    $lastVehicleStmt = db()->prepare(
+        "SELECT vehicle_description
+         FROM orders
+         WHERE user_id = ?
+           AND vehicle_description IS NOT NULL
+           AND TRIM(vehicle_description) != ''
+           AND status != 'cancelled'
+         ORDER BY created_at DESC
+         LIMIT 1"
+    );
+    $lastVehicleStmt->execute([$userId]);
+    $lastVehicle = trim((string) ($lastVehicleStmt->fetchColumn() ?: ''));
+}
 $vehicleMakeValue = trim((string) ($_POST['vehicle_make'] ?? ''));
 $vehicleModelValue = trim((string) ($_POST['vehicle_model'] ?? ''));
 $vehicleDetailsValue = trim((string) ($_POST['vehicle_details'] ?? $lastVehicle));
@@ -78,9 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fulfillment = 'pickup';
         }
         set_fulfillment_mode($fulfillment);
-        $cart = get_cart_totals($userId, $fulfillment);
-        $deliveryFee = (float) $cart['delivery_fee'];
-        $deliveryRemaining = max(0.0, round((float) $cart['delivery_min_order'] - (float) $cart['subtotal'], 2));
 
         $pickupNotes = trim($_POST['pickup_notes'] ?? '');
         $vehicleMake = trim((string) ($_POST['vehicle_make'] ?? ''));
@@ -89,9 +91,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $vehicleParts = array_values(array_filter([$vehicleMake, $vehicleModel, $vehicleDetails], static fn ($p) => $p !== ''));
         $vehicle = implode(' · ', $vehicleParts);
         $phone = trim($_POST['phone'] ?? '');
-        $phoneError = validate_customer_phone($phone);
-        if ($phoneError !== null) {
-            $error = $phoneError;
+        $guestEmailValue = trim((string) ($_POST['guest_email'] ?? ''));
+        $guestFirstNameValue = trim((string) ($_POST['guest_first_name'] ?? ''));
+        $guestLastNameValue = trim((string) ($_POST['guest_last_name'] ?? ''));
+
+        if ($isGuest) {
+            try {
+                $user = ensure_guest_checkout_user(
+                    $guestEmailValue,
+                    $guestFirstNameValue,
+                    $guestLastNameValue,
+                    $phone
+                );
+                login_user($user);
+                $isGuest = false;
+                $userId = (int) $user['id'];
+                // current_user() is statically cached as null for guests — refresh from session.
+                $user = get_user_by_id($userId) ?? $user;
+            } catch (InvalidArgumentException $e) {
+                $error = $e->getMessage();
+            }
+        } else {
+            $phoneError = validate_customer_phone($phone);
+            if ($phoneError !== null) {
+                $error = $phoneError;
+            }
+        }
+
+        $cart = get_cart_totals($userId, $fulfillment);
+        $deliveryFee = (float) $cart['delivery_fee'];
+        $deliveryRemaining = max(0.0, round((float) $cart['delivery_min_order'] - (float) $cart['subtotal'], 2));
+        if ($error === '' && empty($cart['items'])) {
+            $error = 'Your cart is empty.';
         }
 
         $addr1 = trim((string) ($_POST['delivery_address_line1'] ?? ''));
@@ -104,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cityValue = $city !== '' ? $city : 'Canton';
         $stateValue = $state !== '' ? $state : 'MI';
         $zipValue = $zip;
+        $phoneValue = $phone;
 
         if ($error === '' && $fulfillment === 'delivery') {
             if (!$deliveryEnabled) {
@@ -142,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $paymentChoice = $allowedPayments[0] ?? $defaultPayment;
         }
 
-        if ($error === '') {
+        if ($error === '' && $userId) {
         $pdo = db();
         $pdo->beginTransaction();
         try {
@@ -207,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pdo->prepare('DELETE FROM cart_items WHERE user_id = ?')->execute([$userId]);
+            clear_guest_cart();
 
             if ($paymentChoice === 'arrival') {
                 $pdo->commit();
@@ -275,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
 
-            $session = $stripePay->createCheckoutSession($orderId, $lineItems, $cart['total'], $user['email']);
+            $session = $stripePay->createCheckoutSession($orderId, $lineItems, $cart['total'], (string) $user['email']);
             $pdo->prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?')->execute([$session->id, $orderId]);
 
             $pdo->commit();
@@ -288,6 +321,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$showGuestFields = !is_logged_in();
 
 $pageTitle = 'Checkout';
 require __DIR__ . '/includes/header.php';
@@ -333,7 +368,14 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <?php endif; ?>
                     <?php if ($error): ?>
-                    <div class="alert alert-danger"><?= e($error) ?></div>
+                    <div class="alert alert-danger">
+                        <?= e($error) ?>
+                        <?php if (str_contains($error, 'already exists for this email')): ?>
+                        <div class="mt-2 mb-0">
+                            <a class="alert-link" href="<?= e(asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>">Sign in to continue</a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
                     <?php endif; ?>
                     <?php if ($fulfillment === 'delivery' && !$cart['meets_delivery_minimum']): ?>
                     <div class="alert alert-warning checkout-delivery-minimum">
@@ -349,7 +391,31 @@ require __DIR__ . '/includes/header.php';
                         <?= csrf_field() ?>
                         <input type="hidden" name="fulfillment_type" value="<?= e($fulfillment) ?>">
                         <fieldset<?= $storeClosed ? ' disabled' : '' ?>>
-                        <?php if ($needsPhone): ?>
+                        <?php if ($showGuestFields): ?>
+                        <div class="mb-4">
+                            <h2 class="h5 mb-2">Checkout as guest</h2>
+                            <p class="text-muted small mb-3">
+                                Enter your contact details to place this order.
+                                Already have an account?
+                                <a href="<?= e(asset_url('login.php?redirect=' . rawurlencode('checkout.php'))) ?>">Sign in</a>
+                            </p>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="guest_first_name">First name</label>
+                                    <input type="text" id="guest_first_name" name="guest_first_name" class="form-control" required autocomplete="given-name" value="<?= e($guestFirstNameValue) ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="guest_last_name">Last name</label>
+                                    <input type="text" id="guest_last_name" name="guest_last_name" class="form-control" required autocomplete="family-name" value="<?= e($guestLastNameValue) ?>">
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label" for="guest_email">Email</label>
+                                <input type="email" id="guest_email" name="guest_email" class="form-control" required autocomplete="email" placeholder="you@example.com" value="<?= e($guestEmailValue) ?>">
+                                <div class="form-text">We'll send your order confirmation here.</div>
+                            </div>
+                        </div>
+                        <?php elseif ($needsPhone): ?>
                         <div class="alert alert-info">
                             <i class="bi bi-telephone me-1"></i>
                             Please add your phone number so we can reach you about your order.

@@ -229,6 +229,76 @@ function register_user(string $email, string $password, string $firstName, strin
     ];
 }
 
+/**
+ * Create or reuse a passwordless customer account for guest checkout.
+ * Existing accounts that already have a password or Google login must sign in.
+ *
+ * @return array{id:int,email:string,first_name:string,last_name:string,phone:?string,role:string}
+ */
+function ensure_guest_checkout_user(string $email, string $firstName, string $lastName, string $phone): array
+{
+    $email = strtolower(trim($email));
+    $firstName = trim($firstName);
+    $lastName = trim($lastName);
+    $phone = trim($phone);
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Enter a valid email address.');
+    }
+    if ($firstName === '' || $lastName === '') {
+        throw new InvalidArgumentException('Enter your first and last name.');
+    }
+    $phoneError = validate_customer_phone($phone);
+    if ($phoneError !== null) {
+        throw new InvalidArgumentException($phoneError);
+    }
+
+    $stmt = db()->prepare(
+        'SELECT id, email, first_name, last_name, phone, role, password_hash, google_id, email_verified_at
+         FROM users WHERE email = ? LIMIT 1'
+    );
+    $stmt->execute([$email]);
+    $existing = $stmt->fetch() ?: null;
+
+    if ($existing) {
+        $hasPassword = trim((string) ($existing['password_hash'] ?? '')) !== '';
+        $hasGoogle = trim((string) ($existing['google_id'] ?? '')) !== '';
+        if ($hasPassword || $hasGoogle) {
+            throw new InvalidArgumentException(
+                'An account already exists for this email. Please sign in to checkout.'
+            );
+        }
+
+        db()->prepare(
+            'UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE id = ?'
+        )->execute([$firstName, $lastName, $phone, (int) $existing['id']]);
+
+        return [
+            'id' => (int) $existing['id'],
+            'email' => (string) $existing['email'],
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'phone' => $phone,
+            'role' => (string) ($existing['role'] ?? 'customer'),
+        ];
+    }
+
+    $stmt = db()->prepare(
+        'INSERT INTO users (email, password_hash, first_name, last_name, phone, email_verified_at, role)
+         VALUES (?, NULL, ?, ?, ?, NULL, ?)'
+    );
+    $stmt->execute([$email, $firstName, $lastName, $phone, 'customer']);
+
+    return [
+        'id' => (int) db()->lastInsertId(),
+        'email' => $email,
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'phone' => $phone,
+        'role' => 'customer',
+    ];
+}
+
 function count_admin_users(): int
 {
     $stmt = db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
