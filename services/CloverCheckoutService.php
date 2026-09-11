@@ -40,6 +40,10 @@ class CloverCheckoutService
 
         $order = $this->getOrder($orderId);
         $baseUrl = rtrim((string) config('app.url'), '/');
+        $fulfillmentType = (string) ($order['fulfillment_type'] ?? 'pickup');
+        $sourceNote = $fulfillmentType === 'delivery'
+            ? 'Delivery order from Abdu Mart Website'
+            : 'Pickup order from Abdu Mart Website';
 
         $lineItems = [];
         foreach ($cartItems as $item) {
@@ -47,6 +51,7 @@ class CloverCheckoutService
                 'name' => (string) $item['name'],
                 'price' => (int) round(((float) $item['price']) * 100),
                 'unitQty' => max(1, (int) $item['quantity']),
+                'note' => $sourceNote,
             ];
         }
 
@@ -55,6 +60,7 @@ class CloverCheckoutService
                 'name' => 'Sales Tax',
                 'price' => (int) round($tax * 100),
                 'unitQty' => 1,
+                'note' => $sourceNote,
             ];
         }
 
@@ -63,6 +69,7 @@ class CloverCheckoutService
                 'name' => 'Delivery Fee',
                 'price' => (int) round($deliveryFee * 100),
                 'unitQty' => 1,
+                'note' => $sourceNote,
             ];
         }
 
