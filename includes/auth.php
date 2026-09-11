@@ -627,7 +627,10 @@ function send_order_confirmation_email(int $orderId): void
 
 function notify_admins_new_order(int $orderId): void
 {
-    if (get_admin_notify_emails() === []) {
+    $hasEmails = get_admin_notify_emails() !== [];
+    $pushReady = db_has_table('push_subscriptions');
+
+    if (!$hasEmails && !$pushReady) {
         return;
     }
 
@@ -657,19 +660,39 @@ function notify_admins_new_order(int $orderId): void
     $itemsStmt->execute([$orderId]);
     $items = $itemsStmt->fetchAll();
 
+    if ($hasEmails) {
+        try {
+            $mail = new MailService();
+            if ($mail->isConfigured()) {
+                $mail->sendAdminNewOrderNotification($order, $user, $items);
+            }
+        } catch (Throwable) {
+            // Do not block order flow if admin email fails
+        }
+    }
+
     try {
-        $mail = new MailService();
-        if ($mail->isConfigured()) {
-            $mail->sendAdminNewOrderNotification($order, $user, $items);
+        $push = new \App\WebPushService();
+        if ($push->isConfigured()) {
+            $fulfillment = ((string) ($order['fulfillment_type'] ?? 'pickup')) === 'delivery' ? 'Delivery' : 'Pickup';
+            $push->sendToAdmins([
+                'title' => 'New ' . $fulfillment . ' order',
+                'body' => ($order['order_number'] ?? '') . ' · ' . trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')),
+                'url' => '/admin/orders.php?id=' . (int) $orderId,
+                'tag' => 'order-' . (int) $orderId,
+            ]);
         }
     } catch (Throwable) {
-        // Do not block order flow if admin email fails
+        // Do not block order flow if push fails
     }
 }
 
 function notify_admins_customer_here(int $orderId): void
 {
-    if (get_admin_notify_emails() === []) {
+    $hasEmails = get_admin_notify_emails() !== [];
+    $pushReady = db_has_table('push_subscriptions');
+
+    if (!$hasEmails && !$pushReady) {
         return;
     }
 
@@ -687,12 +710,29 @@ function notify_admins_customer_here(int $orderId): void
         return;
     }
 
+    if ($hasEmails) {
+        try {
+            $mail = new MailService();
+            if ($mail->isConfigured()) {
+                $mail->sendAdminCustomerHereNotification($order, $user);
+            }
+        } catch (Throwable) {
+            // Do not block check-in if admin email fails
+        }
+    }
+
     try {
-        $mail = new MailService();
-        if ($mail->isConfigured()) {
-            $mail->sendAdminCustomerHereNotification($order, $user);
+        $push = new \App\WebPushService();
+        if ($push->isConfigured()) {
+            $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+            $push->sendToAdmins([
+                'title' => "Customer is here",
+                'body' => ($order['order_number'] ?? '') . ' · ' . $name,
+                'url' => '/admin/orders.php?id=' . (int) $orderId,
+                'tag' => 'here-' . (int) $orderId,
+            ]);
         }
     } catch (Throwable) {
-        // Do not block check-in if admin email fails
+        // Do not block check-in if push fails
     }
 }
