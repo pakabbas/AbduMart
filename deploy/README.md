@@ -1,104 +1,72 @@
-# Deployment — GCP VM + GitHub Actions
+# Deployment — Hostinger + GitHub Actions
 
-**Live URL:** https://abdumarket.spiralloopstechnologies.com  
-**Server:** `muhamad_abbas@34.41.10.28`  
-**Deploy path:** `/var/www/abdumart`
+**Live URL:** https://abdu.btkdeals.com/  
+**SSH:** `u229715236@157.173.209.199` port `65002`  
+**Deploy path (only):** `domains/btkdeals.com/public_html/abdu`  
 
-## GitHub Secrets (already configured)
+This workflow deploys **only** the Abdu Mart site. It will refuse any other Hostinger path.
+
+## GitHub Secrets
 
 | Secret | Value |
 |--------|-------|
-| `GCP2_SSH_PRIVATE_KEY` | Full private key (`id_rsa` or deploy key) |
-| `GCP2_SSH_HOST` | `34.41.10.28` |
-| `GCP2_SSH_USER` | `muhamad_abbas` |
-| `GCP2_DEPLOY_PATH` | *(optional)* defaults to `/var/www/abdumart` |
+| `HOSTINGER_SSH_HOST` | `157.173.209.199` |
+| `HOSTINGER_SSH_PORT` | `65002` |
+| `HOSTINGER_SSH_USER` | `u229715236` |
+| `HOSTINGER_SSH_PRIVATE_KEY` | Contents of `hostinger_btkdeals_ed25519` |
+| `HOSTINGER_DEPLOY_PATH` | `domains/btkdeals.com/public_html/abdu` |
 
-## One-time VM setup (run once on the server)
+## One-time server setup
 
-SSH into the VM:
-
-```bash
-ssh muhamad_abbas@34.41.10.28
-```
-
-Clone the repo and run the setup script:
+1. Ensure subdomain `abdu.btkdeals.com` points at  
+   `domains/btkdeals.com/public_html/abdu` (already mapped).
+2. Create MySQL database/user in hPanel.
+3. Create `.env` in the deploy path (never commit it):
 
 ```bash
-git clone https://github.com/pakabbas/AbduMart.git /var/www/abdumart
-cd /var/www/abdumart
-git checkout main
-bash deploy/server-setup.sh
+ssh -p 65002 -i hostinger_btkdeals_ed25519 u229715236@157.173.209.199
+cd ~/domains/btkdeals.com/public_html/abdu
+cp .env.example .env
+nano .env
 ```
 
-Then:
+Set at least:
 
-1. **Edit environment:**
-   ```bash
-   nano /var/www/abdumart/.env
-   ```
-   Set `APP_URL=https://abdumarket.spiralloopstechnologies.com`, database credentials, and `APP_KEY`.
+```env
+APP_URL=https://abdu.btkdeals.com
+APP_ENV=production
+APP_KEY=<long-random-secret>
+DB_HOST=localhost
+DB_NAME=u229715236_abdu
+DB_USER=u229715236_abdu
+DB_PASS=<your-db-password>
+```
 
-2. **Create database:**
-   ```bash
-   mysql -u root -p < /var/www/abdumart/database/schema.sql
-   mysql -u root -p < /var/www/abdumart/database/seed.sql
-   ```
+4. Import schema / run migrations:
 
-3. **Enable HTTPS:**
-   ```bash
-   sudo certbot --nginx -d abdumarket.spiralloopstechnologies.com
-   ```
+```bash
+mysql -u u229715236_abdu -p u229715236_abdu < database/schema.sql
+mysql -u u229715236_abdu -p u229715236_abdu < database/seed.sql
+php scripts/migrate.php
+```
 
-4. **Merge app code to `main`** on GitHub (if not already) so the workflow file exists on the server after first pull.
-
-5. **Update external callbacks** to the new origin:
-   - Google OAuth redirect URI: `https://abdumarket.spiralloopstechnologies.com/auth/google-callback.php`
-   - Stripe webhook endpoint: `https://abdumarket.spiralloopstechnologies.com/stripe-webhook.php`
-   - Clover Hosted Checkout webhook: `https://abdumarket.spiralloopstechnologies.com/clover-webhook.php`
+5. Update external callbacks to the new origin:
+   - Google OAuth: `https://abdu.btkdeals.com/auth/google-callback.php`
+   - Stripe webhook: `https://abdu.btkdeals.com/stripe-webhook.php`
+   - Clover webhook: `https://abdu.btkdeals.com/clover-webhook.php`
 
 ## Auto-deploy
 
-Every **push to `main`** triggers `.github/workflows/deploy.yml`, which:
+Every **push to `main`** runs `.github/workflows/deploy.yml`, which:
 
-1. SSHs into the GCP VM
-2. Runs `git pull` on `/var/www/abdumart`
-3. Runs `composer install --no-dev`
-4. Runs `php scripts/migrate.php` (applies pending SQL migrations)
-5. Reloads PHP-FPM and Nginx
+1. Rsyncs the repo to `domains/btkdeals.com/public_html/abdu` only
+2. Runs `composer install --no-dev`
+3. Runs `php scripts/migrate.php`
 
-You can also trigger a deploy manually: **GitHub → Actions → Deploy to GCP → Run workflow**.
+`.env` and `assets/uploads/` are preserved across deploys.
 
-## Verify deployment
+## Verify
 
 ```bash
-# On your machine
-curl -I https://abdumarket.spiralloopstechnologies.com
-
-# On the server
-tail -f /var/log/nginx/error.log
+curl -I https://abdu.btkdeals.com/
 ```
-
-## Troubleshooting
-
-| Issue | Fix |
-|-------|-----|
-| Permission denied (SSH) | Ensure public key is on VM in `~/.ssh/authorized_keys` |
-| `git pull` fails | Run setup script; ensure deploy path is a git clone |
-| 502 Bad Gateway | `sudo systemctl status php8.3-fpm nginx` (or `php8.2-fpm`) |
-| `.env` missing | Copy from `.env.example` and configure |
-| Workflow not running | Workflow only runs on pushes to **`main`** |
-| Deploy fails on `chmod ... assets/uploads` | `assets/uploads` is owned by `www-data`; deploy script now skips/tolerates this (see `deploy/deploy.sh`) |
-
-## Hourly Clover sync (while store is open)
-
-On the server, add a cron job so Clover syncs every hour during store hours (the script skips when closed):
-
-```bash
-sudo crontab -e
-```
-
-```cron
-0 * * * * cd /var/www/abdumart && /usr/bin/php scripts/clover-sync.php >> /var/log/abdumart-clover-sync.log 2>&1
-```
-
-Configure weekly hours and holidays in **Admin → Settings → Hours & holidays**.

@@ -147,24 +147,26 @@ php -r "require 'includes/bootstrap.php'; (new App\CloverService())->syncAll();"
 3. Update order status (preparing → ready → picked up)
 4. Sync products from Clover POS as needed
 
-## Production deployment (GCP)
+## Production deployment (Hostinger)
 
-Live site: **https://abdumarket.spiralloopstechnologies.com**
+Live site: **https://abdu.btkdeals.com/**
 
 ### CI/CD
 
-Pushes to **`main`** auto-deploy via GitHub Actions (`.github/workflows/deploy.yml`).
+Pushes to **`main`** auto-deploy via GitHub Actions (`.github/workflows/deploy.yml`) to Hostinger path  
+`domains/btkdeals.com/public_html/abdu` only.
 
 **Required GitHub secrets:**
 
 | Secret | Description |
 |--------|-------------|
-| `GCP2_SSH_PRIVATE_KEY` | SSH private key for the VM |
-| `GCP2_SSH_HOST` | VM IP (`34.41.10.28`) |
-| `GCP2_SSH_USER` | SSH user (`muhamad_abbas`) |
-| `GCP2_DEPLOY_PATH` | *(optional)* default `/var/www/abdumart` |
+| `HOSTINGER_SSH_PRIVATE_KEY` | Hostinger SSH private key |
+| `HOSTINGER_SSH_HOST` | `157.173.209.199` |
+| `HOSTINGER_SSH_USER` | `u229715236` |
+| `HOSTINGER_SSH_PORT` | `65002` |
+| `HOSTINGER_DEPLOY_PATH` | `domains/btkdeals.com/public_html/abdu` |
 
-See **[deploy/README.md](deploy/README.md)** for one-time server setup, HTTPS, and troubleshooting.
+See **[deploy/README.md](deploy/README.md)** for one-time `.env` / database setup and troubleshooting.
 
 ## License
 

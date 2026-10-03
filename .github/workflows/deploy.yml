@@ -1,4 +1,4 @@
-name: Deploy to GCP
+name: Deploy to Hostinger
 
 on:
   push:
@@ -7,42 +7,97 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-gcp-production
+  group: deploy-hostinger-abdu
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Deploy to abdumarket.spiralloopstechnologies.com
+    name: Deploy to abdu.btkdeals.com
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over SSH
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/hostinger_key
+          chmod 600 ~/.ssh/hostinger_key
+          PORT="${PORT:-65002}"
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rsync app to Hostinger (abdu only)
+        env:
+          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${PORT:-65002}"
+          REMOTE_PATH="${REMOTE_PATH:-domains/btkdeals.com/public_html/abdu}"
+          # Safety: only allow this project's Hostinger path
+          if [[ "$REMOTE_PATH" != "domains/btkdeals.com/public_html/abdu" && "$REMOTE_PATH" != "domains/abdu.btkdeals.com/public_html" ]]; then
+            echo "Refusing unexpected REMOTE_PATH: $REMOTE_PATH"
+            exit 1
+          fi
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/hostinger_key -p $PORT -o StrictHostKeyChecking=accept-new" \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.cursor/' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'vendor/' \
+            --exclude 'node_modules/' \
+            --exclude 'assets/uploads/' \
+            --exclude 'uploads/' \
+            --exclude 'deploy/server-setup.sh' \
+            ./ "${USER}@${HOST}:${REMOTE_PATH}/"
+
+      - name: Remote composer + migrations
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.GCP2_SSH_HOST }}
-          username: ${{ secrets.GCP2_SSH_USER }}
-          key: ${{ secrets.GCP2_SSH_PRIVATE_KEY }}
-          port: 22
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: 65002
           script_stop: true
           command_timeout: 15m
           script: |
             set -e
-            DEPLOY_PATH="/var/www/abdumart"
-            if [ -n "${{ secrets.GCP2_DEPLOY_PATH }}" ]; then
-              DEPLOY_PATH="${{ secrets.GCP2_DEPLOY_PATH }}"
+            DEPLOY_PATH="domains/btkdeals.com/public_html/abdu"
+            # Safety: never touch other Hostinger sites
+            case "$DEPLOY_PATH" in
+              domains/btkdeals.com/public_html/abdu|domains/abdu.btkdeals.com/public_html) ;;
+              *) echo "Refusing unexpected deploy path: $DEPLOY_PATH"; exit 1 ;;
+            esac
+            cd "$HOME/$DEPLOY_PATH"
+            echo "==> Deploy path: $(pwd)"
+            if [ ! -f .env ]; then
+              echo "WARNING: .env missing — copy from .env.example and configure DB before site will work."
             fi
-            export DEPLOY_PATH
-            cd "$DEPLOY_PATH"
-            echo "==> Syncing latest main before deploy..."
-            git fetch origin main
-            if [ -d "$DEPLOY_PATH/assets/uploads" ]; then
-              sudo chown -R "$(id -u):$(id -g)" "$DEPLOY_PATH/assets/uploads" 2>/dev/null || true
+            mkdir -p assets/uploads
+            chmod 775 assets/uploads 2>/dev/null || true
+            if command -v composer >/dev/null 2>&1; then
+              composer install --no-dev --optimize-autoloader --no-interaction
+            else
+              echo "composer not found"
+              exit 1
             fi
-            git reset --hard origin/main
-            bash deploy/deploy.sh
+            php scripts/migrate.php || true
+            # Ensure uploads stays writable
+            chmod -R ug+rwX assets/uploads 2>/dev/null || true
+            echo "==> Hostinger deploy finished at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 
       - name: Deployment summary
         run: |
-          echo "Deployed to https://abdumarket.spiralloopstechnologies.com"
+          echo "Deployed to https://abdu.btkdeals.com/"
+          echo "Remote path: domains/btkdeals.com/public_html/abdu"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
